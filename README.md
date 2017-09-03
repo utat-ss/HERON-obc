@@ -19,8 +19,7 @@ Thanks to Matt Silverman for compiling this process. It's for Windows 10 - anyth
 10. Replace the avrdude.conf file with [this](https://pastebin.com/BvcVC8G9).
 11. Download and install the Pololu AVR Development Bundle for the v2 programmer [here](https://www.pololu.com/product/3170/resources). If you're using the older programmer, this might not work.
 12. Go to the makefile in the project folder, and change the port to match the port the pololu programmer is connected to. You can find this in Device manager > Ports. You want the programmer port, not the serial. Your makefile should have a line like this: ``` 
-PORT = COM7
-```
+PORT = COM7```
 13. Navigate to project folder using ```cd``` in the command prompt. Type ```make``` to compile and ```make upload``` to compile and program the 32M1
 14. To change the settings of the programmer, use the Pololu USB AVR Programmer Configuration Utility that you downloaded in 11. 
   
