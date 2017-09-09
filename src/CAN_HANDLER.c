@@ -14,24 +14,11 @@ void can_handler ( uint16_t identifier, uint8_t* pt_data, uint8_t size) {
 	switch(msg_id)
 	{
 
-		case msg_id == HK_DATA:
+		case HK_DATA:
 			print("Received HK Data");
 
 			break;
 
-		case command_2:
-		// code to be executed
-
-			break;
-
-		case command_3:
-		// code to be executed
-
-			break;
-
-		default:
-
-			return 0;
 			//Return error no command executed
 	}
 
