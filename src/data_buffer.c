@@ -8,7 +8,7 @@ void init_data_buffer(struct data_buffer* dptr){
   return;
 }
 
-void set_total_size(struct data_buffer* dptr,int size){
+void set_total_size(struct data_buffer* dptr,uint8_t size){
   dptr->total_size = size;
   return;
 }
@@ -26,7 +26,7 @@ int add_to_buffer(struct data_buffer* dptr, uint8_t data){
 }
 
 // check if the buffer is full or not (i.e. reach its max size)
-bool is_full(struct data_buffer* dptr){
+uint8_t is_full(struct data_buffer* dptr){
   return dptr->curr_size == dptr->total_size;
 }
 

@@ -4,7 +4,7 @@ PROG = stk500# the Pololu acts like the STK500
 MCU = m32m1
 
 INCLUDES = -I./lib-common/include/
-LIB = -L./lib-common/lib/ -lspi -luart -lcan
+LIB = -L./lib-common/lib/ -lspi -luart -lcan 
 
 # Change this line depending on your OS and the port used.
 PORT = COM3

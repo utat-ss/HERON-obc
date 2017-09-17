@@ -1,19 +1,27 @@
+#define HOUSEKEEPINGPACKET 24
 #define MAXBUFFERSIZE 32
 
 #include  <stdbool.h>
 #include  <stdint.h>
 
-// data buffer for commands
+// data buffer for housekeeping
 struct data_buffer{
   uint8_t buffer[MAXBUFFERSIZE];
-  int curr_size;
-  int total_size;
+  uint8_t curr_size;
+  uint8_t total_size;
+};
+
+// data buffer for misc. data
+struct housekeeping_data_buffer{
+  uint8_t buffer[HOUSEKEEPINGPACKET];
+  uint8_t curr_size;
+  uint8_t total_size;
 };
 
 void init_data_buffer(struct data_buffer* dptr);
-void set_total_size(struct data_buffer* dptr,int size);
-int add_to_buffer(struct data_buffer* dptr, uint8_t data);
-bool is_full(struct data_buffer* dptr);
+void set_total_size(struct data_buffer* dptr,uint8_t size);
+uint8_t add_to_buffer(struct data_buffer* dptr, uint8_t data);
+uint8_t is_full(struct data_buffer* dptr);
 void send_to_flash(struct data_buffer* dptr);
 
 /*

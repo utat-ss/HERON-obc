@@ -6,8 +6,7 @@
 #include <can/can.h>
 
 #include "data_buffer.h"
-
-struct data_buffer * data_buffer_pointer;
+#include "obc.h"
 
 void can_handler ( uint16_t identifier, uint8_t* pt_data, uint8_t size);
 
