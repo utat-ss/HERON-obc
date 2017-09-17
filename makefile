@@ -18,7 +18,7 @@ obc: $(OBJ)
 	avr-objcopy -j .text -j .data -O ihex ./build/$@.elf ./build/$@.hex
 
 ./build/%.o: ./src/%.c
-	$(CC) $(CFLAGS) -o $@ -c $^ $(INCLUDES)
+	$(CC) $(CFLAGS) -o $@ -c $< $(INCLUDES)
 
 -include $(DEP)
 
