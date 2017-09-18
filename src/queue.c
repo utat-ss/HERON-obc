@@ -9,17 +9,17 @@ void initQueue(struct Queue ** qPtr)
     *qPtr = Q;
 }
 
-int isEmpty(struct Queue * Q)
+uint8_t isEmpty(struct Queue * Q)
 {
     return Q->currSize == 0;
 }
 
-int isFull(struct Queue * Q)
+uint8_t isFull(struct Queue * Q)
 {
     return Q->currSize == MAXQUEUESIZE;
 }
 
-int enqueue(struct Queue * Q, struct Command c)
+uint8_t enqueue(struct Queue * Q, struct Command c)
 {
     if (!isFull(Q)){
         Q->queueArray[Q->rear].command = c;
@@ -32,7 +32,7 @@ int enqueue(struct Queue * Q, struct Command c)
     }
 }
 
-int dequeue(struct Queue * Q, struct Command * c)
+uint8_t dequeue(struct Queue * Q, struct Command * c)
 {
     if (!isEmpty(Q)){
         *c = Q->queueArray[Q->front].command;

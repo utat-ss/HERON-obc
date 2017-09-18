@@ -3,7 +3,6 @@
 
 #include "global_header.h"
 
-
 #define MAXQUEUESIZE 50
 
 struct Command {
@@ -15,20 +14,20 @@ struct Node{
 };
 
 struct Queue{
-    int currSize;
-    int front;
-    int rear;
+    uint8_t currSize;
+    uint8_t front;
+    uint8_t rear;
     struct Node queueArray[MAXQUEUESIZE];
 };
 
 void initQueue(struct Queue ** qPtr);
 
-int isEmpty(struct Queue * Q);
+uint8_t isEmpty(struct Queue * Q);
 
-int isFull(struct Queue * Q);
+uint8_t isFull(struct Queue * Q);
 
-int enqueue(struct Queue * Q, struct Command c);
+uint8_t enqueue(struct Queue * Q, struct Command c);
 
-int dequeue(struct Queue * Q, struct Command * c);
+uint8_t dequeue(struct Queue * Q, struct Command * c);
 
 #endif // QUEUE_H_INCLUDED
