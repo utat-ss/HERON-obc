@@ -1,5 +1,4 @@
-#include "can_handler.h"
-
+#include "global_header.h"
 // Returns 0 if no command executed
 void can_handler (uint16_t identifier, uint8_t* pt_data, uint8_t size) {
 

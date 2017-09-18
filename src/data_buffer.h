@@ -1,8 +1,10 @@
+#ifndef DATABUFFER
+#define DATABUFFER
+
 #define HOUSEKEEPINGPACKET 24
 #define MAXBUFFERSIZE 32
 
-#include  <stdbool.h>
-#include  <stdint.h>
+#include  "global_header.h"
 
 // data buffer for housekeeping
 struct data_buffer{
@@ -28,3 +30,4 @@ void send_to_flash(struct data_buffer* dptr);
     struct data_buffer data_packages;
     init_data_buffer(&data_packages);
 */
+#endif

@@ -1,4 +1,4 @@
-#include "data_buffer.h"
+#include "global_header.h"
 
 // initialize data buffer
 void init_data_buffer(struct data_buffer* dptr){
@@ -14,7 +14,7 @@ void set_total_size(struct data_buffer* dptr,uint8_t size){
 }
 
 // add new data to the buffer
-int add_to_buffer(struct data_buffer* dptr, uint8_t data){
+uint8_t add_to_buffer(struct data_buffer* dptr, uint8_t data){
   if (!is_full(dptr)){
     dptr->buffer[dptr->curr_size] = data;
     dptr->curr_size++;
