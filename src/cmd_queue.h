@@ -19,19 +19,19 @@ typedef struct command_t{
 	uint8_t data;
 } Command;
 
-typedef struct Node{
-	Command command;
-} Node;
+// typedef struct cmd_node{
+// 	Command command;
+// } Cmd_node;
 
-typedef struct Queue{
+typedef struct cmd_queue{
 	int currSize;
 	int front;
 	int rear;
-	Node queueArray[MAXSIZE];
-} Queue;
+	Command queueArray[MAXSIZE];
+} Cmd_queue;
 
-Queue initQueue();
-int isFull(Queue *Q);
-int isEmpty(Queue *Q);
-void enqueue(Queue *Q, void (*func)(uint8_t, uint8_t), uint8_t receiver, uint8_t data);
-Command dequeue(Queue *Q);
+Cmd_queue initQueue();
+int isFull(Cmd_queue *Q);
+int isEmpty(Cmd_queue *Q);
+void enqueue(Cmd_queue *Q, void (*func)(uint8_t, uint8_t), uint8_t receiver, uint8_t data);
+int dequeue(Cmd_queue *Q, Command* cmd);

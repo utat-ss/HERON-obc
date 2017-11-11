@@ -9,34 +9,29 @@ int main(void) {
     char msg[] = "OBC Requesting Housekeeping From All SSMs\n";
 
     // Generating command_queue
-    struct Queue * command_queue;
-    struct Command c;
+    Cmd_queue command_queue;
+    Command c;
 
     struct data_buffer databuffer;
     struct data_buffer * data_buffer_pointer  = &databuffer;
     struct housekeeping_data_buffer housekeepingbuffer;
     struct housekeeping_data_buffer * housekeeping_buffer = & housekeepingbuffer;
 
-    initQueue(&command_queue);
+    command_queue = initQueue();
 
-    //1. add time based commands (hk_req_all, request_science)
+    //1. add time based commands (hk_req_all, reques,&ctscience)
     //2. dequeue commands
 
     for (;;) {
 
-      if(dequeue(command_queue, &c) == 1) {
+
+      if(dequeue(&command_queue,&c)){
         print("Empty queue");
       } else {
         print("Dequeueing...");
-        // c is a uint16_t
-        // C is a struct defined in queue.h, only element is uint_32t
-        uint16_t command_sending = c.command_to_send;
-        // Data array will be empty, only sending command, only identifier needed
-        uint8_t data[] = {};
-
-        send_command(command_sending);
+        (*c.func)(c.receiver,c.data);
         // Sending can message i.e. sending the command
-        can_send_message(data, 0, command_sending);
+        // can_send_message(data, 0, command_sending);
       }
 
   }

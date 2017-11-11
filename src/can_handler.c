@@ -17,7 +17,7 @@ void can_handler (uint16_t identifier, uint8_t* pt_data, uint8_t size) {
 	{
 
 		case HK_DATA:
-			decode_HK_message(sender_id, message_id, pt_data, size);
+			decode_HK_message(sender_id, msg_id, pt_data, size);
 		break;
 
 		case SCI_REQ:

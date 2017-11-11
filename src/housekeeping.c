@@ -1,10 +1,10 @@
-#include 'housekeeping.h'
+#include "housekeeping.h"
 
 /*
   Take in a housekeeping CAN message from can_hanadler, place it into a
   housekeeping struct, place into the memory
 */
-void decode_HK_message (uint8_t sender_id, uint8_t message_id, uint8_t* pt_data, uint8_t size){
+void decode_HK_message (uint16_t sender_id, uint16_t message_id, uint8_t* pt_data, uint8_t size){
 
 
 }
