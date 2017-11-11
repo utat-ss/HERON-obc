@@ -4,6 +4,11 @@ int main(void) {
 
     init_uart();
 
+    print("starting main\n");
+
+    init_timer(1,hk_req_all);
+    init_timer(1,request_science);
+
     //Initializing Housekeeping timer
     uint8_t hk_req_flag = 0;
     char msg[] = "OBC Requesting Housekeeping From All SSMs\n";

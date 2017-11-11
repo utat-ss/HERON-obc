@@ -13,6 +13,7 @@ struct HK_packet {
 };
 
 void decode_HK_message (uint16_t sender_id, uint16_t message_id, uint8_t* pt_data, uint8_t size);
-void request_HK (uint8_t target);
+void request_HK (uint16_t target);
+void hk_req_all();
 
 #endif
