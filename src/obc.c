@@ -29,7 +29,6 @@ int main(void) {
 
     for (;;) {
 
-
       if(dequeue(&command_queue,&c)){
         print("Empty queue");
       } else {
