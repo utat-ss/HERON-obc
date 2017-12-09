@@ -7,7 +7,7 @@ int main(void) {
     print("starting main\n");
 
     init_timer(1,hk_req_all);
-    init_timer(1,request_science);
+    //init_timer(1,request_science);
 
     //Initializing Housekeeping timer
     uint8_t hk_req_flag = 0;
@@ -25,6 +25,11 @@ int main(void) {
     command_queue = initQueue();
 
     //1. add time based commands (hk_req_all, reques,&ctscience)
+    // enqueue(&command_queue,request_tc,1,2);
+    // enqueue(&command_queue,request_tc,3,4);
+    // enqueue(&command_queue,request_tc,5,6);
+    // enqueue(&command_queue,request_tc,7,8);
+
     //2. dequeue commands
 
     for (;;) {
@@ -39,37 +44,4 @@ int main(void) {
       }
 
   }
-}
-
-uint8_t send_command(uint16_t command) {
-
-  switch (command) {
-    case OBC_TX | ALL_RX | HK_DATA:
-
-      if(hk_all_received) {
-
-        // Can_send_message command for hk_req_all
-        uint8_t size = 0;
-        uint8_t data[] = {};
-        can_send_message(data, size, command);
-        hk_all_received = 0;
-
-      }
-
-      else {
-
-        // hk_req_all done, send message to flash
-          return 1;
-
-      }
-
-
-      break;
-
-    default:
-      return 1;
-
-  }
-
-
 }

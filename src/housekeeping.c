@@ -20,12 +20,12 @@ void decode_HK_message (uint16_t sender_id, uint16_t message_id, uint8_t* pt_dat
   Sends CAN message requesting housekeepign from all subsystems
 */
 void request_HK ( uint16_t target ){
-  if(target & ALL_RX)
+  // if(target & ALL_RX)
     print("hk_req_all success\n");
 
 }
 
 void hk_req_all(){
   print("about to request all\n");
-  request_HK(ALL_RX);
+  //request_HK(ALL_RX);
 }

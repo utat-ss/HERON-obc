@@ -1,52 +1,63 @@
-#include "global_header.h"
+#include "can_handler.h"
+
 // Returns 0 if no command executed
 void can_handler (uint16_t identifier, uint8_t* pt_data, uint8_t size) {
 
+	// // Bit masks defined in can.h to get sender_id, receiver_id, and msg_id
+	// uint16_t sender_id = identifier & TX_MASK;
+	// uint16_t receiver_id = identifier & RX_MASK;
+	// uint16_t msg_id = identifier & MSG_MASK;
+  //
+  //
+	// // Confirm RX == SSM, redundancy
+	// if(receiver_id != OBC_RX) return;
+  //
+	// /*
+  //
+	// The following are the definitions from can.h
+  //
+	// #define HK_DATA       0x0020
+	// #define HK_SENSOR     0x0024
+	// #define HK_REQ        0x0026
+	// #define HK_REQ_SENSOR 0x0028
+	// #define SCI_REQ       0x02A
+	// #define SCI_DATA      0x02C
+  //
+  // */
+  //
+	// // Predefinined commands
+	// switch(msg_id)
+	// {
+  //
+	// 	case HK_DATA:
+	// 		print("Received HK Data");
+  //
+	// 		// 2 Protocols - All & SSM specific
+  //
+	// 		// All
+  //
+	// 		// Checking receiver_id is unique for 3 different SSMs - flag when ssm is done
+  //
+	// 		// Protocol for housekeeping data, start byte of housekeeping will be representation of the amount of bytes to be sent in hex
+	// 		// Ensure all bytes are received using a count
+	// 		// End of houskeeping will be FF --> confirm?
+	// 		// pt_data[0] gives size
+	// 		// total count = pt_data[0]
+	// 		// total count - size = bytes to wait for, do not send to comms just yet
+  //
+	// 		// Remember after the first CAN message is sent another SSM can send a message but
+  //
+	// 		// Data buffer
+  //
+	// 		// Can send can message to comms when buffer is full but still wait for incoming messages, send by ssm
+  //
+  //
+	// 		break;
+	// 	default:
+	// 		print("Unknown CAN message.");
+  //
+	// 		//Return error no command executed
+	// }
 
-	// Bit masks defined in can.h to get sender_id, receiver_id, and msg_id
-	uint16_t sender_id = identifier & TX_MASK;
-	uint16_t receiver_id = identifier & RX_MASK;
-	uint16_t msg_id = identifier & MSG_MASK;
-
-
-	// Confirm RX == SSM, redundancy
-	if(receiver_id != OBC_RX) return;
-
-	// Predefinined commands
-	switch(msg_id)
-	{
-
-		case HK_DATA:
-			decode_HK_message(sender_id, msg_id, pt_data, size);
-		break;
-
-		case SCI_REQ:
-
-			// Redundancy
-			if(sender_id != PAY_TX) return;
-
-			// Find current size of the buffer
-			// Note: Check if buffer is full before hk_req_ssm
-
-			// Assuming buffer is not full, 8 bytes of space left (2 byte header + 3 sensors * 2 bytes of header)
-			// The header shall be HK_DATA | PAY_TX, i.e. 0x0020 | 0x0500
-
-			uint8_t index = data_buffer_pointer -> curr_size;
-			//Adding header
-			data_buffer_pointer -> buffer[index] = HK_DATA | PAY_TX;
-
-			for(size_t i = 1; i < 6; i++){
-				data_buffer_pointer -> buffer[index + i] = pt_data[i-1];
-			}
-
-			break;
-
-		default:
-			print("Unknown CAN message.");
-
-			//Return error no command executed
-	}
-
-	return;
 
 }

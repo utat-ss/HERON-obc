@@ -16,7 +16,7 @@
 #include "obc.h"
 #include "can_handler.h"
 #include "housekeeping.h"
-#include "science.h"
+#include "cmd_science.h"
 
 // Global variables, sorry, data buffer and housekeeping_data_buffer used in files can_handler and obc
 extern struct data_buffer * data_buffer_pointer;

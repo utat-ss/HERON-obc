@@ -1,4 +1,4 @@
-#include "command_science.h"
+#include "cmd_science.h"
 
 void request_science(){
   print("requesting science\n");
