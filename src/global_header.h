@@ -12,6 +12,7 @@
 #include <can/can.h>
 
 #include "cmd_queue.h"
+#include "cmd_comms.h"
 #include "data_buffer.h"
 #include "obc.h"
 #include "can_handler.h"
