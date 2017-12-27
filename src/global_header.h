@@ -11,8 +11,8 @@
 #include <uart/log.h>
 #include <can/can.h>
 
-#include "queue.h"
-#include "data_buffer.h"
+//#include "queue.h"
+//#include "data_buffer.h"
 #include "obc.h"
 //#include "can_handler.h"
 
