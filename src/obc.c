@@ -2,5 +2,4 @@
 
 int main(void) {
 
-    rtc_time_demo();
 }

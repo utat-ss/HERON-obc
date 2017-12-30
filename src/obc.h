@@ -12,5 +12,5 @@
 #include 	<can/can.h>
 
 #include 	"rtc.h"
-
+#include 	"mem.h"
 #endif
