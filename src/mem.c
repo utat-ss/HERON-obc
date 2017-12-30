@@ -1,7 +1,7 @@
 #include "mem.h"
 
 void mem_byte_write_demo(){
-	
+
     init_uart();
     init_spi();
     init_mem();
@@ -41,8 +41,6 @@ void mem_write_byte(uint32_t address, uint8_t data){
 	
 	mem_unlock(MEM_ALL_SECTORS); //change this at some point
 	mem_command_short (MEM_WR_ENABLE);
-	print("\r\nSTATUS: %x", mem_status_r());
-	print("\r\nADDRESS: %x %x %x",a1, a2, a3 );
 
 	set_cs_low(MEM_CS, &MEM_PORT);
 	send_spi(MEM_WR_BYTE);
@@ -53,9 +51,7 @@ void mem_write_byte(uint32_t address, uint8_t data){
 	set_cs_high(MEM_CS, &MEM_PORT);
 
 	mem_lock(MEM_ALL_SECTORS);
-	print("\r\nSTATUS: %x", mem_status_r());
 	mem_command_short(MEM_WR_DISABLE);
-	print("\r\nSTATUS: %x", mem_status_r());
 }
 
 uint8_t mem_read_byte(uint32_t address){
