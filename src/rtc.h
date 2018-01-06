@@ -37,6 +37,10 @@ time_t 	read_time	();
 void 	set_date	(date_t date);
 date_t 	read_date	();
 
+//Alarm functions
+uint8_t set_alarm(time_t time, date_t date, uint8_t alarm_number);
+uint8_t disable_alarm(uint8_t alarm_number);
+
 // Helper functions
 uint8_t bcd_to_dec	(uint8_t bcd);
 uint8_t dec_to_bcd	(uint8_t dec);

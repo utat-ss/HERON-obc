@@ -84,16 +84,16 @@ uint8_t set_alarm(time_t time, date_t date, uint8_t alarm_number){
 	RTC_CRT = rtc_read(RTC_CRT_R);
 	if (alarm_number == 1){
 		rtc_write(RTC_CRT_R, (RTC_CRT | _BV(A1IE)));
-		rtc_write(RTC_ALARM_1_SEC_R, (dec_to_bcd(time.ss));
-		rtc_write(RTC_ALARM_1_MIN_R, (dec_to_bcd(time.mm));
-		rtc_write(RTC_ALARM_1_HOUR_R, (dec_to_bcd(time.hh));
+		rtc_write(RTC_ALARM_1_SEC_R, dec_to_bcd(time.ss));
+		rtc_write(RTC_ALARM_1_MIN_R, dec_to_bcd(time.mm));
+		rtc_write(RTC_ALARM_1_HOUR_R, dec_to_bcd(time.hh));
 		rtc_write(RTC_ALARM_1_DAY_R, dec_to_bcd(date.dd));
 		return 1;
 	}
 	else if(alarm_number == 2)
 		rtc_write(RTC_CRT_R, (RTC_CRT | _BV(A2IE)));
-		rtc_write(RTC_ALARM_2_MIN_R, (dec_to_bcd(time.mm));
-		rtc_write(RTC_ALARM_2_HOUR_R, (dec_to_bcd(time.hh));
+		rtc_write(RTC_ALARM_2_MIN_R, dec_to_bcd(time.mm));
+		rtc_write(RTC_ALARM_2_HOUR_R, dec_to_bcd(time.hh));
 		rtc_write(RTC_ALARM_2_DAY_R, dec_to_bcd(date.dd));
 		return 1;
 	}
