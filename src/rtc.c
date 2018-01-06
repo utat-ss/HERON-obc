@@ -16,7 +16,7 @@ void rtc_time_demo(){
     d.mm = 12;
     d.yy = 17;
     set_date(d);
- 
+
     _delay_ms(5000);
 
     for (;;){
@@ -54,7 +54,7 @@ void set_time(time_t time){
 	rtc_write(RTC_SEC_R, dec_to_bcd(time.ss));
 	rtc_write(RTC_MIN_R, dec_to_bcd(time.mm));
 	rtc_write(RTC_HOUR_R, dec_to_bcd(time.hh));
-	
+
 }
 
 time_t read_time (){
@@ -78,6 +78,39 @@ void set_date(date_t date){
 	rtc_write(RTC_DAY_R, dec_to_bcd(date.dd));
 	rtc_write(RTC_MONTH_R, dec_to_bcd(date.mm));
 	rtc_write(RTC_YEAR_R, dec_to_bcd(date.yy));
+}
+
+uint8_t set_alarm(time_t time, date_t date, uint8_t alarm_number){
+	RTC_CRT = rtc_read(RTC_CRT_R);
+	if (alarm_number == 1){
+		rtc_write(RTC_CRT_R, (RTC_CRT | (_BV(A1IE) | _BV(INTCN))));
+		rtc_write(RTC_ALARM_1_SEC_R, (dec_to_bcd(time.ss));
+		rtc_write(RTC_ALARM_1_MIN_R, (dec_to_bcd(time.mm));
+		rtc_write(RTC_ALARM_1_HOUR_R, (dec_to_bcd(time.hh));
+		rtc_write(RTC_ALARM_1_DAY_R, dec_to_bcd(date.dd));
+		return 1;
+	}
+	else if(alarm_number == 2)
+		rtc_write(RTC_CRT_R, (RTC_CRT | (_BV(A2IE) | _BV(INTCN))));
+		rtc_write(RTC_ALARM_2_MIN_R, (dec_to_bcd(time.mm));
+		rtc_write(RTC_ALARM_2_HOUR_R, (dec_to_bcd(time.hh));
+		rtc_write(RTC_ALARM_2_DAY_R, dec_to_bcd(date.dd));
+		return 1;
+	}
+	else return 0; //if the alarm is not set, return 0
+}
+
+uint8_t disable_alarm(uint8_t alarm_number){
+	RTC_CRT = rtc_read(RTC_CRT_R);
+	if (alarm_number == 1){
+		rtc_write(RTC_CRT_R, (RTC_CRT & ~(_BV(A1IE) | _BV(INTCN))));
+		return 1;
+	}
+	else if (alarm_number == 2){
+		rtc_write(RTC_CRT_R, (RTC_CRT & ~(_BV(A2IE) | _BV(INTCN))));
+		return 1;
+	}
+	else return 0; // if no alarm is disabled, return 0
 }
 
 uint8_t rtc_read(uint8_t reg_address){

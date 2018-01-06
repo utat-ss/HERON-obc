@@ -96,6 +96,13 @@ void 	rtc_time_demo	();
 #define		RTC_CTRL_DEF	_BV(INTCN)
 #define 	RTC_STATUS_DEF	0x00
 
-
+// Alarm Mask Bits
+#define		RTC_ALARM_1_SEC_R 0X07
+#define		RTC_ALARM_1_MIN_R 0X08
+#define		RTC_ALARM_1_HOUR_R 0X09
+#define		RTC_ALARM_1_DAY_R 0X0A
+#define		RTC_ALARM_2_MIN_R 0X0B
+#define		RTC_ALARM_2_HOUR_R 0X0C
+#define		RTC_ALARM_2_DAY_R 0X0D
 
 #endif
