@@ -37,7 +37,7 @@ void alarms_demo(){
 	init_rtc();
 
 	time_t t;
-	t.ss = 50;
+	t.ss = 30;
 	t.mm = 59;
 	t.hh = 23;
 	set_time(t);
@@ -58,12 +58,8 @@ void alarms_demo(){
 	d_alarm.mm = 01;
 	d_alarm.yy = 2018;
 
-	print("Reached set alarms call \n");
 	set_alarm(t_alarm, d_alarm, 1);
-	uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
-	rtc_write(RTC_CTRL_R, (RTC_CTRL & ~_BV(INTCN)));
-
-	_delay_ms(5000);
+	disable_alarm(1); //comment out this line to test the functionality of the set_alarm function
 
 	for (;;){
 			_delay_ms(10000);
@@ -75,6 +71,7 @@ void alarms_demo(){
 			print("\r\n");
 
 	}
+
 
 }
 
@@ -130,8 +127,7 @@ void set_date(date_t date){
 uint8_t set_alarm(time_t time, date_t date, uint8_t alarm_number){
 	uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
 	if (alarm_number == 1){
-		print("Set alarm reached");
-		rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(A1IE)));
+		rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(A1IE))); //enable interrupts from alarm 1
 		rtc_write(RTC_ALARM_1_SEC_R, dec_to_bcd(time.ss));
 		rtc_write(RTC_ALARM_1_MIN_R, dec_to_bcd(time.mm));
 		rtc_write(RTC_ALARM_1_HOUR_R, dec_to_bcd(time.hh));
@@ -148,10 +144,11 @@ uint8_t set_alarm(time_t time, date_t date, uint8_t alarm_number){
 	return 0; //if the alarm is not set, return 0
 }
 
-uint8_t disable_alarm(uint8_t alarm_number){
+uint8_t disable_alarm(uint8_t alarm_number){ //disabling the alarm and clearing the interrupt are NOT the same thing
 	uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
 	if (alarm_number == 1){
-		rtc_write(RTC_CTRL_R, (RTC_CTRL & ~_BV(A1IE)));
+		rtc_write(RTC_CTRL_R, (RTC_CTRL & ~_BV(A1IE))); //write 0 to the interrupt enable bit
+		RTC_CTRL = rtc_read(RTC_CTRL_R);
 		return 1;
 	}
 	else if (alarm_number == 2){
