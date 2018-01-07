@@ -31,6 +31,53 @@ void rtc_time_demo(){
     }
 }
 
+void alarms_demo(){
+	init_uart();
+	init_spi();
+	init_rtc();
+
+	time_t t;
+	t.ss = 50;
+	t.mm = 59;
+	t.hh = 23;
+	set_time(t);
+
+	date_t d;
+	d.dd = 31;
+	d.mm = 12;
+	d.yy = 17;
+	set_date(d);
+
+	time_t t_alarm;
+	t_alarm.ss = 00;
+	t_alarm.mm = 00;
+	t_alarm.hh = 00;
+
+	date_t d_alarm;
+	d_alarm.dd = 01;
+	d_alarm.mm = 01;
+	d_alarm.yy = 2018;
+
+	print("Reached set alarms call \n");
+	set_alarm(t_alarm, d_alarm, 1);
+	uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
+	rtc_write(RTC_CTRL_R, (RTC_CTRL & ~_BV(INTCN)));
+
+	_delay_ms(5000);
+
+	for (;;){
+			_delay_ms(10000);
+
+			t = read_time();
+			d = read_date();
+			print("\r\nTIME: %02d:%02d:%02d", t.hh, t.mm, t.ss);
+			print("\r\nDATE: %02d:%02d:20%02d", d.dd, d.mm, d.yy);
+			print("\r\n");
+
+	}
+
+}
+
 void init_rtc(){
 
 	// the DS3234 requires this phase setting, which is not our default
@@ -81,36 +128,37 @@ void set_date(date_t date){
 }
 
 uint8_t set_alarm(time_t time, date_t date, uint8_t alarm_number){
-	RTC_CRT = rtc_read(RTC_CRT_R);
+	uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
 	if (alarm_number == 1){
-		rtc_write(RTC_CRT_R, (RTC_CRT | _BV(A1IE)));
+		print("Set alarm reached");
+		rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(A1IE)));
 		rtc_write(RTC_ALARM_1_SEC_R, dec_to_bcd(time.ss));
 		rtc_write(RTC_ALARM_1_MIN_R, dec_to_bcd(time.mm));
 		rtc_write(RTC_ALARM_1_HOUR_R, dec_to_bcd(time.hh));
 		rtc_write(RTC_ALARM_1_DAY_R, dec_to_bcd(date.dd));
 		return 1;
 	}
-	else if(alarm_number == 2)
-		rtc_write(RTC_CRT_R, (RTC_CRT | _BV(A2IE)));
+	else if(alarm_number == 2){
+		rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(A2IE)));
 		rtc_write(RTC_ALARM_2_MIN_R, dec_to_bcd(time.mm));
 		rtc_write(RTC_ALARM_2_HOUR_R, dec_to_bcd(time.hh));
 		rtc_write(RTC_ALARM_2_DAY_R, dec_to_bcd(date.dd));
 		return 1;
 	}
-	else return 0; //if the alarm is not set, return 0
+	return 0; //if the alarm is not set, return 0
 }
 
 uint8_t disable_alarm(uint8_t alarm_number){
-	RTC_CRT = rtc_read(RTC_CRT_R);
+	uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
 	if (alarm_number == 1){
-		rtc_write(RTC_CRT_R, (RTC_CRT & ~_BV(A1IE)));
+		rtc_write(RTC_CTRL_R, (RTC_CTRL & ~_BV(A1IE)));
 		return 1;
 	}
 	else if (alarm_number == 2){
-		rtc_write(RTC_CRT_R, (RTC_CRT & ~_BV(A2IE)));
+		rtc_write(RTC_CTRL_R, (RTC_CTRL & ~_BV(A2IE)));
 		return 1;
 	}
-	else return 0; // if no alarm is disabled, return 0
+	return 0; // if no alarm is disabled, return 0
 }
 
 uint8_t rtc_read(uint8_t reg_address){
