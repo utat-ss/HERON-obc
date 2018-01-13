@@ -11,8 +11,7 @@ void mem_multibyte_demo(){
   uint8_t i;
 
   for(;;){
-      print("Hello");
-      _delay_ms(2000);
+      _delay_ms(10000);
       print("\r\n\r\n");
       mem_write_multibyte(0x000010, write, 10);
       mem_read(0x000010, read, 10);
