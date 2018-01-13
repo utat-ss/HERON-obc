@@ -35,6 +35,9 @@ void 	mem_write_byte		(uint32_t address, uint8_t data);
 #define	MEM_WR_DISABLE			0x04
 #define	MEM_WR_STATUS_ENABLE	0x50
 #define MEM_WR_BYTE				0x02
+#define MEM_WR_AAI         0xAD
+#define MEM_BUSY_ENABLE   0x70
+#define MEM_BUSY_DISABLE  0x80
 #define MEM_R_BYTE				0x03
 #define MEM_FAST_READ			0x0B
 
