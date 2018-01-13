@@ -11,16 +11,18 @@
 #include 	<uart/log.h>
 
 
-void 	init_mem			();
+void 	init_mem			    ();
 uint8_t	mem_status_r		();
-void	mem_status_w		(uint8_t status);
+void	mem_status_w		  (uint8_t status);
 // uint8_t mem_send 		(uint8_t data);
 uint8_t mem_command			(uint8_t command, uint8_t data);
 void 	mem_command_short	(uint8_t command);
-void 	mem_unlock			(uint8_t sector);
-void 	mem_lock			(uint8_t sector);
-uint8_t	mem_read_byte		(uint32_t address);
+void 	mem_unlock			  (uint8_t sector);
+void 	mem_lock			    (uint8_t sector);
+void	mem_read		    (uint32_t address, uint8_t * data, uint8_t data_len);
 void 	mem_write_byte		(uint32_t address, uint8_t data);
+void mem_write_multibyte  (uint32_t address, uint8_t * data, uint8_t data_len);
+void mem_multibyte_demo();
 
 // Pins and Ports
 #define MEM_CS 	      PB5

@@ -1,23 +1,26 @@
 #include "mem.h"
 
-void mem_byte_write_demo(){
+void mem_multibyte_demo(){
+  init_uart();
+  init_spi();
+  init_mem();
 
-    init_uart();
-    init_spi();
-    init_mem();
+  print("Hello");
+  uint8_t write[10] = {0,1,2,3,4,5,6,7,8,9};
+  uint8_t read[10] = {0};
+  uint8_t i;
 
-    uint8_t ctrl;
-
-
-    for(;;){
-        _delay_ms(20000);
-        print("\r\n\r\n");
-        mem_write_byte(0x000010, 0xA0);
-        ctrl = mem_read_byte(0x000010);
-        print("\r\nREAD:%x", ctrl);
-    }
+  for(;;){
+      print("Hello");
+      _delay_ms(2000);
+      print("\r\n\r\n");
+      mem_write_multibyte(0x000010, write, 10);
+      mem_read(0x000010, read, 10);
+      for (i=0; i<10; i++){
+        print("\r\nREAD:%x", read[i]);
+      }
+  }
 }
-
 
 void init_mem(){
 
@@ -37,9 +40,10 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   uint8_t a3 = (address & 0xFF);
   uint8_t i; // counter for the loop
   uint8_t mem_busy = 0; //default assumption is that mem is NOT busy
-  data_len = (uint32_t) data_len; //typecast to 32 bits in order to use mem_read_byte
+  data_len = (uint32_t) data_len; //typecast to 32 bits in order to use mem_read
 
-  uint8_t end = mem_read_byte(address + data_len);
+  uint8_t end;
+  mem_read((address + data_len), &end, 1);
   /* AAI only except data in pairs, so if an odd number of bytes are to be written,
   we do not want to overwrite the last byte */
 
@@ -73,12 +77,12 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
       set_cs_low(MEM_CS, &MEM_PORT);
     }
 
-    }
+  }
 
-    set_cs_high(MEM_CS, &MEM_PORT);
-    mem_command_short(MEM_WR_DISABLE);
-    mem_command_short(MEM_BUSY_DISABLE);
-    mem_lock(MEM_ALL_SECTORS);
+  set_cs_high(MEM_CS, &MEM_PORT);
+  mem_command_short(MEM_WR_DISABLE);
+  mem_command_short(MEM_BUSY_DISABLE);
+  mem_lock(MEM_ALL_SECTORS);
 }
 
 void mem_write_byte(uint32_t address, uint8_t data){
@@ -103,18 +107,22 @@ void mem_write_byte(uint32_t address, uint8_t data){
 	mem_lock(MEM_ALL_SECTORS);
 	mem_command_short(MEM_WR_DISABLE);
 
-
 }
 
-uint8_t mem_read_byte(uint32_t address){
+void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
+  uint8_t i;
+
 	set_cs_low(MEM_CS, &MEM_PORT);
-	send_spi(MEM_R_BYTE);	send_spi(address >> 16);
+	send_spi(MEM_R_BYTE);
+  send_spi(address >> 16);
 	send_spi((address >> 8) & 0xFF);
 	send_spi(address & 0xFF);
-	uint8_t data = send_spi(0x00);
-	set_cs_high(MEM_CS, &MEM_PORT);
 
-	return data;
+  for (i = 0; i < data_len; i++){
+    *(data + i) = send_spi(0x00);
+  }
+
+	set_cs_high(MEM_CS, &MEM_PORT);
 }
 
 void mem_unlock(uint8_t sector){
