@@ -35,54 +35,50 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   uint8_t a1 = ((address >> 16) & 0xFF);
   uint8_t a2 = ((address >> 8) & 0xFF);
   uint8_t a3 = (address & 0xFF);
-  uint8_t i;
-  data_len = (uint32_t) data_len;
+  uint8_t i; // counter for the loop
+  uint8_t mem_busy = 0; //default assumption is that mem is NOT busy
+  data_len = (uint32_t) data_len; //typecast to 32 bits in order to use mem_read_byte
 
   uint8_t end = mem_read_byte(address + data_len);
+  /* AAI only except data in pairs, so if an odd number of bytes are to be written,
+  we do not want to overwrite the last byte */
 
   mem_unlock(MEM_ALL_SECTORS);
-  mem_command_short(MEM_BUSY_ENABLE);
+  mem_command_short(MEM_BUSY_ENABLE); //enables hardware end-of-write detection
   mem_command_short(MEM_WR_ENABLE);
 
   set_cs_low(MEM_CS, &MEM_PORT);
-  send_spi(MEM_WR_AAI);
+  send_spi(MEM_WR_AAI); //all bytes to be written must be proceeded by the AAI command
   send_spi(a1);
   send_spi(a2);
   send_spi(a3);
-  send_spi(*(data));
 
-  if (data_len >= 2){
-    send_spi(*(data+1));
-  }
-  else{
-    send_spi(end);
-  }
-
-  set_cs_high(MEM_CS, &MEM_PORT);
-
-  for(i = 2; i < data_len; i +=2){
-    while (bit_is_set(PINB, PB0)){
-      continue;
+  for(i = 0; i < data_len; i +=2){
 
     if(i == (data_len - 1)){
-      set_cs_low(MEM_CS, &MEM_PORT);
       send_spi(MEM_WR_AAI);
       send_spi(*(data +i));
       send_spi(end);
-      set_cs_high(MEM_CS, &MEM_PORT);
     }
+
     else{
+      send_spi(MEM_WR_AAI);
       send_spi(*(data + i));
       send_spi(*(data + i + 1));
+    }
+
+    while (mem_busy){
       set_cs_high(MEM_CS, &MEM_PORT);
+      mem_busy = ~(bit_is_set(PINB, PB0));
+      set_cs_low(MEM_CS, &MEM_PORT);
     }
+
     }
-  }
 
-  mem_command_short(MEM_WR_DISABLE);
-  mem_command_short(MEM_BUSY_DISABLE);
-  mem_lock(MEM_ALL_SECTORS);
-
+    set_cs_high(MEM_CS, &MEM_PORT);
+    mem_command_short(MEM_WR_DISABLE);
+    mem_command_short(MEM_BUSY_DISABLE);
+    mem_lock(MEM_ALL_SECTORS);
 }
 
 void mem_write_byte(uint32_t address, uint8_t data){
