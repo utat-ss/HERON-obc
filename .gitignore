@@ -51,4 +51,4 @@ Mkfile.old
 dkms.conf
 
 # macOS hidden files
-.DS_Store
+*.DS_Store
