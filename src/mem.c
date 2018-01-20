@@ -5,43 +5,50 @@ void mem_multibyte_demo(){
   init_spi();
   init_mem();
 
-  print("Hello");
-  uint8_t write[10] = {0,1,2,3,4,5,6,7,8,9};
+  uint8_t write[10] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
+  uint8_t read[10] = {0};
   uint8_t i;
 
   for(;;){
       _delay_ms(2000);
       print("\r\n\r\n");
-      mem_write_multibyte(0x10, write, 10);
-      for (i=0; i<10; i++){
-        uint32_t address = (uint32_t) (0x10 + i);
-        print("\r\nREAD:%x", mem_read_byte(address));
-      }
-  }
+      mem_write_multibyte(0x50, write, 9);
+      mem_read(0x50, read, 9);
+        for (i=0; i<9; i++){
+          print("\r\nREAD:%x", read[i]);
+        }
+    }
 }
 
 void init_mem(){
 
 	// initialize the Chip Select pin
-	init_cs(MEM_CS, &MEM_DDR);
+	  init_cs(MEM_CS, &MEM_DDR);
     set_cs_high(MEM_CS, &MEM_PORT);
 
     mem_status_w(( _BV(BPL) | _BV(BP0) | _BV(BP1) | _BV(BP2) | _BV(BP3) ));
     mem_command_short(MEM_WR_DISABLE);
+    mem_erase();
 
 }
 
+void mem_erase(){
+  mem_unlock(MEM_ALL_SECTORS);
+  mem_command_short(MEM_WR_ENABLE);
+  mem_command_short(MEM_ERASE);
+  mem_command_short(MEM_WR_DISABLE);
+  mem_lock(MEM_ALL_SECTORS);
+}
 
 void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   uint8_t a1 = ((address >> 16) & 0xFF);
   uint8_t a2 = ((address >> 8) & 0xFF);
   uint8_t a3 = (address & 0xFF);
-  uint8_t i; // counter for the loop
+  uint8_t i = 0; // counter for the loop
   uint8_t mem_busy = 1; //default assumption is that mem is busy
-  data_len = (uint32_t) data_len; //typecast to 32 bits in order to use mem_read
-
   uint8_t end;
-  mem_read((address + data_len), &end, 1);
+
+  mem_read(((uint32_t) address + data_len), &end, 1);
   /* AAI only except data in pairs, so if an odd number of bytes are to be written,
   we do not want to overwrite the last byte */
 
@@ -55,11 +62,14 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   send_spi(a2);
   send_spi(a3);
   send_spi(*(data));
+
   if(data_len > 1){
     send_spi(*(data+1));
   }
 
-  else(send_spi(end));
+  else{
+    send_spi(end);
+  }
 
   while (mem_busy){
     set_cs_high(MEM_CS, &MEM_PORT);
@@ -67,15 +77,16 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   }
 
   for(i = 2; i < data_len; i +=2){
+    mem_command_short(MEM_WR_ENABLE);
+    set_cs_low(MEM_CS, &MEM_PORT);
+    send_spi(MEM_WR_AAI);
 
     if(i == (data_len - 1)){
-      send_spi(MEM_WR_AAI);
       send_spi(*(data +i));
       send_spi(end);
     }
 
     else{
-      send_spi(MEM_WR_AAI);
       send_spi(*(data + i));
       send_spi(*(data + i + 1));
     }
@@ -84,8 +95,6 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
       set_cs_high(MEM_CS, &MEM_PORT);
       mem_busy = (~(bit_is_set(PINB, PB0)) & 0x01);
     }
-
-    set_cs_low(MEM_CS, &MEM_PORT);
 
   }
 
@@ -100,8 +109,6 @@ void mem_write_byte(uint32_t address, uint8_t data){
 	uint8_t a1 = ((address >> 16) & 0xFF);
 	uint8_t a2 = ((address >> 8) & 0xFF);
 	uint8_t a3 = (address & 0xFF);
-
-
 
 	mem_unlock(MEM_ALL_SECTORS); //change this at some point
 	mem_command_short (MEM_WR_ENABLE);
@@ -133,17 +140,6 @@ void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
   }
 
 	set_cs_high(MEM_CS, &MEM_PORT);
-}
-
-uint8_t mem_read_byte(uint32_t address){
-	set_cs_low(MEM_CS, &MEM_PORT);
-	send_spi(MEM_R_BYTE);	send_spi(address >> 16);
-	send_spi((address >> 8) & 0xFF);
-	send_spi(address & 0xFF);
-	uint8_t data = send_spi(0x00);
-	set_cs_high(MEM_CS, &MEM_PORT);
-
-	return data;
 }
 
 void mem_unlock(uint8_t sector){
