@@ -7,16 +7,15 @@ void mem_multibyte_demo(){
 
   print("Hello");
   uint8_t write[10] = {0,1,2,3,4,5,6,7,8,9};
-  uint8_t read[10] = {0};
   uint8_t i;
 
   for(;;){
-      _delay_ms(10000);
+      _delay_ms(2000);
       print("\r\n\r\n");
-      mem_write_multibyte(0x000010, write, 10);
-      mem_read(0x000010, read, 10);
+      mem_write_multibyte(0x10, write, 10);
       for (i=0; i<10; i++){
-        print("\r\nREAD:%x", read[i]);
+        uint32_t address = (uint32_t) (0x10 + i);
+        print("\r\nREAD:%x", mem_read_byte(address));
       }
   }
 }
@@ -38,7 +37,7 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   uint8_t a2 = ((address >> 8) & 0xFF);
   uint8_t a3 = (address & 0xFF);
   uint8_t i; // counter for the loop
-  uint8_t mem_busy = 0; //default assumption is that mem is NOT busy
+  uint8_t mem_busy = 1; //default assumption is that mem is busy
   data_len = (uint32_t) data_len; //typecast to 32 bits in order to use mem_read
 
   uint8_t end;
@@ -55,8 +54,19 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   send_spi(a1);
   send_spi(a2);
   send_spi(a3);
+  send_spi(*(data));
+  if(data_len > 1){
+    send_spi(*(data+1));
+  }
 
-  for(i = 0; i < data_len; i +=2){
+  else(send_spi(end));
+
+  while (mem_busy){
+    set_cs_high(MEM_CS, &MEM_PORT);
+    mem_busy = (~(bit_is_set(PINB, PB0)) & 0x01);
+  }
+
+  for(i = 2; i < data_len; i +=2){
 
     if(i == (data_len - 1)){
       send_spi(MEM_WR_AAI);
@@ -72,9 +82,10 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
 
     while (mem_busy){
       set_cs_high(MEM_CS, &MEM_PORT);
-      mem_busy = ~(bit_is_set(PINB, PB0));
-      set_cs_low(MEM_CS, &MEM_PORT);
+      mem_busy = (~(bit_is_set(PINB, PB0)) & 0x01);
     }
+
+    set_cs_low(MEM_CS, &MEM_PORT);
 
   }
 
@@ -122,6 +133,17 @@ void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
   }
 
 	set_cs_high(MEM_CS, &MEM_PORT);
+}
+
+uint8_t mem_read_byte(uint32_t address){
+	set_cs_low(MEM_CS, &MEM_PORT);
+	send_spi(MEM_R_BYTE);	send_spi(address >> 16);
+	send_spi((address >> 8) & 0xFF);
+	send_spi(address & 0xFF);
+	uint8_t data = send_spi(0x00);
+	set_cs_high(MEM_CS, &MEM_PORT);
+
+	return data;
 }
 
 void mem_unlock(uint8_t sector){
