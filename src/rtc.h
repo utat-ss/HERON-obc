@@ -37,6 +37,10 @@ time_t 	read_time	();
 void 	set_date	(date_t date);
 date_t 	read_date	();
 
+//Alarm functions
+uint8_t set_alarm(time_t time, date_t date, uint8_t alarm_number);
+uint8_t disable_alarm(uint8_t alarm_number);
+
 // Helper functions
 uint8_t bcd_to_dec	(uint8_t bcd);
 uint8_t dec_to_bcd	(uint8_t dec);
@@ -96,6 +100,13 @@ void 	rtc_time_demo	();
 #define		RTC_CTRL_DEF	_BV(INTCN)
 #define 	RTC_STATUS_DEF	0x00
 
-
+// Alarm Mask Bits
+#define		RTC_ALARM_1_SEC_R 0X07
+#define		RTC_ALARM_1_MIN_R 0X08
+#define		RTC_ALARM_1_HOUR_R 0X09
+#define		RTC_ALARM_1_DAY_R 0X0A
+#define		RTC_ALARM_2_MIN_R 0X0B
+#define		RTC_ALARM_2_HOUR_R 0X0C
+#define		RTC_ALARM_2_DAY_R 0X0D
 
 #endif
