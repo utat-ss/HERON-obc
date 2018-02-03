@@ -30,7 +30,52 @@ Note: if you get arrors about C99, go to the makefile and add -std=c99 to the CF
 Note: steps 4-10 are from [here](https://www.insidegadgets.com/2014/05/27/update-winavr-to-the-latest-avr-gcc-avrdude/). We need them to update the WinAVR bundle to the latest version of avrdude. Any improvements on this process are welcome.
 
 ## mac
-coming soon
+
+The this project contains the main program running on the coms board.
+
+## Instruction to build and run from scratch
+
+The following information is outdated; TODO: revise.
+
+First, install [homebrew](https://brew.sh/). Next, do
+
+```
+$ brew tap osx-cross/avr
+$ brew install avr-libc
+$ brew install avrdude --with-usb
+```
+
+This intalls the AVR GCC toolchain along with software to write binary files
+to the ATMega's flash memory.
+
+It may also be necessary to patch `avrdude.conf` to support the m32m1. This can
+be found online.
+
+To build the program, run
+
+```
+$ make
+```
+
+To upload the program to the MCU, run
+
+```
+$ make upload
+```
+
+## Finding the correct USB port
+
+To see all connected USB devices do
+
+```
+$ ls /dev/tty.usb*
+```
+
+The USB device corresponding to the programmer is almost always the device
+with the lowest id. To ease compilation, open the makefile and change the
+value of `PORT` to this device's location. For example, if the command
+above returns `/dev/tty.usbmodem00100561 /dev/tty.usbmodem00100563`,
+set the value of `PORT` to `/dev/tty.usbmodem00100561`.
 
 # reading serial messages
 Download your terminal program of choice (such as TeraTerm). The following settings will probably work:
