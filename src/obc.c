@@ -3,6 +3,7 @@
 int main(void) {
 
     init_uart();
+    // init_callbacks();
 
     print("starting main\n");
 
@@ -25,8 +26,22 @@ int main(void) {
     command_queue = initQueue();
 
     //1. add time based commands (hk_req_all, reques,&ctscience)
-    for(uint8_t i = 0; i < 60; i++) // garbage test to see if stops at 50 cmds (it did)
+    for(uint8_t i = 0; i < 30; i++) // garbage test to see if stops at 50 cmds (it did)
       enqueue(&command_queue,request_tc,i,i);
+    for(uint8_t i = 0; i < 5; i++){
+      if(dequeue(&command_queue,&c))
+        print("Empty queue\n");
+      else
+        print("data: %d\n",c.data);
+    }
+    for(uint8_t i = 0; i < 26; i++)
+      enqueue(&command_queue,request_tc,i,i);
+    for(uint8_t i = 0; i < 52; i++){
+      if(dequeue(&command_queue,&c))
+        print("Empty queue\n");
+      else
+        print("data: %d\n",c.data);
+    }
 
     //2. dequeue commands
     for (;;) {
