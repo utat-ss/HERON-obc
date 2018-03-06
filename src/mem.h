@@ -33,11 +33,12 @@ void mem_write_multibyte  (uint32_t address, uint8_t * data, uint8_t data_len);
 // Commands and Special registers
 #define MEM_READ_STATUS			0x05
 #define MEM_ERASE           0x60
+#define MEM_SECTOR_ERASE    0x20
 #define MEM_WRITE_STATUS 		0x01
-#define MEM_WR_ENABLE			0x06
+#define MEM_WR_ENABLE			  0x06
 #define	MEM_WR_DISABLE			0x04
 #define	MEM_WR_STATUS_ENABLE	0x50
-#define MEM_WR_BYTE				0x02
+#define MEM_WR_BYTE				 0x02
 #define MEM_WR_AAI         0xAD
 #define MEM_BUSY_ENABLE   0x70
 #define MEM_BUSY_DISABLE  0x80
@@ -56,5 +57,14 @@ void mem_write_multibyte  (uint32_t address, uint8_t * data, uint8_t data_len);
 
 #define MEM_ALL_SECTORS		0x3C
 
+//Memory organization
+#define SCI_STACK_PTR      0x00
+#define HK_STACK_PTR       0x03
+#define SCI_BLOCK_INIT    0x1000
+#define HK_BLOCK_INIT     0x80000
+#define FIELD_SIZE        0x04
+#define BLOCK_SIZE        0x250
+#define HEADER_SIZE       0x02 //number of fields per header
+#define REFRESH_SECTOR    0x0A //region in first sector that is refreshed
 
 #endif

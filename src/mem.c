@@ -1,5 +1,67 @@
 #include "mem.h"
 
+void init_sci_stack(){
+  uint8_t a1 = ((SCI_BLOCK_INIT >> 16) & 0xFF);
+  uint8_t a2 = ((SCI_BLOCK_INIT >> 8) & 0xFF);
+  uint8_t a3 = (SCI_BLOCK_INIT & 0xFF);
+  uint8_t address[3] = {a1, a2, a3};
+
+  mem_write_multibyte(SCI_STACK_PTR, address, 0x03);
+}
+
+// fields are indexed from ZERO
+unit8_t store_field(uint8_t * _data, uint8_t size){
+  if(size != 5)
+    return 0x01; // error
+  uint8_t field = _data[0];
+  uint8_t *data = &_data[1]; //data1, data2, data3, ERROR
+
+  unit32_t curr_ptr;
+  mem_read(SCI_STACK_PTR, &curr_ptr, 0x03);
+
+  if(field == (BLOCK_SIZE/FIELD_SIZE - HEADER_SIZE)){
+    init_sci_block();
+
+    time_t time = read_time();
+    date_t date = read_date();
+    uint8_t error = 0xFF;
+    uint8_t headerID = (curr_ptr - SCI_BLOCK_INIT) / BLOCK_SIZE;
+
+    uint8_t *header = {time.hh, time.mm, time.ss, date.yy,
+                        date.mm, date.dd, error, headerID};
+    init_header(header);
+  }
+
+  mem_write_multibyte((curr_ptr + FIELD_SIZE*(field + HEADER_SIZE)), data, FIELD_SIZE);
+}
+
+//read curr_ptr and update by BLOCK_SIZE
+void init_sci_block(){
+  unit32_t curr_ptr;
+  unit8_t sector[REFRESH_SECTOR];
+  mem_read(SCI_STACK_PTR, sector, REFRESH_SECTOR);
+
+  curr_ptr = ((unit32_t) sector[0]) + ((unit32_t) sector[1] << 8) + ((uint32_t) sector[2] << 16);
+
+  
+  mem_write_byte(SCI_STACK_PTR, curr_ptr);
+}
+
+void init_header(unit8_t *header){
+  unit32_t curr_ptr;
+  mem_read(SCI_STACK_PTR, &curr_ptr, 0x03);
+  mem_write_multibyte(curr_ptr, header, HEADER_SIZE*FIELD_SIZE);
+}
+
+void read_sci_block(uint8_t block_num, unint8_t * data){
+  mem_read((STACK_PTR + STACK_SIZE*block_num), data, BLOCK_SIZE);
+}
+
+void read_segment(uint8_t block_num, unint8_t * data){
+
+}
+
+
 void init_mem(){
 
 	// initialize the Chip Select pin
@@ -9,7 +71,6 @@ void init_mem(){
     mem_status_w(( _BV(BPL) | _BV(BP0) | _BV(BP1) | _BV(BP2) | _BV(BP3) ));
     mem_command_short(MEM_WR_DISABLE);
     mem_erase();
-
 }
 
 void mem_erase(){
@@ -159,4 +220,21 @@ void mem_command_short(uint8_t command){
 	set_cs_low(MEM_CS, &MEM_PORT);
 	send_spi(command);
 	set_cs_high(MEM_CS, &MEM_PORT);
+}
+
+void mem_sector_erase(unit8_t sector){
+  unit32_t address = sector * 4096;
+  mem_unlock(MEM_ALL_SECTORS);
+  mem_command_short(MEM_WR_ENABLE);
+
+  set_cs_low(MEM_CS, &MEM_PORT);
+  send_spi(MEM_SECTOR_ERASE);
+  send_spi(address >> 16);
+	send_spi((address >> 8) & 0xFF);
+	send_spi(address & 0xFF);
+  set_cs_high(MEM_CS, &MEM_PORT);
+
+	mem_lock(MEM_ALL_SECTORS);
+	mem_command_short(MEM_WR_DISABLE);
+
 }
