@@ -3,8 +3,10 @@
 
 #include "global_header.h"
 
-#define EPS_HK 2
-#define PAY_HK 1
+#define HK_REQ 0 // can set later
+#define PAY_HK_TYPE 1 // kamran has defined these elsewhere
+#define EPS_HK_TYPE 2
+#define HK_BLOCK_SIZE 100
 
 struct HK_packet {
 
@@ -16,7 +18,9 @@ struct HK_packet {
 };
 
 void decode_HK_message (uint16_t sender_id, uint16_t message_id, uint8_t* pt_data, uint8_t size);
-void request_HK (uint8_t target);
-void hk_req_all();
+
+// CAN callbacks
+void req_hk_timer_callback();
+void receive_hk(uint8_t board_num, uint8_t field_num, uint8_t* payload);
 
 #endif

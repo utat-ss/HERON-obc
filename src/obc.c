@@ -1,14 +1,14 @@
 #include "obc.h"
 
 int main(void) {
-
+    queue_t *sci_tx_queue, *pay_hk_tx_queue, *eps_hk_tx_queue, *obc_queue;
     init_uart();
-    // init_callbacks();
+    init_callbacks();
+    // change these times
+    init_timer(1,req_hk_timer_callback);
+    init_timer(1,req_sci_timer_callback);
 
     print("starting main\n");
-
-    // init_timer(1,hk_req_all);
-    //init_timer(1,request_science);
 
     //Initializing Housekeeping timer
     uint8_t hk_req_flag = 0;
@@ -44,8 +44,8 @@ int main(void) {
     }
 
     //2. dequeue commands
-    for (;;) {
-
+    while (1) {
+      /*
       if(dequeue(&command_queue,&c)){
         //print("Empty queue\n");
       } else {
@@ -55,5 +55,25 @@ int main(void) {
         // can_send_message(data, 0, command_sending);
       }
 
-  }
+      if (!is_empty(sci_tx_queue)) {
+          int field_num = dequeue(sci_tx_queue);
+          GLOBAL_SCI_FIELD_NUM = field_num;
+          resume_mob(&PAY_CMD_Tx_MOb);
+      }
+      if (!is_empty(pay_hk_tx_queue)) {
+          int field_num = dequeue(pay_hk_tx_queue);
+          GLOBAL_PAY_HK_FIELD_NUM = field_num;
+          resume_mob(&PAY_CMD_Tx_MOb);
+      }
+      if (!is_empty(eps_hk_tx_queue)) {
+          int field_num = dequeue(eps_hk_tx_queue);
+          GLOBAL_EPS_HK_FIELD_NUM = field_num;
+          resume_mob(&EPS_CMD_Tx_MOb);
+      }
+      if (!is_empty(obc_queue)) {
+          int obc_queue_date = dequeue(obc_queue);
+          // handle here
+      }
+      */
+    }
 }

@@ -25,8 +25,6 @@ void enqueue(Cmd_queue *Q, void (*func)(uint8_t, uint8_t), uint8_t receiver, uin
 		Q->rear = (Q->rear + 1) % MAXSIZE;
 		Q->currSize++;
 	}
-	else
-		print("enqueue don't work\n");
 }
 
 int dequeue(Cmd_queue *Q, Command* cmd){
