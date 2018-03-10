@@ -10,9 +10,10 @@
 #include 	<uart/uart.h>
 #include 	<uart/log.h>
 
-
+// Basic memory functions
 void 	init_mem			    ();
 void mem_erase          ();
+void mem_sector_erase(unit8_t sector) ;
 uint8_t	mem_status_r		();
 void	mem_status_w		  (uint8_t status);
 // uint8_t mem_send 		(uint8_t data);
@@ -22,7 +23,16 @@ void 	mem_unlock			  (uint8_t sector);
 void 	mem_lock			    (uint8_t sector);
 void	mem_read		    (uint32_t address, uint8_t * data, uint8_t data_len);
 void mem_write_byte(uint32_t address, uint8_t data);
-void mem_write_multibyte  (uint32_t address, uint8_t * data, uint8_t data_len);
+void mem_write_multibyt `e  (uint32_t address, uint8_t * data, uint8_t data_len);
+
+// Memory management
+unit8_t pointer(uint8_t type);
+unit8_t block_size(unit8_t type);
+void init_stacks();
+void init_block(unit8_t type);
+void init_header(unit8_t *header, type);
+void write_to_flash(unit8_t type, unit8_t field_num, uint8_t * data);
+
 
 // Pins and Ports
 #define MEM_CS 	      PB5
@@ -58,13 +68,38 @@ void mem_write_multibyte  (uint32_t address, uint8_t * data, uint8_t data_len);
 #define MEM_ALL_SECTORS		0x3C
 
 //Memory organization
+
+//Locations in flash memory of the stack pointers
 #define SCI_STACK_PTR      0x00
-#define HK_STACK_PTR       0x03
-#define SCI_BLOCK_INIT    0x1000
-#define HK_BLOCK_INIT     0x80000
+#define PAY_HK_STACK_PTR   0x03
+#define EPS_HK_STACK_PTR   0x06
+#define OBC_HK_STACK_PTR   0x09
+#define STATUS_PTR        0x0C
+#define REFRESH_SECTOR        0x01
+#define REFRESH_SECTOR_SIZE    0x0F
+//size of the region in first sector that is refreshed
+
+//Initial values of the stack pointers
+#define SCI_INIT    0x0DB0
+#define PAY_INIT    0x100000
+#define EPS_INIT    0x140000
+#define OBC_INIT    0x180000
+#define STATUS_INIT 0x1C0000
+
+//Field and block sizes
 #define FIELD_SIZE        0x04
-#define BLOCK_SIZE        0x250
+#define SCI_BLOCK_SIZE    0x250
+#define PAY_BLOCK_SIZE    0x100
+#define EPS_BLOCK_SIZE    0x100
+#define OBC_BLOCK_SIZE    0x100
+#define STATUS_BLOCK_SIZE 0x100
+
+//Block parameters
 #define HEADER_SIZE       0x02 //number of fields per header
-#define REFRESH_SECTOR    0x0A //region in first sector that is refreshed
+#define SCI_TYPE          0x00
+#define PAY_HK_TYPE       0x01
+#define EPS_HK_TYPE       0x02
+#define OBC_HK_TYPE       0x03
+#define STATUS_TYPE       0x04
 
 #endif

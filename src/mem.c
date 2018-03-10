@@ -1,64 +1,111 @@
 #include "mem.h"
 
-void init_sci_stack(){
-  uint8_t a1 = ((SCI_BLOCK_INIT >> 16) & 0xFF);
-  uint8_t a2 = ((SCI_BLOCK_INIT >> 8) & 0xFF);
-  uint8_t a3 = (SCI_BLOCK_INIT & 0xFF);
-  uint8_t address[3] = {a1, a2, a3};
+unit8_t pointer(uint8_t type){
+  switch(type){
+    case SCI_TYPE:
+      SCI_STACK_PTR;
+    case PAY_HK_TYPE:
+      PAY_HK_STACK_PTR;
+    case EPS_HK_TYPE:
+      EPS_HK_STACK_PTR;
+    case OBC_HK_TYPE:
+      OBC_HK_STACK_PTR;
+    case STATUS_TYPE:
+      STATUS_PTR;
+    }
+}
 
-  mem_write_multibyte(SCI_STACK_PTR, address, 0x03);
+unit8_t block_size(unit8_t type){
+  switch(type){
+    case SCI_TYPE:
+      SCI_BLOCK_SIZE;
+    case PAY_HK_TYPE:
+      PAY_BLOCK_SIZE;
+    case EPS_HK_TYPE:
+      EPS_BLOCK_SIZE;
+    case OBC_HK_TYPE:
+      OBC_BLOCK_SIZE;
+    case STATUS_TYPE:
+      STATUS_BLOCK_SIZE;
+    }
+}
+
+void init_stacks(){
+  uint8_t a1 = ((SCI_INIT >> 16) & 0xFF);
+  uint8_t a2 = ((SCI_INIT >> 8) & 0xFF);
+  uint8_t a3 = (SCI_INIT & 0xFF);
+
+  uint8_t a4 = ((PAY_INIT >> 16) & 0xFF);
+  uint8_t a5 = ((PAY_INIT >> 8) & 0xFF);
+  uint8_t a6 = (PAY_INIT & 0xFF);
+
+  uint8_t a7 = ((EPS_INIT >> 16) & 0xFF);
+  uint8_t a8 = ((EPS_INIT >> 8) & 0xFF);
+  uint8_t a9 = (EPS_INIT & 0xFF);
+
+  uint8_t a10 = ((OBC_INIT >> 16) & 0xFF);
+  uint8_t a11 = ((OBC_INIT >> 8) & 0xFF);
+  uint8_t a12 = (OBC_INIT & 0xFF);
+
+  uint8_t a13 = ((STATUS_INIT >> 16) & 0xFF);
+  uint8_t a14 = ((STATUS_INIT >> 8) & 0xFF);
+  uint8_t a15 = (STATUS_INIT & 0xFF);
+
+  uint8_t INIT[15] = {a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12,
+                      a13, a14, a15};
+
+  mem_write_multibyte(SCI_STACK_PTR, INIT, 0x0F);
+}
+
+//read curr_ptr and update by BLOCK_SIZE
+void init_block(unit8_t type){
+  unit32_t curr_ptr;
+  unit8_t sector[REFRESH_SECTOR];
+  mem_read(0x00, sector, REFRESH_SECTOR_SIZE);
+
+  curr_ptr = (unit32_t) sector[pointer(type)] << 16 + (unit32_t)(sector[pointer(type) + 1] << 8)
+            + (unit32_t)(sector[pointer(type) + 2]);
+
+  curr_ptr += block_size(type);
+
+  mem_sector_erase(0x01);
+
+  sector[pointer(type) + 2] = (curr_ptr & 0xFF);
+  sector[pointer(type) + 1] = ((curr_ptr >> 8) & 0xFF);
+  sector[pointer(type)] = (curr_ptr >> 16) & 0xFF;
+
+  mem_write_multibyte(0x00, sector, REFRESH_SECTOR)
+}
+
+void init_header(unit8_t *header, type){
+  unit32_t curr_ptr;
+  mem_read(pointer(type), &curr_ptr, 0x03);
+  mem_write_multibyte(curr_ptr, header, HEADER_SIZE*FIELD_SIZE);
 }
 
 // fields are indexed from ZERO
-unit8_t store_field(uint8_t * _data, uint8_t size){
-  if(size != 5)
-    return 0x01; // error
-  uint8_t field = _data[0];
-  uint8_t *data = &_data[1]; //data1, data2, data3, ERROR
-
+void write_to_flash(unit8_t type, unit8_t field_num, uint8_t * data){
   unit32_t curr_ptr;
-  mem_read(SCI_STACK_PTR, &curr_ptr, 0x03);
+  mem_read(pointer(typer), &curr_ptr, 0x03);
 
-  if(field == (BLOCK_SIZE/FIELD_SIZE - HEADER_SIZE)){
-    init_sci_block();
+  if(field_num == 0x00){
+    init_block(type);
 
     time_t time = read_time();
     date_t date = read_date();
     uint8_t error = 0xFF;
-    uint8_t headerID = (curr_ptr - SCI_BLOCK_INIT) / BLOCK_SIZE;
-
     uint8_t *header = {time.hh, time.mm, time.ss, date.yy,
                         date.mm, date.dd, error, headerID};
-    init_header(header);
+    init_header(header, type);
   }
-
-  mem_write_multibyte((curr_ptr + FIELD_SIZE*(field + HEADER_SIZE)), data, FIELD_SIZE);
+    mem_write_multibyte((curr_ptr + FIELD_SIZE*(field_num + HEADER_SIZE)), data, FIELD_SIZE);
 }
 
-//read curr_ptr and update by BLOCK_SIZE
-void init_sci_block(){
-  unit32_t curr_ptr;
-  unit8_t sector[REFRESH_SECTOR];
-  mem_read(SCI_STACK_PTR, sector, REFRESH_SECTOR);
-
-  curr_ptr = ((unit32_t) sector[0]) + ((unit32_t) sector[1] << 8) + ((uint32_t) sector[2] << 16);
-
-  
-  mem_write_byte(SCI_STACK_PTR, curr_ptr);
-}
-
-void init_header(unit8_t *header){
-  unit32_t curr_ptr;
-  mem_read(SCI_STACK_PTR, &curr_ptr, 0x03);
-  mem_write_multibyte(curr_ptr, header, HEADER_SIZE*FIELD_SIZE);
-}
 
 void read_sci_block(uint8_t block_num, unint8_t * data){
-  mem_read((STACK_PTR + STACK_SIZE*block_num), data, BLOCK_SIZE);
 }
 
-void read_segment(uint8_t block_num, unint8_t * data){
-
+void read_field(uint8_t block_num, unint8_t * data){
 }
 
 
