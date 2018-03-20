@@ -246,6 +246,23 @@ void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
 	set_cs_high(MEM_CS, &MEM_PORT);
 }
 
+void mem_sector_erase(uint8_t sector){
+  uint32_t address = sector * 4096;
+  mem_unlock(MEM_ALL_SECTORS);
+  mem_command_short(MEM_WR_ENABLE);
+
+  set_cs_low(MEM_CS, &MEM_PORT);
+  send_spi(MEM_SECTOR_ERASE);
+  send_spi(address >> 16);
+	send_spi((address >> 8) & 0xFF);
+	send_spi(address & 0xFF);
+  set_cs_high(MEM_CS, &MEM_PORT);
+
+	mem_lock(MEM_ALL_SECTORS);
+	mem_command_short(MEM_WR_DISABLE);
+
+}
+
 void mem_unlock(uint8_t sector){
 	uint8_t status = mem_command(MEM_READ_STATUS, 0x00);
 	status &= ~(_BV(BPL));
@@ -283,21 +300,4 @@ void mem_command_short(uint8_t command){
 	set_cs_low(MEM_CS, &MEM_PORT);
 	send_spi(command);
 	set_cs_high(MEM_CS, &MEM_PORT);
-}
-
-void mem_sector_erase(uint8_t sector){
-  uint32_t address = sector * 4096;
-  mem_unlock(MEM_ALL_SECTORS);
-  mem_command_short(MEM_WR_ENABLE);
-
-  set_cs_low(MEM_CS, &MEM_PORT);
-  send_spi(MEM_SECTOR_ERASE);
-  send_spi(address >> 16);
-	send_spi((address >> 8) & 0xFF);
-	send_spi(address & 0xFF);
-  set_cs_high(MEM_CS, &MEM_PORT);
-
-	mem_lock(MEM_ALL_SECTORS);
-	mem_command_short(MEM_WR_DISABLE);
-
 }
