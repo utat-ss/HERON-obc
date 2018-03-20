@@ -1,6 +1,21 @@
 #include "mem.h"
 
-unit8_t pointer(uint8_t type){
+uint8_t init_stack(uint8_t type){
+  switch(type){
+    case SCI_TYPE:
+      SCI_INIT;
+    case PAY_HK_TYPE:
+      PAY_INIT;
+    case EPS_HK_TYPE:
+      EPS_INIT;
+    case OBC_HK_TYPE:
+      OBC_INIT;
+    case STATUS_TYPE:
+      STATUS_INIT;
+    }
+}
+
+uint8_t pointer(uint8_t type){
   switch(type){
     case SCI_TYPE:
       SCI_STACK_PTR;
@@ -15,7 +30,7 @@ unit8_t pointer(uint8_t type){
     }
 }
 
-unit8_t block_size(unit8_t type){
+uint8_t block_size(uint8_t type){
   switch(type){
     case SCI_TYPE:
       SCI_BLOCK_SIZE;
@@ -58,13 +73,13 @@ void init_stacks(){
 }
 
 //read curr_ptr and update by BLOCK_SIZE
-void init_block(unit8_t type){
-  unit32_t curr_ptr;
-  unit8_t sector[REFRESH_SECTOR];
+uint8_t init_block(uint8_t type){
+  uint32_t curr_ptr;
+  uint8_t sector[REFRESH_SECTOR];
   mem_read(0x00, sector, REFRESH_SECTOR_SIZE);
 
-  curr_ptr = (unit32_t) sector[pointer(type)] << 16 + (unit32_t)(sector[pointer(type) + 1] << 8)
-            + (unit32_t)(sector[pointer(type) + 2]);
+  curr_ptr = (uint32_t) sector[pointer(type)] << 16 + (uint32_t)(sector[pointer(type) + 1] << 8)
+            + (uint32_t)(sector[pointer(type) + 2]);
 
   curr_ptr += block_size(type);
 
@@ -74,27 +89,28 @@ void init_block(unit8_t type){
   sector[pointer(type) + 1] = ((curr_ptr >> 8) & 0xFF);
   sector[pointer(type)] = (curr_ptr >> 16) & 0xFF;
 
-  mem_write_multibyte(0x00, sector, REFRESH_SECTOR)
+  mem_write_multibyte(0x00, sector, REFRESH_SECTOR);
+  return (uint8_t) ((curr_ptr-init_stack(type))/block_size(type));
 }
 
-void init_header(unit8_t *header, type){
-  unit32_t curr_ptr;
+void init_header(uint8_t *header, uint8_t type){
+  uint32_t curr_ptr;
   mem_read(pointer(type), &curr_ptr, 0x03);
   mem_write_multibyte(curr_ptr, header, HEADER_SIZE*FIELD_SIZE);
 }
 
 // fields are indexed from ZERO
-void write_to_flash(unit8_t type, unit8_t field_num, uint8_t * data){
-  unit32_t curr_ptr;
-  mem_read(pointer(typer), &curr_ptr, 0x03);
+void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data) {
+  uint32_t curr_ptr;
+  mem_read(pointer(type), &curr_ptr, 0x03);
 
   if(field_num == 0x00){
-    init_block(type);
+    uint8_t headerID = init_block(type);
 
     time_t time = read_time();
     date_t date = read_date();
     uint8_t error = 0xFF;
-    uint8_t *header = {time.hh, time.mm, time.ss, date.yy,
+    uint8_t header[8] = {time.hh, time.mm, time.ss, date.yy,
                         date.mm, date.dd, error, headerID};
     init_header(header, type);
   }
@@ -102,10 +118,10 @@ void write_to_flash(unit8_t type, unit8_t field_num, uint8_t * data){
 }
 
 
-void read_sci_block(uint8_t block_num, unint8_t * data){
+void read_sci_block(uint8_t block_num, uint8_t * data){
 }
 
-void read_field(uint8_t block_num, unint8_t * data){
+void read_field(uint8_t block_num, uint8_t * data){
 }
 
 
@@ -269,8 +285,8 @@ void mem_command_short(uint8_t command){
 	set_cs_high(MEM_CS, &MEM_PORT);
 }
 
-void mem_sector_erase(unit8_t sector){
-  unit32_t address = sector * 4096;
+void mem_sector_erase(uint8_t sector){
+  uint32_t address = sector * 4096;
   mem_unlock(MEM_ALL_SECTORS);
   mem_command_short(MEM_WR_ENABLE);
 

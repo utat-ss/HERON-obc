@@ -9,11 +9,12 @@
 #include 	<spi/spi.h>
 #include 	<uart/uart.h>
 #include 	<uart/log.h>
+#include "rtc.h"
 
 // Basic memory functions
 void 	init_mem			    ();
 void mem_erase          ();
-void mem_sector_erase(unit8_t sector) ;
+void mem_sector_erase(uint8_t sector) ;
 uint8_t	mem_status_r		();
 void	mem_status_w		  (uint8_t status);
 // uint8_t mem_send 		(uint8_t data);
@@ -23,15 +24,16 @@ void 	mem_unlock			  (uint8_t sector);
 void 	mem_lock			    (uint8_t sector);
 void	mem_read		    (uint32_t address, uint8_t * data, uint8_t data_len);
 void mem_write_byte(uint32_t address, uint8_t data);
-void mem_write_multibyt `e  (uint32_t address, uint8_t * data, uint8_t data_len);
+void mem_write_multibyte (uint32_t address, uint8_t * data, uint8_t data_len);
 
 // Memory management
-unit8_t pointer(uint8_t type);
-unit8_t block_size(unit8_t type);
+uint8_t pointer(uint8_t type);
+uint8_t block_size(uint8_t type);
+uint8_t init_stack(uint8_t type);
 void init_stacks();
-void init_block(unit8_t type);
-void init_header(unit8_t *header, type);
-void write_to_flash(unit8_t type, unit8_t field_num, uint8_t * data);
+uint8_t init_block(uint8_t type);
+void init_header(uint8_t *header, uint8_t ype);
+void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data);
 
 
 // Pins and Ports
