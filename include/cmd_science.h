@@ -1,10 +1,14 @@
 #ifndef SCIENCE_H
 #define SCIENCE_H
 
-#include "global_header.h"
+// #include "global_header.h"
+#include  <stdint.h>
+
+#include "obc.h"
+#include "can_queue.h"
+#include "housekeeping.h"
 
 #define SCI_BLOCK_SIZE 218
-#define SCI_REQ 1
 #define SCI_TYPE 0 // kamran will define in his code, delete this then
 
 void req_sci_timer_callback();
