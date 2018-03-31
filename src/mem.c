@@ -130,10 +130,10 @@ void init_mem(){
 	// initialize the Chip Select pin
 	  init_cs(MEM_CS, &MEM_DDR);
     set_cs_high(MEM_CS, &MEM_PORT);
-
     mem_status_w(( _BV(BPL) | _BV(BP0) | _BV(BP1) | _BV(BP2) | _BV(BP3) ));
     mem_command_short(MEM_WR_DISABLE);
     mem_erase();
+
 }
 
 void mem_erase(){
