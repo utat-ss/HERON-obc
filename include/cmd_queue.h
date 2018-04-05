@@ -1,13 +1,7 @@
 #ifndef CMD_QUEUE_H
 #define CMD_QUEUE_H
 
-/*
-Author: Shimi Smith
-*/
-
 #include <stdint.h>
-// #include <stdio.h>
-// #include <stdlib.h>
 
 #define CMDQ_MAXSIZE 50
 

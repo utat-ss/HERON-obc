@@ -1,7 +1,6 @@
 #ifndef OBC_H
 #define OBC_H
 
-// #include "global_header.h"
 #include <stdint.h>
 
 #include <uart/uart.h>

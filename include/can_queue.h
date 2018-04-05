@@ -1,10 +1,7 @@
 #ifndef CAN_QUEUE_H
 #define CAN_QUEUE_H
 
-// #include "global_header.h"
 #include <stdint.h>
-// #include <stdio.h>
-// #include <stdlib.h>
 
 #define CANQ_MAXSIZE 3
 

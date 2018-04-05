@@ -1,7 +1,6 @@
 #ifndef SCIENCE_H
 #define SCIENCE_H
 
-// #include "global_header.h"
 #include  <stdint.h>
 
 #include "obc.h"

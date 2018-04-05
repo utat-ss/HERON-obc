@@ -7,26 +7,27 @@ void init_callbacks(){
   // resume data_rx_mob?
 }
 
-void PAY_CMD_Tx_data_callback(uint8_t* data, uint8_t len) {
+void PAY_CMD_Tx_data_callback(uint8_t* data, uint8_t *len) {
+  *len = 0;
   if(GLOBAL_SCI_FIELD_NUM < SCI_BLOCK_SIZE){
     data[0] = SCI_REQ;
     data[1] = GLOBAL_SCI_FIELD_NUM;
-    len = 2;
+    *len = 2;
     return;
   }
   if(GLOBAL_PAY_HK_FIELD_NUM < PAY_HK_BLOCK_SIZE){
     data[0] = HK_REQ;
     data[1] = GLOBAL_PAY_HK_FIELD_NUM;
-    len = 2;
+    *len = 2;
     return;
   }
 }
 
-void EPS_CMD_Tx_data_callback(uint8_t* data, uint8_t len) {
+void EPS_CMD_Tx_data_callback(uint8_t* data, uint8_t *len) {
   if(GLOBAL_EPS_HK_FIELD_NUM < EPS_HK_BLOCK_SIZE){
     data[0] = HK_REQ;
     data[1] = GLOBAL_EPS_HK_FIELD_NUM;
-    len = 2;
+    *len = 2;
     return;
   }
 }
