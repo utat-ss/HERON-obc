@@ -69,60 +69,66 @@ void init_stacks(){
   uint8_t INIT[15] = {a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12,
                       a13, a14, a15};
 
+  uint8_t i;
+  for(i=0; i<15; i++){
+//  print("%x\n", INIT[i]);
+//  _delay_ms(100);
+  }
+
   mem_write_multibyte(SCI_STACK_PTR, INIT, 0x0F);
 }
 
 //read curr_ptr and update by BLOCK_SIZE
-uint8_t init_block(uint8_t type){
-  uint32_t curr_ptr;
-  uint8_t sector[REFRESH_SECTOR];
-  mem_read(0x00, sector, REFRESH_SECTOR_SIZE);
-
-  curr_ptr = (uint32_t) sector[pointer(type)] << 16 + (uint32_t)(sector[pointer(type) + 1] << 8)
-            + (uint32_t)(sector[pointer(type) + 2]);
-
-  curr_ptr += block_size(type);
-
-  mem_sector_erase(0x01);
-
-  sector[pointer(type) + 2] = (curr_ptr & 0xFF);
-  sector[pointer(type) + 1] = ((curr_ptr >> 8) & 0xFF);
-  sector[pointer(type)] = (curr_ptr >> 16) & 0xFF;
-
-  mem_write_multibyte(0x00, sector, REFRESH_SECTOR);
-  return (uint8_t) ((curr_ptr-init_stack(type))/block_size(type));
-}
-
-void init_header(uint8_t *header, uint8_t type){
-  uint32_t curr_ptr;
-  mem_read(pointer(type), &curr_ptr, 0x03);
-  mem_write_multibyte(curr_ptr, header, HEADER_SIZE*FIELD_SIZE);
-}
-
-// fields are indexed from ZERO
-void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data) {
-  uint32_t curr_ptr;
-  mem_read(pointer(type), &curr_ptr, 0x03);
-
-  if(field_num == 0x00){
-    uint8_t headerID = init_block(type);
-
-    time_t time = read_time();
-    date_t date = read_date();
-    uint8_t error = 0xFF;
-    uint8_t header[8] = {time.hh, time.mm, time.ss, date.yy,
-                        date.mm, date.dd, error, headerID};
-    init_header(header, type);
-  }
-    mem_write_multibyte((curr_ptr + FIELD_SIZE*(field_num + HEADER_SIZE)), data, FIELD_SIZE);
-}
-
-
-void read_sci_block(uint8_t block_num, uint8_t * data){
-}
-
-void read_field(uint8_t block_num, uint8_t * data){
-}
+// uint8_t init_block(uint8_t type){
+//   uint32_t curr_ptr;
+//   uint8_t sector[REFRESH_SECTOR];
+//   mem_read(0x00, sector, REFRESH_SECTOR_SIZE);
+//
+//   curr_ptr = (uint32_t) sector[pointer(type)] << 16 + (uint32_t)(sector[pointer(type) + 1] << 8)
+//             + (uint32_t)(sector[pointer(type) + 2]);
+//
+//   curr_ptr += block_size(type);
+//
+//   mem_sector_erase(0x01);
+//
+//   sector[pointer(type) + 2] = (curr_ptr & 0xFF);
+//   sector[pointer(type) + 1] = ((curr_ptr >> 8) & 0xFF);
+//   sector[pointer(type)] = (curr_ptr >> 16) & 0xFF;
+//
+//   mem_write_multibyte(0x00, sector, REFRESH_SECTOR);
+//   return (uint8_t) ((curr_ptr-init_stack(type))/block_size(type));
+// }
+//
+// void init_header(uint8_t *header, uint8_t type){
+//   uint32_t curr_ptr;
+//   mem_read(pointer(type), &curr_ptr, 0x03);
+//   mem_write_multibyte(curr_ptr, header, HEADER_SIZE*FIELD_SIZE);
+// }
+//
+// // fields are indexed from ZERO
+// void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data) {
+//   uint32_t curr_ptr;
+//   mem_read(pointer(type), &curr_ptr, 0x03);
+//
+//   if(field_num == 0x00){
+//     uint8_t headerID = init_block(type);
+//
+//     time_t time = read_time();
+//     date_t date = read_date();
+//     uint8_t error = 0xFF;
+//     uint8_t header[8] = {time.hh, time.mm, time.ss, date.yy,
+//                         date.mm, date.dd, error, headerID};
+//     init_header(header, type);
+//   }
+//     mem_write_multibyte((curr_ptr + FIELD_SIZE*(field_num + HEADER_SIZE)), data, FIELD_SIZE);
+// }
+//
+//
+// void read_sci_block(uint8_t block_num, uint8_t * data){
+// }
+//
+// void read_field(uint8_t block_num, uint8_t * data){
+// }
 
 
 void init_mem(){
@@ -150,11 +156,6 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   uint8_t a3 = (address & 0xFF);
   uint8_t i = 0; // counter for the loop
   uint8_t mem_busy = 1; //default assumption is that mem is busy
-  uint8_t end;
-
-  mem_read(((uint32_t) address + data_len), &end, 1);
-  /* AAI only except data in pairs, so if an odd number of bytes are to be written,
-  we do not want to overwrite the last byte */
 
   mem_unlock(MEM_ALL_SECTORS);
   mem_command_short(MEM_BUSY_ENABLE); //enables hardware end-of-write detection
@@ -172,7 +173,7 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   }
 
   else{
-    send_spi(end);
+    send_spi(0xFF);
   }
 
   while (mem_busy){
@@ -187,7 +188,7 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
 
     if(i == (data_len - 1)){
       send_spi(*(data +i));
-      send_spi(end);
+      send_spi(0xFF);
     }
 
     else{
@@ -235,7 +236,7 @@ void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
 
 	set_cs_low(MEM_CS, &MEM_PORT);
 	send_spi(MEM_R_BYTE);
-  send_spi(address >> 16);
+  send_spi((address >> 16) & 0xFF);
 	send_spi((address >> 8) & 0xFF);
 	send_spi(address & 0xFF);
 

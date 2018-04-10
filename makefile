@@ -7,7 +7,7 @@ INCLUDES = -I./lib-common/include/
 LIB = -L./lib-common/lib/ -lspi -luart -lcan
 
 # Change this line depending on your OS and the port used.
-PORT = /dev/tty.usbmodem00187462
+PORT = /dev/tty.usbmodem00208212
 
 SRC = $(wildcard ./src/*.c)
 OBJ = $(SRC:./src%.c=./build%.o)
