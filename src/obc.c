@@ -1,5 +1,6 @@
 #include "obc.h"
 
+// CAN mob for sending commands to PAY
 mob_t obc_pay_cmd_tx = {
   .mob_num = PAY_CMD_TX_MOB,
   .mob_type = TX_MOB,
@@ -7,6 +8,8 @@ mob_t obc_pay_cmd_tx = {
   .ctrl = default_tx_ctrl,
   .tx_data_cb = PAY_CMD_Tx_data_callback
 };
+
+// CAN mob for sending commands to EPS
 mob_t obc_eps_cmd_tx = {
   .mob_num = EPS_CMD_TX_MOB,
   .mob_type = TX_MOB,
@@ -14,6 +17,8 @@ mob_t obc_eps_cmd_tx = {
   .ctrl = default_tx_ctrl,
   .tx_data_cb = EPS_CMD_Tx_data_callback
 };
+
+// CAN mob for receiving data from any SSM
 mob_t obc_data_rx = {
     .mob_num = DATA_RX_MOB,
     .mob_type = RX_MOB,
@@ -25,14 +30,32 @@ mob_t obc_data_rx = {
 };
 
 int main(void) {
+
+    // Initialize lib-common libraries
     init_uart();
     init_can();
+
+    /* Steps to send commands to other SSMs */
+    // 1. Initialize the callback function to preprocess the command packet as needed
+    // 2. Initialize the CAN mob to send the command (or data) with the callback
+    // 3. Initialize queue for command if needed
+    // 4. Initalize timer with callback to enqueue Command to queue
+    // 5. Check if any enqueued Commands in queue in loop below
+
+    // Initialize CAN mobs to send commands
     init_tx_mob(&obc_pay_cmd_tx);
     init_tx_mob(&obc_eps_cmd_tx);
+
+    // Initialize CAN mobs to recieve data
     init_rx_mob(&obc_data_rx);
+
+    // Initialize block sizes for flash purposes
+    // Define CAN callbacks via function declarations
     init_callbacks();
 
-    // change these times
+    // Timed commands are housekeeping (PAY and EPS) and science data
+    // TODO: Change these times
+    // TODO: Implement two timers
     init_timer(1,req_hk_timer_callback);
     init_timer(1,req_sci_timer_callback);
 
@@ -42,11 +65,17 @@ int main(void) {
     print("starting main\n");
 
     // Generating queues
+
+    // Misc. queue
     obc_queue = initCmdQueue();
+    // Request science data queue
     sci_tx_queue = initCanQueue();
+    // Request PAY housekeeping queue
     pay_hk_tx_queue = initCanQueue();
+    // Request EPS housekeeping queue
     eps_hk_tx_queue = initCanQueue();
 
+    // Loop to check if queues have a command to be dequeued
     while (1) {
       if (!CANQ_isEmpty(&sci_tx_queue)) {
           CANQ_dequeue(&sci_tx_queue, &field_num);
