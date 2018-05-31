@@ -40,7 +40,7 @@ void EPS_CMD_Tx_data_callback(uint8_t* data, uint8_t *len) {
   4 bytes: data
 */
 
-void data_rx_mob_callback(uint8_t* data, uint8_t len) {
+void data_rx_mob_callback(const uint8_t* data, uint8_t len) {
 /*
     uint8_t board_num = data[0];
     uint8_t data_type = data[1];
@@ -49,7 +49,7 @@ void data_rx_mob_callback(uint8_t* data, uint8_t len) {
 */
   uint8_t data_type = data[0];
   uint8_t field = data[1];
-  uint8_t* payload = &(data[2]);
+  uint8_t* payload = (uint8_t *) (&(data[2]));
 
     switch (data_type) {
         case SCI_REQ:
