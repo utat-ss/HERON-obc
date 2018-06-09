@@ -4,7 +4,7 @@
 mob_t obc_pay_cmd_tx = {
   .mob_num = PAY_CMD_TX_MOB,
   .mob_type = TX_MOB,
-  .id_tag = { 0x0000 },
+  .id_tag = OBC_PAY_CMD_TX_MOB_ID,
   .ctrl = default_tx_ctrl,
   .tx_data_cb = PAY_CMD_Tx_data_callback
 };
@@ -13,7 +13,7 @@ mob_t obc_pay_cmd_tx = {
 mob_t obc_eps_cmd_tx = {
   .mob_num = EPS_CMD_TX_MOB,
   .mob_type = TX_MOB,
-  .id_tag = { 0x0000 },
+  .id_tag = OBC_EPS_CMD_TX_MOB_ID,
   .ctrl = default_tx_ctrl,
   .tx_data_cb = EPS_CMD_Tx_data_callback
 };
@@ -23,16 +23,24 @@ mob_t obc_data_rx = {
     .mob_num = DATA_RX_MOB,
     .mob_type = RX_MOB,
     .dlc = 7, // this might change
-    .id_tag = { 0x0000 },
+    .id_tag = OBC_DATA_RX_MOB_ID,
     .id_mask = { 0x0000 },
     .ctrl = default_rx_ctrl,
     .rx_cb = data_rx_mob_callback
 };
 
+void print_bytes(uint8_t *data, uint8_t len) {
+    for (uint8_t i = 0; i < len; i++) {
+        print("0x%02x ", data[i]);
+    }
+    print("\n");
+}
+
 int main(void) {
 
     // Initialize lib-common libraries
     init_uart();
+    print("starting main\n");
     init_can();
 
     /* Steps to send commands to other SSMs */
@@ -56,8 +64,8 @@ int main(void) {
     // Timed commands are housekeeping (PAY and EPS) and science data
     // TODO: Change these times
     // TODO: Implement two timers
-    init_timer(1,req_hk_timer_callback);
-    init_timer(1,req_sci_timer_callback);
+    //init_timer_8bit(1,req_hk_timer_callback);
+  //  init_timer_16bit(1,req_sci_timer_callback);
 
     OBC_Command command;
     uint8_t field_num;
@@ -74,6 +82,9 @@ int main(void) {
     pay_hk_tx_queue = initCanQueue();
     // Request EPS housekeeping queue
     eps_hk_tx_queue = initCanQueue();
+
+    req_hk_timer_callback();
+    req_sci_timer_callback();
 
     // Loop to check if queues have a command to be dequeued
     while (1) {

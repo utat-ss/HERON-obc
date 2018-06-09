@@ -13,21 +13,30 @@ void PAY_CMD_Tx_data_callback(uint8_t* data, uint8_t *len) {
     data[0] = SCI_REQ;
     data[1] = GLOBAL_SCI_FIELD_NUM;
     *len = 2;
+    print("Sending Science Request\n");
+    print("Transmitting Message to PAY:\n");
+    print_bytes(data, *len);
     return;
   }
   if(GLOBAL_PAY_HK_FIELD_NUM < PAY_HK_BLOCK_SIZE){
     data[0] = HK_REQ;
     data[1] = GLOBAL_PAY_HK_FIELD_NUM;
     *len = 2;
+    print("Sending Housekeeping Request\n");
+    print("Transmitting Message to PAY:\n");
+    print_bytes(data, *len);
     return;
   }
 }
 
 void EPS_CMD_Tx_data_callback(uint8_t* data, uint8_t *len) {
-  if(GLOBAL_EPS_HK_FIELD_NUM < EPS_HK_BLOCK_SIZE){
+  if(GLOBAL_EPS_HK_FIELD_NUM < EPS_HK_BLOCK_SIZE){\
     data[0] = HK_REQ;
     data[1] = GLOBAL_EPS_HK_FIELD_NUM;
     *len = 2;
+    print("Sending Housekeeping Request\n");
+    print("Transmitting Message to EPS:\n");
+    print_bytes(data, *len);
     return;
   }
 }
@@ -51,6 +60,10 @@ void data_rx_mob_callback(const uint8_t* data, uint8_t len) {
   uint8_t field = data[1];
   uint8_t* payload = (uint8_t *) (&(data[2]));
 
+  print("RX Callback\n");
+  print("Received Message:\n");
+  print_bytes((uint8_t *) data, len);
+
     switch (data_type) {
         case SCI_REQ:
             receive_science(field, payload);
@@ -59,6 +72,7 @@ void data_rx_mob_callback(const uint8_t* data, uint8_t len) {
             receive_hk(PAY_HK_TYPE, field, payload);
             break;
         default:
+            print("Invalid received message\n");
             break;
-    }
+  }
 }
