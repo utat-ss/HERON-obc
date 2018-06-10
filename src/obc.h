@@ -10,11 +10,20 @@
 
 #include "can_queue.h"
 #include "cmd_queue.h"
-#include "callbacks.h"
+#include "tx_callbacks.h"
+#include "sci_hk.h"
+#include "timer_callbacks.h"
 
 #define PAY_CMD_TX_MOB 3
 #define EPS_CMD_TX_MOB 4
 #define DATA_RX_MOB 5
+
+#define HK_REQ 0x1 // use packets.h after merge
+#define SCI_REQ 0x2 // use packets.h after merge
+
+uint8_t GLOBAL_SCI_FIELD_NUM,
+        GLOBAL_PAY_HK_FIELD_NUM,
+        GLOBAL_EPS_HK_FIELD_NUM;
 
 void print_bytes(uint8_t *data, uint8_t len);
 

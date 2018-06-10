@@ -1,4 +1,4 @@
-#include "callbacks.h"
+#include "tx_callbacks.h"
 
 void init_callbacks(){
   GLOBAL_SCI_FIELD_NUM = SCI_BLOCK_SIZE;
@@ -38,41 +38,5 @@ void EPS_CMD_Tx_data_callback(uint8_t* data, uint8_t *len) {
     print("Transmitting Message to EPS:\n");
     print_bytes(data, *len);
     return;
-  }
-}
-
-/*
-  Assumed data format:
-  1 byte: indicate board number
-  1 byte: indicates science/hk value is being received (stripped)
-  1 byte: indicates field number (uint8_t)
-  4 bytes: data
-*/
-
-void data_rx_mob_callback(const uint8_t* data, uint8_t len) {
-/*
-    uint8_t board_num = data[0];
-    uint8_t data_type = data[1];
-    uint8_t field = data[2];
-    uint8_t* payload = &(data[3]);
-*/
-  uint8_t data_type = data[0];
-  uint8_t field = data[1];
-  uint8_t* payload = (uint8_t *) (&(data[2]));
-
-  print("RX Callback\n");
-  print("Received Message:\n");
-  print_bytes((uint8_t *) data, len);
-
-    switch (data_type) {
-        case SCI_REQ:
-            receive_science(field, payload);
-            break;
-        case HK_REQ:
-            receive_hk(PAY_HK_TYPE, field, payload);
-            break;
-        default:
-            print("Invalid received message\n");
-            break;
   }
 }
