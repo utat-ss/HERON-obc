@@ -22,7 +22,7 @@ mob_t obc_eps_cmd_tx = {
 mob_t obc_data_rx = {
     .mob_num = DATA_RX_MOB,
     .mob_type = RX_MOB,
-    .dlc = 7, // this might change
+    .dlc = 8, // this might change
     .id_tag = OBC_DATA_RX_MOB_ID,
     .id_mask = { 0x0000 },
     .ctrl = default_rx_ctrl,
@@ -61,12 +61,6 @@ int main(void) {
     // Define CAN callbacks via function declarations
     init_callbacks();
 
-    // Timed commands are housekeeping (PAY and EPS) and science data
-    // TODO: Change these times
-    // TODO: Implement two timers
-    //init_timer_8bit(1,req_hk_timer_callback);
-  //  init_timer_16bit(1,req_sci_timer_callback);
-
     OBC_Command command;
     uint8_t field_num;
 
@@ -83,8 +77,14 @@ int main(void) {
     // Request EPS housekeeping queue
     eps_hk_tx_queue = initCanQueue();
 
-    req_hk_timer_callback();
-    req_sci_timer_callback();
+    // Timed commands are housekeeping (PAY and EPS) and science data
+    // TODO: Change these times
+    // TODO: Implement two timers
+    init_timer_8bit(2, req_hk_timer_callback);
+    init_timer_16bit(1, req_sci_timer_callback);
+
+    //req_hk_timer_callback();
+    //req_sci_timer_callback();
 
     // Loop to check if queues have a command to be dequeued
     while (1) {
@@ -93,19 +93,21 @@ int main(void) {
           GLOBAL_SCI_FIELD_NUM = field_num;
           resume_mob(&obc_pay_cmd_tx);
       }
-      if (!CANQ_isEmpty(&pay_hk_tx_queue)) {
-          CANQ_dequeue(&pay_hk_tx_queue, &field_num);
-          GLOBAL_PAY_HK_FIELD_NUM = field_num;
-          resume_mob(&obc_pay_cmd_tx);
-      }
-      if (!CANQ_isEmpty(&eps_hk_tx_queue)) {
-          CANQ_dequeue(&eps_hk_tx_queue, &field_num);
-          GLOBAL_EPS_HK_FIELD_NUM = field_num;
-          resume_mob(&obc_eps_cmd_tx);
-      }
-      if (!CMDQ_isEmpty(&obc_queue)) {
-          CMDQ_dequeue(&obc_queue, &command);
-          // handle here
-      }
+      // if (!CANQ_isEmpty(&pay_hk_tx_queue)) {
+      //     CANQ_dequeue(&pay_hk_tx_queue, &field_num);
+      //     GLOBAL_PAY_HK_FIELD_NUM = field_num;
+      //     resume_mob(&obc_pay_cmd_tx);
+      // }
+      // if (!CANQ_isEmpty(&eps_hk_tx_queue)) {
+      //     CANQ_dequeue(&eps_hk_tx_queue, &field_num);
+      //     GLOBAL_EPS_HK_FIELD_NUM = field_num;
+      //     resume_mob(&obc_eps_cmd_tx);
+      // }
+      // if (!CMDQ_isEmpty(&obc_queue)) {
+      //     CMDQ_dequeue(&obc_queue, &command);
+      //     // handle here
+      // }
+
+      _delay_ms(1000);
     }
 }

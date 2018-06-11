@@ -6,7 +6,8 @@ void req_sci_timer_callback(){
 }
 
 void req_hk_timer_callback(){
-  CANQ_enqueue(&pay_hk_tx_queue, 0);
-  CANQ_enqueue(&eps_hk_tx_queue, 0);
-  print("Enqueued Housekeeping TX Messages\n");
+  // CANQ_enqueue(&pay_hk_tx_queue, 0);
+  // //CANQ_enqueue(&eps_hk_tx_queue, 0);
+  // print("Enqueued Housekeeping TX Messages\n");
+  print("\n2 minutes!!!!\n");
 }

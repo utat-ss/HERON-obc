@@ -1,7 +1,12 @@
 #ifndef OBC_H
 #define OBC_H
 
+#ifndef F_CPU
+#define F_CPU 8000000UL
+#endif
+
 #include <stdint.h>
+#include <util/delay.h>
 
 #include <uart/uart.h>
 #include <timer/timer.h>
@@ -18,8 +23,12 @@
 #define EPS_CMD_TX_MOB 4
 #define DATA_RX_MOB 5
 
-#define HK_REQ 0x1 // use packets.h after merge
-#define SCI_REQ 0x2 // use packets.h after merge
+#define PAY_HK_TYPE 0x00 // use packets.h after merge
+#define SCI_TYPE 0x01 // use packets.h after merge
+
+#define EPS_HK_BLOCK_SIZE 2
+#define SCI_BLOCK_SIZE 2
+#define PAY_HK_BLOCK_SIZE 2
 
 uint8_t GLOBAL_SCI_FIELD_NUM,
         GLOBAL_PAY_HK_FIELD_NUM,
