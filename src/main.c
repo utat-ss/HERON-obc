@@ -61,15 +61,12 @@ int main(void) {
     // Define CAN callbacks via function declarations
     init_callbacks();
 
-    OBC_Command command;
     uint8_t field_num;
 
     print("starting main\n");
 
     // Generating queues
 
-    // Misc. queue
-    obc_queue = initCmdQueue();
     // Request science data queue
     sci_tx_queue = initCanQueue();
     // Request PAY housekeeping queue
@@ -102,10 +99,6 @@ int main(void) {
       //     CANQ_dequeue(&eps_hk_tx_queue, &field_num);
       //     GLOBAL_EPS_HK_FIELD_NUM = field_num;
       //     resume_mob(&obc_eps_cmd_tx);
-      // }
-      // if (!CMDQ_isEmpty(&obc_queue)) {
-      //     CMDQ_dequeue(&obc_queue, &command);
-      //     // handle here
       // }
 
       _delay_ms(1000);
