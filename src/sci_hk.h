@@ -1,8 +1,8 @@
 #ifndef HOUSEKEEPING_H
 #define HOUSEKEEPING_H
 
-#include  <stdint.h>
-
+#include <stdint.h>
+#include <can/can_data_protocol.h>
 #include "main.h"
 
 // CAN callbacks

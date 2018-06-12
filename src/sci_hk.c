@@ -23,11 +23,11 @@ void data_rx_mob_callback(const uint8_t* data, uint8_t len) {
   print_bytes((uint8_t *) data, len);
 
     switch (data_type) {
-        case SCI_TYPE:
+        case CAN_PAY_SCI:
             receive_science(field, payload);
             break;
-        case PAY_HK_TYPE:
-            receive_hk(PAY_HK_TYPE, field, payload);
+        case CAN_PAY_HK:
+            receive_hk(CAN_PAY_HK, field, payload);
             break;
         default:
             print("Invalid received message\n");
@@ -36,8 +36,7 @@ void data_rx_mob_callback(const uint8_t* data, uint8_t len) {
 }
 
 void receive_science(uint8_t field_num, uint8_t* data){
-  write_to_flash(SCI_TYPE, field_num, data);
-  if (field_num + 1 < SCI_BLOCK_SIZE){
+  if (field_num + 1 < CAN_PAY_SCI_FIELD_COUNT){
     CANQ_enqueue(&sci_tx_queue, field_num+1);
     print("Enqueued Science TX with field_num:%d\n", (field_num+1));
   } else {
@@ -46,10 +45,9 @@ void receive_science(uint8_t field_num, uint8_t* data){
 }
 
 void receive_hk(uint8_t board_num, uint8_t field_num, uint8_t* payload){
-  write_to_flash(board_num, field_num, payload);
   switch (board_num) {
-    case PAY_HK_TYPE:
-      if(field_num + 1 < PAY_HK_BLOCK_SIZE) {
+    case CAN_PAY_HK:
+      if(field_num + 1 < CAN_PAY_HK_FIELD_COUNT) {
         CANQ_enqueue(&pay_hk_tx_queue, field_num+1);
         print("Enqueued TX PAY HK Message, field_num:%d\n",(field_num+1));
       } else {
@@ -69,8 +67,4 @@ void receive_hk(uint8_t board_num, uint8_t field_num, uint8_t* payload){
     default:
       break;
   }
-}
-
-void write_to_flash(uint8_t board_num, uint8_t field_num, uint8_t* data){
-  return;
 }
