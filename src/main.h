@@ -1,5 +1,5 @@
-#ifndef OBC_H
-#define OBC_H
+#ifndef MAIN_H
+#define MAIN_H
 
 #ifndef F_CPU
 #define F_CPU 8000000UL

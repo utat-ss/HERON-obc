@@ -3,7 +3,8 @@
 
 #include  <stdint.h>
 
-#include "obc.h"
+#include "can_queue.h"
+#include "main.h"
 
 void req_sci_timer_callback();
 void req_hk_timer_callback();

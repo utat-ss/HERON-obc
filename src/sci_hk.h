@@ -3,7 +3,7 @@
 
 #include  <stdint.h>
 
-#include "obc.h"
+#include "main.h"
 
 // CAN callbacks
 void req_hk_timer_callback();

@@ -4,7 +4,7 @@
 // #include "global_header.h"
 #include  <stdint.h>
 
-#include "obc.h"
+#include "main.h"
 
 // mob_t obc_pay_cmd_tx, obc_eps_cmd_tx, obc_data_rx;
 

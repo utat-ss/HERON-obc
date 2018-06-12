@@ -1,4 +1,4 @@
-#include "obc.h"
+#include "main.h"
 
 // CAN mob for sending commands to PAY
 mob_t obc_pay_cmd_tx = {
