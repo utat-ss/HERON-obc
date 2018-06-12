@@ -6,7 +6,7 @@ mob_t pay_cmd_tx = {
     .mob_type = TX_MOB,
     .id_tag = OBC_PAY_CMD_TX_MOB_ID,
     .ctrl = default_tx_ctrl,
-    .tx_data_cb = PAY_CMD_Tx_data_callback
+    .tx_data_cb = pay_cmd_tx_data_callback
 };
 
 // CAN mob for sending commands to EPS
@@ -15,7 +15,7 @@ mob_t eps_cmd_tx = {
     .mob_type = TX_MOB,
     .id_tag = OBC_EPS_CMD_TX_MOB_ID,
     .ctrl = default_tx_ctrl,
-    .tx_data_cb = EPS_CMD_Tx_data_callback
+    .tx_data_cb = eps_cmd_tx_data_callback
 };
 
 // CAN mob for receiving data from any SSM
@@ -24,9 +24,9 @@ mob_t data_rx = {
     .mob_type = RX_MOB,
     .dlc = 8, // this might change
     .id_tag = OBC_DATA_RX_MOB_ID,
-    .id_mask = { 0x0000 },
+    .id_mask = CAN_RX_MASK_ID,
     .ctrl = default_rx_ctrl,
-    .rx_cb = data_rx_mob_callback
+    .rx_cb = data_rx_callback
 };
 
 
@@ -69,10 +69,9 @@ int main(void) {
 
     // Timed commands are housekeeping (PAY and EPS) and science data
     // TODO: Change these times
-    // TODO: Implement two timers
-    init_timer_8bit(2, req_hk_timer_callback);
-    init_timer_16bit(1, req_sci_timer_callback);
-    print("Initialized timers\n");
+    init_timer_8bit(1, hk_timer_callback);
+    init_timer_16bit(2, sci_timer_callback);
+    print("Initialized HK and SCI timers\n");
 
     //req_hk_timer_callback();
     //req_sci_timer_callback();
@@ -83,11 +82,11 @@ int main(void) {
         if (send_next_pay_hk_field_num) {
             resume_mob(&pay_cmd_tx);
         }
-        else if (send_next_pay_sci_field_num) {
-            resume_mob(&pay_cmd_tx);
-        }
         else if (send_next_eps_hk_field_num) {
             resume_mob(&eps_cmd_tx);
+        }
+        else if (send_next_pay_sci_field_num) {
+            resume_mob(&pay_cmd_tx);
         }
 
         _delay_ms(1000);

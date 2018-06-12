@@ -1,11 +1,11 @@
-#ifndef SCIENCE_H
-#define SCIENCE_H
+#ifndef TIMER_CALLBACKS_H
+#define TIMER_CALLBACKS_H
 
 #include  <stdint.h>
 
 #include "main.h"
 
-void req_sci_timer_callback();
-void req_hk_timer_callback();
+void hk_timer_callback();
+void sci_timer_callback();
 
 #endif
