@@ -1,7 +1,6 @@
 #ifndef CALLBACKS_H
 #define CALLBACKS_H
 
-// #include "global_header.h"
 #include <stdint.h>
 #include <can/can_data_protocol.h>
 #include "main.h"

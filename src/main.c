@@ -2,20 +2,20 @@
 
 // CAN mob for sending commands to PAY
 mob_t obc_pay_cmd_tx = {
-  .mob_num = PAY_CMD_TX_MOB,
-  .mob_type = TX_MOB,
-  .id_tag = OBC_PAY_CMD_TX_MOB_ID,
-  .ctrl = default_tx_ctrl,
-  .tx_data_cb = PAY_CMD_Tx_data_callback
+    .mob_num = PAY_CMD_TX_MOB,
+    .mob_type = TX_MOB,
+    .id_tag = OBC_PAY_CMD_TX_MOB_ID,
+    .ctrl = default_tx_ctrl,
+    .tx_data_cb = PAY_CMD_Tx_data_callback
 };
 
 // CAN mob for sending commands to EPS
 mob_t obc_eps_cmd_tx = {
-  .mob_num = EPS_CMD_TX_MOB,
-  .mob_type = TX_MOB,
-  .id_tag = OBC_EPS_CMD_TX_MOB_ID,
-  .ctrl = default_tx_ctrl,
-  .tx_data_cb = EPS_CMD_Tx_data_callback
+    .mob_num = EPS_CMD_TX_MOB,
+    .mob_type = TX_MOB,
+    .id_tag = OBC_EPS_CMD_TX_MOB_ID,
+    .ctrl = default_tx_ctrl,
+    .tx_data_cb = EPS_CMD_Tx_data_callback
 };
 
 // CAN mob for receiving data from any SSM
@@ -85,22 +85,22 @@ int main(void) {
 
     // Loop to check if queues have a command to be dequeued
     while (1) {
-      if (!CANQ_isEmpty(&sci_tx_queue)) {
-          CANQ_dequeue(&sci_tx_queue, &field_num);
-          GLOBAL_SCI_FIELD_NUM = field_num;
-          resume_mob(&obc_pay_cmd_tx);
-      }
-      // if (!CANQ_isEmpty(&pay_hk_tx_queue)) {
-      //     CANQ_dequeue(&pay_hk_tx_queue, &field_num);
-      //     GLOBAL_PAY_HK_FIELD_NUM = field_num;
-      //     resume_mob(&obc_pay_cmd_tx);
-      // }
-      // if (!CANQ_isEmpty(&eps_hk_tx_queue)) {
-      //     CANQ_dequeue(&eps_hk_tx_queue, &field_num);
-      //     GLOBAL_EPS_HK_FIELD_NUM = field_num;
-      //     resume_mob(&obc_eps_cmd_tx);
-      // }
+        if (!CANQ_isEmpty(&sci_tx_queue)) {
+            CANQ_dequeue(&sci_tx_queue, &field_num);
+            GLOBAL_SCI_FIELD_NUM = field_num;
+            resume_mob(&obc_pay_cmd_tx);
+        }
+        // if (!CANQ_isEmpty(&pay_hk_tx_queue)) {
+        //     CANQ_dequeue(&pay_hk_tx_queue, &field_num);
+        //     GLOBAL_PAY_HK_FIELD_NUM = field_num;
+        //     resume_mob(&obc_pay_cmd_tx);
+        // }
+        // if (!CANQ_isEmpty(&eps_hk_tx_queue)) {
+        //     CANQ_dequeue(&eps_hk_tx_queue, &field_num);
+        //     GLOBAL_EPS_HK_FIELD_NUM = field_num;
+        //     resume_mob(&obc_eps_cmd_tx);
+        // }
 
-      _delay_ms(1000);
+        _delay_ms(1000);
     }
 }
