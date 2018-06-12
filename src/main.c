@@ -1,7 +1,7 @@
 #include "main.h"
 
 // CAN mob for sending commands to PAY
-mob_t obc_pay_cmd_tx = {
+mob_t pay_cmd_tx = {
     .mob_num = PAY_CMD_TX_MOB,
     .mob_type = TX_MOB,
     .id_tag = OBC_PAY_CMD_TX_MOB_ID,
@@ -10,7 +10,7 @@ mob_t obc_pay_cmd_tx = {
 };
 
 // CAN mob for sending commands to EPS
-mob_t obc_eps_cmd_tx = {
+mob_t eps_cmd_tx = {
     .mob_num = EPS_CMD_TX_MOB,
     .mob_type = TX_MOB,
     .id_tag = OBC_EPS_CMD_TX_MOB_ID,
@@ -19,7 +19,7 @@ mob_t obc_eps_cmd_tx = {
 };
 
 // CAN mob for receiving data from any SSM
-mob_t obc_data_rx = {
+mob_t data_rx = {
     .mob_num = DATA_RX_MOB,
     .mob_type = RX_MOB,
     .dlc = 8, // this might change
@@ -29,6 +29,17 @@ mob_t obc_data_rx = {
     .rx_cb = data_rx_mob_callback
 };
 
+
+uint8_t next_pay_hk_field_num = 0;
+bool send_next_pay_hk_field_num = false;
+
+uint8_t next_pay_sci_field_num = 0;
+bool send_next_pay_sci_field_num = false;
+
+uint8_t next_eps_hk_field_num = 0;
+bool send_next_eps_hk_field_num = false;
+
+
 void print_bytes(uint8_t *data, uint8_t len) {
     for (uint8_t i = 0; i < len; i++) {
         print("0x%02x ", data[i]);
@@ -37,11 +48,9 @@ void print_bytes(uint8_t *data, uint8_t len) {
 }
 
 int main(void) {
-
     // Initialize lib-common libraries
     init_uart();
-    print("starting main\n");
-    init_can();
+    print("UART Initialized\n");
 
     /* Steps to send commands to other SSMs */
     // 1. Initialize the callback function to preprocess the command packet as needed
@@ -51,55 +60,35 @@ int main(void) {
     // 5. Check if any enqueued Commands in queue in loop below
 
     // Initialize CAN mobs to send commands
-    init_tx_mob(&obc_pay_cmd_tx);
-    init_tx_mob(&obc_eps_cmd_tx);
+    init_can();
+    init_tx_mob(&pay_cmd_tx);
+    init_tx_mob(&eps_cmd_tx);
 
     // Initialize CAN mobs to recieve data
-    init_rx_mob(&obc_data_rx);
-
-    // Initialize block sizes for flash purposes
-    // Define CAN callbacks via function declarations
-    init_callbacks();
-
-    uint8_t field_num;
-
-    print("starting main\n");
-
-    // Generating queues
-
-    // Request science data queue
-    sci_tx_queue = initCanQueue();
-    // Request PAY housekeeping queue
-    pay_hk_tx_queue = initCanQueue();
-    // Request EPS housekeeping queue
-    eps_hk_tx_queue = initCanQueue();
+    init_rx_mob(&data_rx);
 
     // Timed commands are housekeeping (PAY and EPS) and science data
     // TODO: Change these times
     // TODO: Implement two timers
     init_timer_8bit(2, req_hk_timer_callback);
     init_timer_16bit(1, req_sci_timer_callback);
+    print("Initialized timers\n");
 
     //req_hk_timer_callback();
     //req_sci_timer_callback();
 
-    // Loop to check if queues have a command to be dequeued
+    print("Starting main loop\n");
+    // Loop to check if we should send a CAN message
     while (1) {
-        if (!CANQ_isEmpty(&sci_tx_queue)) {
-            CANQ_dequeue(&sci_tx_queue, &field_num);
-            GLOBAL_SCI_FIELD_NUM = field_num;
-            resume_mob(&obc_pay_cmd_tx);
+        if (send_next_pay_hk_field_num) {
+            resume_mob(&pay_cmd_tx);
         }
-        // if (!CANQ_isEmpty(&pay_hk_tx_queue)) {
-        //     CANQ_dequeue(&pay_hk_tx_queue, &field_num);
-        //     GLOBAL_PAY_HK_FIELD_NUM = field_num;
-        //     resume_mob(&obc_pay_cmd_tx);
-        // }
-        // if (!CANQ_isEmpty(&eps_hk_tx_queue)) {
-        //     CANQ_dequeue(&eps_hk_tx_queue, &field_num);
-        //     GLOBAL_EPS_HK_FIELD_NUM = field_num;
-        //     resume_mob(&obc_eps_cmd_tx);
-        // }
+        else if (send_next_pay_sci_field_num) {
+            resume_mob(&pay_cmd_tx);
+        }
+        else if (send_next_eps_hk_field_num) {
+            resume_mob(&eps_cmd_tx);
+        }
 
         _delay_ms(1000);
     }

@@ -1,42 +1,43 @@
 #include "tx_callbacks.h"
 
-void init_callbacks(){
-    GLOBAL_SCI_FIELD_NUM = CAN_PAY_SCI_FIELD_COUNT;
-    GLOBAL_PAY_HK_FIELD_NUM = CAN_PAY_HK_FIELD_COUNT;
-    GLOBAL_EPS_HK_FIELD_NUM = CAN_EPS_HK_FIELD_COUNT;
-    // resume data_rx_mob?
-}
-
 void PAY_CMD_Tx_data_callback(uint8_t* data, uint8_t *len) {
     *len = 0;
-    if(GLOBAL_SCI_FIELD_NUM < CAN_PAY_SCI_FIELD_COUNT){
-        data[0] = CAN_PAY_SCI;
-        data[1] = GLOBAL_SCI_FIELD_NUM;
+
+    if(send_next_pay_hk_field_num && next_pay_hk_field_num < CAN_PAY_HK_FIELD_COUNT){
+        data[0] = 0;    // TODO
+        data[1] = CAN_PAY_HK;
+        data[2] = next_pay_hk_field_num;
         *len = 8;
-        print("Sending Science Request\n");
-        print("Transmitting Message to PAY:\n");
+
+        print("Sending PAY_HK Request\n");
         print_bytes(data, *len);
-        return;
+
+        send_next_pay_hk_field_num = false;
     }
-    if(GLOBAL_PAY_HK_FIELD_NUM < CAN_PAY_HK_FIELD_COUNT){
-        data[0] = CAN_PAY_HK;
-        data[1] = GLOBAL_PAY_HK_FIELD_NUM;
+
+    else if(send_next_pay_sci_field_num && next_pay_sci_field_num < CAN_PAY_SCI_FIELD_COUNT){
+        data[0] = 0;    // TODO
+        data[1] = CAN_PAY_SCI;
+        data[2] = next_pay_sci_field_num;
         *len = 8;
-        print("Sending Housekeeping Request\n");
-        print("Transmitting Message to PAY:\n");
+
+        print("Sending PAY_SCI Request\n");
         print_bytes(data, *len);
-        return;
+
+        send_next_pay_sci_field_num = false;
     }
 }
 
 void EPS_CMD_Tx_data_callback(uint8_t* data, uint8_t *len) {
-    // if(GLOBAL_EPS_HK_FIELD_NUM < CAN_EPS_HK_FIELD_COUNT){\
-    //   data[0] = HK_REQ;
-    //   data[1] = GLOBAL_EPS_HK_FIELD_NUM;
-    //   *len = 2;
-    //   print("Sending Housekeeping Request\n");
-    //   print("Transmitting Message to EPS:\n");
-    //   print_bytes(data, *len);
-    //   return;
-    // }
+    if(send_next_eps_hk_field_num && next_eps_hk_field_num < CAN_EPS_HK_FIELD_COUNT){
+        data[0] = 0;    // TODO
+        data[1] = CAN_EPS_HK;
+        data[2] = next_eps_hk_field_num;
+        *len = 8;
+
+        print("Sending EPS_HK Request\n");
+        print_bytes(data, *len);
+
+        send_next_eps_hk_field_num = false;
+    }
 }

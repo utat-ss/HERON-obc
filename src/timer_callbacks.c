@@ -1,8 +1,9 @@
 #include "timer_callbacks.h"
 
 void req_sci_timer_callback(){
-    CANQ_enqueue(&sci_tx_queue, 0);
-    print("Enqueued Science TX Message\n");
+    next_pay_sci_field_num = 0;
+    send_next_pay_sci_field_num = true;
+    print("Enqueued PAY_SCI\n");
 }
 
 void req_hk_timer_callback(){

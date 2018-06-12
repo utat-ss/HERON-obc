@@ -3,7 +3,6 @@
 
 #include  <stdint.h>
 
-#include "can_queue.h"
 #include "main.h"
 
 void req_sci_timer_callback();
