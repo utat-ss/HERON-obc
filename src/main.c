@@ -40,13 +40,6 @@ uint8_t next_eps_hk_field_num = 0;
 bool send_next_eps_hk_field_num = false;
 
 
-void print_bytes(uint8_t *data, uint8_t len) {
-    for (uint8_t i = 0; i < len; i++) {
-        print("0x%02x ", data[i]);
-    }
-    print("\n");
-}
-
 int main(void) {
     // Initialize lib-common libraries
     init_uart();

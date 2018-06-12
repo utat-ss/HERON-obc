@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <can/can_data_protocol.h>
+#include <utilities/utilities.h>
 #include "main.h"
 
 void init_callbacks();

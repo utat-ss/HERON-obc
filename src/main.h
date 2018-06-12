@@ -31,6 +31,4 @@ bool send_next_pay_sci_field_num;
 uint8_t next_eps_hk_field_num;
 bool send_next_eps_hk_field_num;
 
-void print_bytes(uint8_t *data, uint8_t len);
-
 #endif

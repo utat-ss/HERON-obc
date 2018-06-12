@@ -7,7 +7,7 @@ void data_rx_callback(const uint8_t* data, uint8_t len) {
 
     print("RX Callback\n");
     print("Received Message:\n");
-    print_bytes((uint8_t *) data, len);
+    print_hex_bytes((uint8_t *) data, len);
 
     switch (message_type) {
         case CAN_PAY_HK:
