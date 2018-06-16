@@ -13,11 +13,11 @@ void data_rx_callback(const uint8_t* data, uint8_t len) {
         case CAN_PAY_HK:
             receive_pay_hk(field_num);
             break;
-        case CAN_EPS_HK:
-            receive_eps_hk(field_num);
-            break;
         case CAN_PAY_SCI:
             receive_pay_sci(field_num);
+            break;
+        case CAN_EPS_HK:
+            receive_eps_hk(field_num);
             break;
         default:
             print("Invalid received message\n");
@@ -32,16 +32,8 @@ void receive_pay_hk(uint8_t field_num){
         print("Enqueued PAY_HK, field_num: %d\n", field_num + 1);
     } else {
         print("PAY_HK done\n");
-    }
-}
-
-void receive_eps_hk(uint8_t field_num){
-    if (field_num + 1 < CAN_EPS_HK_FIELD_COUNT) {
-        next_eps_hk_field_num = field_num + 1;
-        send_next_eps_hk_field_num = true;
-        print("Enqueued EPS_HK, field_num: %d\n", field_num + 1);
-    } else {
-        print("EPS_HK done\n");
+        next_pay_sci_field_num = 0;
+        send_next_pay_sci_field_num = true;
     }
 }
 
@@ -52,5 +44,18 @@ void receive_pay_sci(uint8_t field_num){
         print("Enqueued PAY_SCI, field_num: %d\n", field_num + 1);
     } else {
         print("PAY_SCI done\n");
+        next_eps_hk_field_num = 0;
+        send_next_eps_hk_field_num = true;
+    }
+}
+
+void receive_eps_hk(uint8_t field_num){
+    if (field_num + 1 < CAN_EPS_HK_FIELD_COUNT) {
+        next_eps_hk_field_num = field_num + 1;
+        send_next_eps_hk_field_num = true;
+        print("Enqueued EPS_HK, field_num: %d\n", field_num + 1);
+    } else {
+        print("EPS_HK done\n");
+        uart_cmd_busy = false;
     }
 }

@@ -22,13 +22,15 @@
 #define EPS_CMD_TX_MOB 4
 #define DATA_RX_MOB 5
 
-uint8_t next_pay_hk_field_num;
-bool send_next_pay_hk_field_num;
+extern uint8_t next_pay_hk_field_num;
+extern bool send_next_pay_hk_field_num;
 
-uint8_t next_pay_sci_field_num;
-bool send_next_pay_sci_field_num;
+extern uint8_t next_pay_sci_field_num;
+extern bool send_next_pay_sci_field_num;
 
-uint8_t next_eps_hk_field_num;
-bool send_next_eps_hk_field_num;
+extern uint8_t next_eps_hk_field_num;
+extern bool send_next_eps_hk_field_num;
+
+extern bool uart_cmd_busy;
 
 #endif
