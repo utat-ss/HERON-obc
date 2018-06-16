@@ -30,6 +30,8 @@ obc: $(OBJ)
 clean:
 	rm -f $(OBJ)
 	rm -f $(DEP)
+	rm -f ./build/obc.hex
+	rm -f ./build/obc.elf
 
 upload: obc
 	avrdude -p $(MCU) -c $(PROG) -P $(PORT) -U flash:w:./build/$^.hex
