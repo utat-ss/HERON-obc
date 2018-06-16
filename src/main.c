@@ -54,6 +54,12 @@ cmd_t read_flash = {
     .fn = handle_read_flash
 };
 
+void handle_actuate_motor(const uint8_t*, uint8_t);
+cmd_t actuate_motor = {
+    .cmd = "ACTUATE MOTOR\r\n",
+    .fn = handle_actuate_motor
+};
+
 
 
 // TODO - do we even need variable input arguments?
@@ -61,8 +67,12 @@ cmd_t read_flash = {
 // returns the last 4 CAN msgs, set the .cmd member to be the prefix
 // of the command, without the variable; in this case, "LAST MSG "
 
-#define CMD_LIST_LEN 2
-cmd_t* cmd_list[CMD_LIST_LEN] = { &pay_eps_req, &read_flash };
+#define CMD_LIST_LEN 3
+cmd_t* cmd_list[CMD_LIST_LEN] = {
+        &pay_eps_req,
+        &read_flash,
+        &actuate_motor
+};
 
 
 
@@ -75,6 +85,8 @@ bool send_next_pay_sci_field_num = false;
 
 uint8_t next_eps_hk_field_num = 0;
 bool send_next_eps_hk_field_num = false;
+
+bool send_pay_motor_actuate = false;
 
 
 
@@ -143,10 +155,16 @@ void handle_pay_eps_req(const uint8_t* data, uint8_t len) {
 
 void handle_read_flash(const uint8_t* data, uint8_t len) {
     print("%s\n", __FUNCTION__);
-    
+
     // TODO
 
     uart_cmd_busy = false;
+}
+
+void handle_actuate_motor(const uint8_t* data, uint8_t len) {
+    print("%s\n", __FUNCTION__);
+
+    send_pay_motor_actuate = true;
 }
 
 
@@ -171,10 +189,13 @@ int main(void) {
         if (send_next_pay_hk_field_num) {
             resume_mob(&pay_cmd_tx);
         }
+        else if (send_next_pay_sci_field_num) {
+            resume_mob(&pay_cmd_tx);
+        }
         else if (send_next_eps_hk_field_num) {
             resume_mob(&eps_cmd_tx);
         }
-        else if (send_next_pay_sci_field_num) {
+        else if (send_pay_motor_actuate) {
             resume_mob(&pay_cmd_tx);
         }
 

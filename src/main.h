@@ -31,6 +31,8 @@ extern bool send_next_pay_sci_field_num;
 extern uint8_t next_eps_hk_field_num;
 extern bool send_next_eps_hk_field_num;
 
+extern bool send_pay_motor_actuate;
+
 extern bool uart_cmd_busy;
 
 #endif

@@ -117,3 +117,12 @@ void receive_eps_hk(const uint8_t* data, uint8_t len){
         }
     }
 }
+
+void receive_pay_motor(const uint8_t* data, uint8_t len){
+    uint8_t field_num = data[2];
+
+    if (field_num == CAN_PAY_MOTOR_ACTUATE) {
+        print("PAY_MOTOR done\n");
+        uart_cmd_busy = false;
+    }
+}
