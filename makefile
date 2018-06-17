@@ -3,8 +3,8 @@ CFLAGS = -g -std=gnu99 -mmcu=atmega32m1 -Os -mcall-prologues
 PROG = stk500# the Pololu acts like the STK500
 MCU = m32m1
 
-INCLUDES = -I./lib-common/include/ -I./include/
-LIB = -L./lib-common/lib/ -lspi -luart -lcan -lqueue -ltimer -lutilities
+INCLUDES = -I./lib-common/include/
+LIB = -L./lib-common/lib/ -lspi -luart -lcan -lqueue
 
 # Change this line depending on your OS and the port used.
 PORT = /dev/tty.usbmodem00187462
