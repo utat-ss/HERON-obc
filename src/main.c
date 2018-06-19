@@ -187,6 +187,9 @@ void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
         //print_hex_bytes(data, *len);
 
     } else if (!is_empty(&pay_motor_tx_queue)) {
+        uint8_t temp[8];
+        dequeue(&pay_motor_tx_queue, temp);
+
         data[0] = 0;    // TODO
         data[1] = CAN_PAY_MOTOR;
         data[2] = CAN_PAY_MOTOR_ACTUATE;
@@ -356,7 +359,6 @@ void handle_actuate_motor() {
 int main(void) {
     init_uart();
     print("\n\nUART initialized\n");
-    print("%d\n", sizeof(cmd_t));
     init_can();
     print("CAN initialized\n");
 
