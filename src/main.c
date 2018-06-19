@@ -16,10 +16,10 @@
 #define EPS_CMD_TX_MOB 4
 #define DATA_RX_MOB 5
 
-queue_t* eps_tx_queue;
-queue_t* pay_sci_tx_queue;
-queue_t* pay_hk_tx_queue;
-queue_t* pay_motor_tx_queue;
+queue_t eps_tx_queue;
+queue_t pay_sci_tx_queue;
+queue_t pay_hk_tx_queue;
+queue_t pay_motor_tx_queue;
 
 #include <can/can_data_protocol.h>
 #include <utilities/utilities.h>
@@ -95,7 +95,7 @@ void receive_pay_hk(const uint8_t* data, uint8_t len){
         if (field_num + 1 < CAN_PAY_HK_FIELD_COUNT) {
             uint8_t d[8] = { 0 };
             d[0] = field_num + 1;
-            enqueue(pay_hk_tx_queue, &d);
+            enqueue(&pay_hk_tx_queue, d);
             print("Enqueued PAY_HK, field_num: %d\n", field_num + 1);
         } else {
             print("PAY_HK done\n");
@@ -120,7 +120,7 @@ void receive_pay_sci(const uint8_t* data, uint8_t len){
         if (field_num + 1 < CAN_PAY_SCI_FIELD_COUNT){
             uint8_t d[8] = { 0 };
             d[0] = field_num + 1;
-            enqueue(pay_sci_tx_queue, &d);
+            enqueue(&pay_sci_tx_queue, d);
             print("Enqueued PAY_SCI, field_num: %d\n", field_num + 1);
         } else {
             print("PAY_SCI done\n");
@@ -144,7 +144,7 @@ void receive_eps_hk(const uint8_t* data, uint8_t len){
             // TODO: Fix me, very hacky
             uint8_t d[8] = { 0 };
             d[0] = field_num + 1;
-            enqueue(eps_tx_queue, &d);
+            enqueue(&eps_tx_queue, d);
             print("Enqueued EPS_HK, field_num: %d\n", field_num + 1);
         } else {
             print("EPS_HK done\n");
@@ -163,9 +163,9 @@ void receive_pay_motor(const uint8_t* data, uint8_t len){
 void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
     *len = 0;
 
-    if (!is_empty(pay_hk_tx_queue)) {
+    if (!is_empty(&pay_hk_tx_queue)) {
         uint8_t next_field_num_packet[8] = { 0 };
-        dequeue(pay_hk_tx_queue, next_field_num_packet);
+        dequeue(&pay_hk_tx_queue, next_field_num_packet);
 
         data[0] = 0;    // TODO
         data[1] = CAN_PAY_HK;
@@ -174,9 +174,9 @@ void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
 
         print("Sending PAY_HK Request\n");
         //print_hex_bytes(data, *len);
-    } else if (!is_empty(pay_sci_tx_queue)) {
+    } else if (!is_empty(&pay_sci_tx_queue)) {
         uint8_t next_field_num_packet[8] = { 0 };
-        dequeue(pay_sci_tx_queue, next_field_num_packet);
+        dequeue(&pay_sci_tx_queue, next_field_num_packet);
 
         data[0] = 0;    // TODO
         data[1] = CAN_PAY_SCI;
@@ -186,7 +186,7 @@ void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
         print("Sending PAY_SCI Request\n");
         //print_hex_bytes(data, *len);
 
-    } else if (!is_empty(pay_motor_tx_queue)) {
+    } else if (!is_empty(&pay_motor_tx_queue)) {
         data[0] = 0;    // TODO
         data[1] = CAN_PAY_MOTOR;
         data[2] = CAN_PAY_MOTOR_ACTUATE;
@@ -200,9 +200,9 @@ void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
 void eps_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
     *len = 0;
     // eps_tx_queue contains numbers of the field_nums to send
-    if (!is_empty(eps_tx_queue)) {
+    if (!is_empty(&eps_tx_queue)) {
         uint8_t next_field_num_packet[8] = { 0 };
-        dequeue(eps_tx_queue, next_field_num_packet);
+        dequeue(&eps_tx_queue, next_field_num_packet);
 
         data[0] = 0;
         data[1] = CAN_EPS_HK;
@@ -243,7 +243,7 @@ mob_t data_rx = {
     .rx_cb = data_rx_callback
 };
 
-queue_t* uart_cmd_queue;
+queue_t uart_cmd_queue;
 
 typedef void(*uart_cmd_fn_t)(void);
 
@@ -285,10 +285,14 @@ cmd_t* cmd_list[CMD_LIST_LEN] = {
 };
 
 uint8_t handle_uart_cmd(const uint8_t* data, uint8_t len) {
-    print("%s\n", __FUNCTION__);
+    print("\n%s\n", __FUNCTION__);
     print("data = ");
-    //print_hex_bytes((uint8_t *) data, len);
+    print_hex_bytes((uint8_t *) data, len);
     print("len = %u\n", len);
+    for (uint8_t i = 0; i < len; i++) {
+        print("%c", data[i]);
+    }
+    print("\n");
 
     if (data[len - 1] == '\n') {
         for (uint8_t i = 0; i < CMD_LIST_LEN; i++) {
@@ -308,7 +312,10 @@ uint8_t handle_uart_cmd(const uint8_t* data, uint8_t len) {
 
             if (match) {
                 // WOW: just enqueue the command directly into the queue!
-                enqueue(uart_cmd_queue, (uint8_t*)cmd);
+
+                print("%d\n", cmd);
+                enqueue(&uart_cmd_queue, (uint8_t*)cmd);
+                print("Enqueued command %s\n", cmd->cmd);
                 // Downside, can't actually pass the data/len through;
                 // this means we can't support variable sized commands
                 break;
@@ -348,7 +355,8 @@ void handle_actuate_motor() {
 
 int main(void) {
     init_uart();
-    print("UART initialized\n");
+    print("\n\nUART initialized\n");
+    print("%d\n", sizeof(cmd_t));
     init_can();
     print("CAN initialized\n");
 
@@ -362,20 +370,22 @@ int main(void) {
     register_callback(handle_uart_cmd);
     print("Registered UART command handler\n");
 
-    init_queue(uart_cmd_queue);
-    init_queue(eps_tx_queue);
-    init_queue(pay_sci_tx_queue);
-    init_queue(pay_hk_tx_queue);
-    init_queue(pay_motor_tx_queue);
+    init_queue(&uart_cmd_queue);
+    init_queue(&eps_tx_queue);
+    init_queue(&pay_sci_tx_queue);
+    init_queue(&pay_hk_tx_queue);
+    init_queue(&pay_motor_tx_queue);
 
     print("Initialize UART command queue\n");
 
     print("Waiting for UART command...\n");
     while (1) {
-        if (!is_empty(uart_cmd_queue)) {
+        if (!is_empty(&uart_cmd_queue)) {
             // dequeue the latest UART command and execute it
             cmd_t cmd;
-            dequeue(uart_cmd_queue, (uint8_t*)&cmd);
+            print("Dequeueing\n");
+            dequeue(&uart_cmd_queue, (uint8_t*)&cmd);
+            print("Dequeued command\n");
             (cmd.fn)();
             // Now, callbacks are no longer executed in ISRs, so we
             // can actually resume/pause MObs inside them
