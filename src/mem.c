@@ -1,23 +1,102 @@
 #include "mem.h"
+#include <can/can_data_protocol.h>
 
-void mem_multibyte_demo(){
-  init_uart();
-  init_spi();
-  init_mem();
-
-  uint8_t write[10] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
-  uint8_t read[10] = {0};
-  uint8_t i;
-
-  for(;;){
-      _delay_ms(2000);
-      print("\r\n\r\n");
-      mem_write_multibyte(0x50, write, 9);
-      mem_read(0x50, read, 9);
-        for (i=0; i<9; i++){
-          print("\r\nREAD:%x", read[i]);
-        }
+uint32_t init_stack(uint8_t type){
+  switch(type){
+    case SCI_TYPE:
+      return (uint32_t) SCI_INIT;
+    case PAY_HK_TYPE:
+      return (uint32_t) PAY_INIT;
+    case EPS_HK_TYPE:
+      return (uint32_t) EPS_INIT;
+    /*case OBC_HK_TYPE:
+      return OBC_INIT;
+    case STATUS_TYPE:
+      return STATUS_INIT;*/
     }
+}
+
+uint32_t* pointer(uint8_t type){
+  switch(type){
+    case SCI_TYPE:
+      return (uint32_t*) SCI_CURR_PTR_ADDR;
+    case PAY_HK_TYPE:
+      return (uint32_t*) PAY_HK_CURR_PTR_ADDR;
+    case EPS_HK_TYPE:
+      return (uint32_t*) EPS_HK_CURR_PTR_ADDR;
+    /*case OBC_HK_TYPE:
+      OBC_HK_STACK_PTR;
+    case STATUS_TYPE:
+      STATUS_PTR;*/
+    }
+}
+
+uint32_t block_size(uint8_t type){
+  switch(type) {
+    case SCI_TYPE:
+      return (uint32_t) SCI_BLOCK_SIZE;
+    case PAY_HK_TYPE:
+      return (uint32_t) PAY_BLOCK_SIZE;
+    case EPS_HK_TYPE:
+      return (uint32_t) EPS_BLOCK_SIZE;
+  /*  case OBC_HK_TYPE:
+      return OBC_BLOCK_SIZE;
+    case STATUS_TYPE:
+      return STATUS_BLOCK_SIZE;*/
+  }
+}
+
+void init_curr_stack_ptrs() {
+  uint32_t stack_addr = SCI_CURR_PTR_ADDR;
+  eeprom_write_dword ((uint32_t *) SCI_CURR_PTR_ADDR,SCI_INIT);
+  eeprom_write_dword ((uint32_t *) PAY_HK_CURR_PTR_ADDR,PAY_INIT);
+  eeprom_write_dword ((uint32_t *) EPS_HK_CURR_PTR_ADDR,EPS_INIT);
+  print ("EPS_INIT: %x\n",EPS_INIT);
+}
+
+//read curr_ptr and update by BLOCK_SIZE
+uint8_t init_block(uint8_t type){
+  uint32_t curr_ptr;
+  curr_ptr = eeprom_read_dword (pointer(type));
+  curr_ptr = curr_ptr + block_size (type);
+  eeprom_write_dword (pointer(type),curr_ptr);
+  print ("Current pointer after init block is: %x\n",curr_ptr);
+  return (uint8_t) ((curr_ptr-init_stack(type))/block_size(type));
+}
+
+void init_header(uint8_t *header, uint8_t type){
+  uint32_t curr_ptr;
+  curr_ptr = eeprom_read_dword (pointer(type));
+  mem_write_multibyte(curr_ptr, header, HEADER_SIZE*FIELD_SIZE);
+}
+
+// fields are indexed from ZERO
+void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data) {
+  uint32_t curr_ptr;
+  if (field_num == 0x00) {
+    time_t time = read_time();
+    date_t date = read_date();
+    uint8_t error = 0xFF;
+    uint8_t header[8] = {time.hh, time.mm, time.ss, date.yy,
+                        date.mm, date.dd, error, 0};
+    init_header(header, type);
+    uint8_t headerID = init_block(type);
+  }
+  curr_ptr = eeprom_read_dword (pointer(type));
+  //mem_write_multibyte((curr_ptr + FIELD_SIZE*(field_num + HEADER_SIZE)), data, FIELD_SIZE);
+  mem_write_multibyte((curr_ptr + FIELD_SIZE*(HEADER_SIZE)), data, block_size(type)*FIELD_SIZE);
+  print ("Address written to is : %x\n*******",(curr_ptr + FIELD_SIZE*HEADER_SIZE));
+}
+
+void read_from_flash (uint8_t type,uint8_t* data,uint8_t data_len) {
+  uint32_t curr_ptr;
+  curr_ptr = eeprom_read_dword (pointer(type));
+  print ("Read from address: %x\n",init_stack(type)+block_size);
+  mem_read(init_stack(type)+block_size(type)+0x05, data, data_len);
+  int i;
+  for (i=0; i<data_len; i++) {
+      print("%02x ",data[i]);
+  }
 }
 
 void init_mem(){
@@ -25,7 +104,6 @@ void init_mem(){
 	// initialize the Chip Select pin
 	  init_cs(MEM_CS, &MEM_DDR);
     set_cs_high(MEM_CS, &MEM_PORT);
-
     mem_status_w(( _BV(BPL) | _BV(BP0) | _BV(BP1) | _BV(BP2) | _BV(BP3) ));
     mem_command_short(MEM_WR_DISABLE);
     mem_erase();
@@ -38,6 +116,7 @@ void mem_erase(){
   mem_command_short(MEM_ERASE);
   mem_command_short(MEM_WR_DISABLE);
   mem_lock(MEM_ALL_SECTORS);
+  _delay_ms(1000);
 }
 
 void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
@@ -46,11 +125,6 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   uint8_t a3 = (address & 0xFF);
   uint8_t i = 0; // counter for the loop
   uint8_t mem_busy = 1; //default assumption is that mem is busy
-  uint8_t end;
-
-  mem_read(((uint32_t) address + data_len), &end, 1);
-  /* AAI only except data in pairs, so if an odd number of bytes are to be written,
-  we do not want to overwrite the last byte */
 
   mem_unlock(MEM_ALL_SECTORS);
   mem_command_short(MEM_BUSY_ENABLE); //enables hardware end-of-write detection
@@ -68,7 +142,7 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
   }
 
   else{
-    send_spi(end);
+    send_spi(0xFF);
   }
 
   while (mem_busy){
@@ -83,7 +157,7 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
 
     if(i == (data_len - 1)){
       send_spi(*(data +i));
-      send_spi(end);
+      send_spi(0xFF);
     }
 
     else{
@@ -131,7 +205,7 @@ void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
 
 	set_cs_low(MEM_CS, &MEM_PORT);
 	send_spi(MEM_R_BYTE);
-  send_spi(address >> 16);
+  send_spi((address >> 16) & 0xFF);
 	send_spi((address >> 8) & 0xFF);
 	send_spi(address & 0xFF);
 
@@ -140,6 +214,23 @@ void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
   }
 
 	set_cs_high(MEM_CS, &MEM_PORT);
+}
+
+void mem_sector_erase(uint8_t sector){
+  uint32_t address = sector * 4096;
+  mem_unlock(MEM_ALL_SECTORS);
+  mem_command_short(MEM_WR_ENABLE);
+
+  set_cs_low(MEM_CS, &MEM_PORT);
+  send_spi(MEM_SECTOR_ERASE);
+  send_spi(address >> 16);
+	send_spi((address >> 8) & 0xFF);
+	send_spi(address & 0xFF);
+  set_cs_high(MEM_CS, &MEM_PORT);
+
+	mem_lock(MEM_ALL_SECTORS);
+	mem_command_short(MEM_WR_DISABLE);
+
 }
 
 void mem_unlock(uint8_t sector){
