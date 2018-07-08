@@ -3,7 +3,7 @@
 #include "../../src/rtc.h"
 
 int main(void){
-  init_uart();
+    init_uart();
     init_spi();
     init_rtc();
 
