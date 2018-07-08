@@ -15,5 +15,5 @@ int main(void) {
         mem_write_byte(0x000010, 0xA0);
         mem_read(0x000010, &ctrl, 1);
         print("\r\nREAD:%x", ctrl);
-      }
+    }
 }
