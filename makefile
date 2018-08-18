@@ -33,3 +33,12 @@ clean:
 
 upload: obc
 	avrdude -p $(MCU) -c $(PROG) -P $(PORT) -U flash:w:./build/$^.hex
+
+libcommon:
+		git submodule update --remote lib-common
+		cd lib-common
+		make
+		cd ..
+
+help:
+		 printf "\n======== Make commands:=======\n obc : compiles the obc repo\n upload : program the controller \n clean: delete executables \n libcommon : update lib common directory with the latest revision and compile it"
