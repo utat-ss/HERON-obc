@@ -1,10 +1,9 @@
 #include <uart/uart.h>
 #include <timer/timer.h>
 #include <can/can.h>
-#include <can/can_ids.h>
-#include <can/can_data_protocol.h>
+#include <can/ids.h>
+#include <can/data_protocol.h>
 #include <queue/queue.h>
-#include <utilities/utilities.h>
 #include <adc/adc.h>
 #include <conversions/conversions.h>
 //#include <heartbeat/heartbeat.h>
@@ -14,7 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <util/delay.h>
-
+/*
 #define EPS_HK_FIELD_COUNT 3   // Number of fields
 #define EPS_HK_TYPE 0x02
 
@@ -28,11 +27,11 @@ queue_t eps_tx_queue;
 //uint32_t pay_hk_data[CAN_PAY_HK_FIELD_COUNT] = { 0 };
 //uint32_t pay_sci_data[CAN_PAY_SCI_FIELD_COUNT] = { 0 };
 uint32_t eps_hk_data[EPS_HK_FIELD_COUNT] = { 0 };
-/*uint8_t ssm_id;
+uint8_t ssm_id;
 uint8_t receiving_id;
 
 mob_t status_rx_mob;
-mob_t status_tx_mob;*/
+mob_t status_tx_mob;
 
 // Declare fresh_start as global var. to keep track of fresh start and restart
 uint8_t fresh_start;
@@ -48,7 +47,7 @@ void eps_cmd_tx_data_callback(uint8_t* data, uint8_t *len);
 
 void print_can_data(void) {
     // Payload
-  /*  print("%d C\n", (int16_t) temp_convert_raw_data_to_temperature(pay_hk_data[CAN_PAY_HK_TEMP]));
+    print("%d C\n", (int16_t) temp_convert_raw_data_to_temperature(pay_hk_data[CAN_PAY_HK_TEMP]));
     print("%d %%RH\n", (int16_t) hum_convert_raw_humidity_to_humidity(pay_hk_data[CAN_PAY_HK_HUMID]));
     print("%d kPa\n", (int16_t) pres_convert_raw_pressure_to_pressure(pay_hk_data[CAN_PAY_HK_PRES]));
 
@@ -78,7 +77,7 @@ void print_can_data(void) {
     print("+Y: %f mA\n", (int16_t) (adc_eps_convert_raw_data_to_voltage(eps_hk_data[ADC_EPS_PV_POS_Y_IOUT_CH]) * 1000.0));
     print("-Y: %f mA\n", (int16_t) (adc_eps_convert_raw_data_to_voltage(eps_hk_data[ADC_EPS_PV_NEG_Y_IOUT_CH]) * 1000.0));
 
-    print("\n");*/
+    print("\n");
 }
 
 void print_raw_can_data(void) {
@@ -135,7 +134,7 @@ void receive_pay_hk(const uint8_t* data, uint8_t len){
     // print("%s\n", __FUNCTION__);
     uint8_t field_num = data[2];
 
-    /*if (field_num < CAN_PAY_HK_FIELD_COUNT) {
+    if (field_num < CAN_PAY_HK_FIELD_COUNT) {
         // Save data
         pay_hk_data[field_num] =
                 ( ((uint32_t) data[3]) << 16 ) |
@@ -162,13 +161,13 @@ void receive_pay_hk(const uint8_t* data, uint8_t len){
 
     else {
         print("Unexpected\n");
-    */
+
 }
 
 void receive_pay_sci(const uint8_t* data, uint8_t len){
     uint8_t field_num = data[2];
 
-    /*if (field_num < CAN_PAY_SCI_FIELD_COUNT) {
+    if (field_num < CAN_PAY_SCI_FIELD_COUNT) {
         // Save data
         pay_sci_data[field_num] =
                 ( ((uint32_t) data[3]) << 16 ) |
@@ -190,7 +189,7 @@ void receive_pay_sci(const uint8_t* data, uint8_t len){
             d[2] = 0;
             enqueue(&eps_tx_queue, d);
         }
-    }*/
+    }
 }
 
 void receive_eps_hk(const uint8_t* data, uint8_t len){
@@ -231,7 +230,7 @@ void receive_pay_motor(const uint8_t* data, uint8_t len){
 
 
 
-/*void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
+void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
     if (!is_empty(&pay_tx_queue)) {
         dequeue(&pay_tx_queue, data);
         *len = 8;
@@ -254,7 +253,7 @@ void receive_pay_motor(const uint8_t* data, uint8_t len){
     else {
         *len = 0;
     }
-}*/
+}
 
 void eps_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
     if (!is_empty(&eps_tx_queue)) {
@@ -412,13 +411,13 @@ void handle_pay_eps_req() {
     // print("%s\n", __FUNCTION__);
 
     // Send PAY_HK first
-    /*uint8_t d[8] = { 0 };
+    uint8_t d[8] = { 0 };
     d[0] = 0;   // TODO
     d[1] = CAN_PAY_HK;
     d[2] = 0;
     enqueue(&pay_tx_queue, d);
     resume_mob(&pay_cmd_tx);
-    while (!is_paused(&pay_cmd_tx));*/
+    while (!is_paused(&pay_cmd_tx));
 
 
     // Uncomment to send EPS_HK first
@@ -438,10 +437,10 @@ void handle_heartbeat_change () {
 void handle_write_flash() {
 
   print("%s\n", __FUNCTION__);
-/*  print ("\nWriting to PAY_HK\n");
+  print ("\nWriting to PAY_HK\n");
   write_to_flash(PAY_HK_TYPE,0,(uint8_t*) pay_hk_data);
   print ("\nWriting to SCI stack\n");
-  write_to_flash(SCI_TYPE,0,(uint8_t*) pay_sci_data);*/
+  write_to_flash(SCI_TYPE,0,(uint8_t*) pay_sci_data);
   print ("\nWriting to EPS_HK stack\n");
   write_to_flash(EPS_HK_TYPE,0,(uint8_t*) eps_hk_data);
   print ("Done\n");
@@ -450,10 +449,10 @@ void handle_write_flash() {
 void handle_read_flash() {
     // print("%s\n", __FUNCTION__);
     print("%s\n", __FUNCTION__);
-    /*print ("\nReading from PAY HK\n");
+    print ("\nReading from PAY HK\n");
     read_from_flash(PAY_HK_TYPE,(uint8_t*)pay_hk_data,CAN_PAY_HK_FIELD_COUNT*0X04);
     print ("\nReading from SCI\n");
-    read_from_flash(SCI_TYPE, (uint8_t*)pay_sci_data,CAN_PAY_SCI_FIELD_COUNT*0x04);*/
+    read_from_flash(SCI_TYPE, (uint8_t*)pay_sci_data,CAN_PAY_SCI_FIELD_COUNT*0x04);
     print ("\nReading from EPS HK\n");
     read_from_flash(EPS_HK_TYPE,(uint8_t*)eps_hk_data,EPS_HK_FIELD_COUNT*0x04 + 6); // Add 6 for header (unsure of why it's not 8)
 
@@ -470,17 +469,19 @@ void handle_actuate_motor() {
     resume_mob(&pay_cmd_tx);
     while (!is_paused(&pay_cmd_tx));
 }
-
+*/
 int main(void) {
     init_uart();
     print("\n\nUART\n");
 
+    /*
     init_can();
     init_spi();
 
     init_rx_mob(&data_rx);
     //init_tx_mob(&pay_cmd_tx);
     init_tx_mob(&eps_cmd_tx);
+
 
     init_mem();
     init_rtc();
@@ -510,10 +511,10 @@ int main(void) {
             // can actually resume/pause MObs inside them
         }
 
-      /*  if (!is_empty(&pay_tx_queue)) {
+        if (!is_empty(&pay_tx_queue)) {
             resume_mob(&pay_cmd_tx);
             while (!is_paused(&pay_cmd_tx));
-        }*/
+        }
 
         if (!is_empty(&eps_tx_queue)) {
             resume_mob(&eps_cmd_tx);
@@ -522,6 +523,7 @@ int main(void) {
 
         _delay_ms(100);
     }
+    */
 
     return 0;
 }
