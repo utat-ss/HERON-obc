@@ -1,5 +1,4 @@
 #include "mem.h"
-#include <can/can_data_protocol.h>
 
 uint32_t init_stack(uint8_t type){
     switch(type){
@@ -9,6 +8,8 @@ uint32_t init_stack(uint8_t type){
             return (uint32_t) PAY_INIT;
         case EPS_HK_TYPE:
             return (uint32_t) EPS_INIT;
+        default:
+            return 0x00;
         /*case OBC_HK_TYPE:
         return OBC_INIT;
         case STATUS_TYPE:
@@ -24,6 +25,8 @@ uint32_t* pointer(uint8_t type){
             return (uint32_t*) PAY_HK_CURR_PTR_ADDR;
         case EPS_HK_TYPE:
             return (uint32_t*) EPS_HK_CURR_PTR_ADDR;
+        default:
+            return 0x00;
         /*case OBC_HK_TYPE:
         OBC_HK_STACK_PTR;
         case STATUS_TYPE:
@@ -39,6 +42,8 @@ uint32_t block_size(uint8_t type){
             return (uint32_t) PAY_BLOCK_SIZE;
         case EPS_HK_TYPE:
             return (uint32_t) EPS_BLOCK_SIZE;
+        default:
+            return 0x00;
         /*  case OBC_HK_TYPE:
         return OBC_BLOCK_SIZE;
         case STATUS_TYPE:
@@ -47,7 +52,6 @@ uint32_t block_size(uint8_t type){
 }
 
 void init_curr_stack_ptrs() {
-    uint32_t stack_addr = SCI_CURR_PTR_ADDR;
     eeprom_write_dword ((uint32_t *) SCI_CURR_PTR_ADDR,SCI_INIT);
     eeprom_write_dword ((uint32_t *) PAY_HK_CURR_PTR_ADDR,PAY_INIT);
     eeprom_write_dword ((uint32_t *) EPS_HK_CURR_PTR_ADDR,EPS_INIT);
@@ -89,8 +93,7 @@ void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data) {
 }
 
 void read_from_flash (uint8_t type,uint8_t* data,uint8_t data_len) {
-    uint32_t curr_ptr;
-    curr_ptr = eeprom_read_dword (pointer(type));
+
     print ("Read from address: %x\n",init_stack(type)+block_size);
     mem_read(init_stack(type)+block_size(type)+0x05, data, data_len);
     int i;
@@ -102,35 +105,51 @@ void read_from_flash (uint8_t type,uint8_t* data,uint8_t data_len) {
 void init_mem(){
 
     // initialize the Chip Select pin
-    init_cs(MEM_CS, &MEM_DDR);
-    set_cs_high(MEM_CS, &MEM_PORT);
-    mem_status_w(( _BV(BPL) | _BV(BP0) | _BV(BP1) | _BV(BP2) | _BV(BP3) ));
-    mem_command_short(MEM_WR_DISABLE);
-    mem_erase();
+    uint8_t i;
+    for(i=0; i < 3 ; i++)
+    {
+        init_cs((2 + i), &MEM_DDR);
+        set_cs_high((2 + i), &MEM_PORT);
+    }
+
+    mem_unlock();
+
+    for(i = 0; i < 3; i ++)
+    {
+        mem_erase(i);
+    }
 
 }
 
-void mem_erase(){
-    mem_unlock(MEM_ALL_SECTORS);
-    mem_command_short(MEM_WR_ENABLE);
-    mem_command_short(MEM_ERASE);
-    mem_command_short(MEM_WR_DISABLE);
-    mem_lock(MEM_ALL_SECTORS);
-    _delay_ms(1000);
+void mem_erase(uint8_t chip){
+
+    mem_command_short(MEM_WR_ENABLE, chip);
+    mem_command_short(MEM_ERASE, chip);
+    mem_command_short(MEM_WR_DISABLE, chip);
+    uint8_t busy = mem_status_r(chip);
+    uint32_t timeout = 0x01;
+    busy &= 0x01;
+    while(busy && timeout)
+    {
+        timeout ++;
+        busy = mem_status_r(chip);
+        busy &= 0x01;
+    }
 }
 
-void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
+ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
     uint8_t a1 = ((address >> 16) & 0xFF);
     uint8_t a2 = ((address >> 8) & 0xFF);
     uint8_t a3 = (address & 0xFF);
     uint8_t i = 0; // counter for the loop
     uint8_t mem_busy = 1; //default assumption is that mem is busy
+    uint8_t chip = (address >> 24) & 0x03;
 
-    mem_unlock(MEM_ALL_SECTORS);
-    mem_command_short(MEM_BUSY_ENABLE); //enables hardware end-of-write detection
-    mem_command_short(MEM_WR_ENABLE);
 
-    set_cs_low(MEM_CS, &MEM_PORT);
+    mem_command_short(MEM_BUSY_ENABLE, chip); //enables hardware end-of-write detection
+    mem_command_short(MEM_WR_ENABLE, chip);
+
+    set_cs_low((chip + 2), &MEM_PORT);
     send_spi(MEM_WR_AAI); //all bytes to be written must be proceeded by the AAI command
     send_spi(a1);
     send_spi(a2);
@@ -178,96 +197,110 @@ void mem_write_multibyte(uint32_t address, uint8_t * data, uint8_t data_len){
     mem_lock(MEM_ALL_SECTORS);
 }
 
-void mem_write_byte(uint32_t address, uint8_t data){
-
-    uint8_t a1 = ((address >> 16) & 0xFF);
-    uint8_t a2 = ((address >> 8) & 0xFF);
-    uint8_t a3 = (address & 0xFF);
-
-    mem_unlock(MEM_ALL_SECTORS); //change this at some point
-    mem_command_short (MEM_WR_ENABLE);
-
-    set_cs_low(MEM_CS, &MEM_PORT);
-    send_spi(MEM_WR_BYTE);
-    send_spi(a1);
-    send_spi(a2);
-    send_spi(a3);
-    send_spi(data);
-    set_cs_high(MEM_CS, &MEM_PORT);
-
-    mem_lock(MEM_ALL_SECTORS);
-    mem_command_short(MEM_WR_DISABLE);
-
-}
 
 void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
     uint8_t i;
-
-    set_cs_low(MEM_CS, &MEM_PORT);
+    uint8_t chip_num = (address >> 24) & 0x03; //Assume this starts at 1
+    if (chip_num == 1){
+        set_cs_low(MEM_CS1, &MEM_PORT);
+    }
+    else if (chip_num == 2){
+        set_cs_low(MEM_CS2, &MEM_PORT);
+    }
+    else if (chip_num == 3){
+        set_cs_low(MEM_CS3, &MEM_PORT);
+    }
     send_spi(MEM_R_BYTE);
     send_spi((address >> 16) & 0xFF);
     send_spi((address >> 8) & 0xFF);
     send_spi(address & 0xFF);
 
     for (i = 0; i < data_len; i++){
+        if ((address + i % 0xFFFFFF == 0) && (address + i != 0)){
+            if (chip_num == 1){
+                set_cs_high(MEM_CS1, &MEM_PORT);
+                set_cs_low(MEM_CS2, &MEM_PORT);
+                chip_num++;
+            }
+            else if (chip_num == 2){
+                set_cs_high(MEM_CS2, &MEM_PORT);
+                set_cs_low(MEM_CS3, &MEM_PORT);
+                chip_num++;
+            }
+            else{
+                break;
+            }
+            /* Begin read on new chip */
+            send_spi(MEM_R_BYTE);
+            send_spi(0x00);
+            send_spi(0x00);
+            send_spi(0x00);
+        }
         *(data + i) = send_spi(0x00);
     }
 
-    set_cs_high(MEM_CS, &MEM_PORT);
+    if (chip_num == 0){
+        set_cs_high(MEM_CS1, &MEM_PORT);
+    }
+    else if(chip_num == 1){
+        set_cs_high(MEM_CS2, &MEM_PORT);
+    }
+    else{
+        set_cs_high(MEM_CS3, &MEM_PORT);
+    }
 }
 
-void mem_sector_erase(uint8_t sector){
+void mem_sector_erase(uint8_t sector, uint8_t chip){
     uint32_t address = sector * 4096;
-    mem_unlock(MEM_ALL_SECTORS);
-    mem_command_short(MEM_WR_ENABLE);
 
-    set_cs_low(MEM_CS, &MEM_PORT);
+    mem_command_short(MEM_WR_ENABLE, chip);
+
+    set_cs_low(chip + 2, &MEM_PORT);
     send_spi(MEM_SECTOR_ERASE);
     send_spi(address >> 16);
     send_spi((address >> 8) & 0xFF);
     send_spi(address & 0xFF);
-    set_cs_high(MEM_CS, &MEM_PORT);
+    set_cs_high(chip + 2, &MEM_PORT);
 
-    mem_lock(MEM_ALL_SECTORS);
-    mem_command_short(MEM_WR_DISABLE);
-
-}
-
-void mem_unlock(uint8_t sector){
-    uint8_t status = mem_command(MEM_READ_STATUS, 0x00);
-    status &= ~(_BV(BPL));
-    mem_status_w(status);
-    mem_status_w(status & ~sector | _BV(BPL));
+    mem_command_short(MEM_WR_DISABLE, chip);
 
 }
 
-void mem_lock(uint8_t sector){
-    uint8_t status = mem_status_r();
-    status &= ~(_BV(BPL));
-    mem_status_w(status);
-    mem_status_w(status | sector | _BV(BPL));
+void mem_unlock(){
+    for(int i = 0; i < 2; i++)
+    {
+        mem_command_short(0x98, i);
+    }
+
 }
 
-uint8_t mem_status_r(){
-    return mem_command(MEM_READ_STATUS, 0x00);
+// void mem_lock(uint8_t sector){
+//     uint8_t status = mem_status_r();
+//     status &= ~(_BV(BPL));
+//     mem_status_w(status);
+//     mem_status_w(status | sector | _BV(BPL));
+// }
+
+uint8_t mem_status_r(uint8_t chip){
+    return mem_command(MEM_READ_STATUS, 0x00, chip);
 }
 
-void mem_status_w(uint8_t status){
-    mem_command_short(MEM_WR_STATUS_ENABLE);
-    mem_command    (MEM_WRITE_STATUS, status);
+void mem_status_w(uint8_t status, uint8_t chip){
+    mem_command_short(MEM_WR_STATUS_ENABLE, chip);
+    mem_command    (MEM_WRITE_STATUS, status, chip);
 }
 
-uint8_t mem_command(uint8_t command, uint8_t data){
+uint8_t mem_command(uint8_t command, uint8_t data, uint8_t chip){
     uint8_t value;
-    set_cs_low(MEM_CS, &MEM_PORT);
+    set_cs_low((chip+2), &MEM_PORT);
     send_spi(command);
     value = send_spi(data);
-    set_cs_high(MEM_CS, &MEM_PORT);
+    set_cs_high((chip + 2), &MEM_PORT);
     return value;
 }
 
-void mem_command_short(uint8_t command){
-    set_cs_low(MEM_CS, &MEM_PORT);
+void mem_command_short(uint8_t command, uint8_t chip){
+    set_cs_low((chip + 2), &MEM_PORT);
     send_spi(command);
-    set_cs_high(MEM_CS, &MEM_PORT);
+    set_cs_high((chip + 2), &MEM_PORT);
 }

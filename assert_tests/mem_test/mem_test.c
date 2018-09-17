@@ -9,7 +9,6 @@
 // lib-common includes
 #include    <spi/spi.h>
 #include    <uart/uart.h>
-#include    <uart/log.h>
 #include    <can/can.h>
 
 // project file includes

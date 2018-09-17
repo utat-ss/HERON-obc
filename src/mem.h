@@ -18,17 +18,16 @@
 // Basic memory functions
 void init_mem();
 void init_curr_stack_ptrs();
-void mem_erase();
-void mem_sector_erase(uint8_t sector);
-uint8_t mem_status_r();
-void mem_status_w(uint8_t status);
-uint8_t mem_command(uint8_t command, uint8_t data);
-void mem_command_short(uint8_t command);
-void mem_unlock(uint8_t sector);
+void mem_erase(uint8_t chip);
+void mem_sector_erase(uint8_t sector, uint8_t chip);
+uint8_t mem_status_r(uint8_t chip);
+void mem_status_w(uint8_t status, uint8_t chip);
+uint8_t mem_command(uint8_t command, uint8_t data, uint8_t chip);
+void mem_command_short(uint8_t command, uint8_t chip);
+void mem_unlock();
 void mem_lock(uint8_t sector);
 void mem_read(uint32_t address, uint8_t * data, uint8_t data_len);
-void mem_write_byte(uint32_t address, uint8_t data);
-void mem_write_multibyte (uint32_t address, uint8_t * data, uint8_t data_len);
+// void mem_write_multibyte (uint32_t address, uint8_t * data, uint8_t data_len);
 
 // Memory management
 uint32_t* pointer(uint8_t type);
@@ -36,13 +35,15 @@ uint32_t block_size(uint8_t type);
 uint32_t init_stack(uint8_t type);
 void init_stacks();
 uint8_t init_block(uint8_t type);
-// void init_header(uint8_t *header, uint8_t type);
+void init_header(uint8_t *header, uint8_t type);
 void read_from_flash (uint8_t type,uint8_t* data,uint8_t data_len);
 void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data);
 
 
 // Pins and Ports
-#define MEM_CS      PB5
+#define MEM_CS1     PB2
+#define MEM_CS2     PB3
+#define MEM_CS3     PB4
 #define MEM_PORT    PORTB
 #define MEM_DDR     DDRB
 
@@ -54,8 +55,7 @@ void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data);
 #define MEM_WR_ENABLE           0x06
 #define MEM_WR_DISABLE          0x04
 #define MEM_WR_STATUS_ENABLE    0x50
-#define MEM_WR_BYTE             0x02
-#define MEM_WR_AAI              0xAD
+#define MEM_PG_PRG              0x02
 #define MEM_BUSY_ENABLE         0x70
 #define MEM_BUSY_DISABLE        0x80
 #define MEM_R_BYTE              0x03
@@ -90,8 +90,8 @@ void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data);
 
 //Field and block sizes
 #define FIELD_SIZE        0x04
-#define SCI_BLOCK_SIZE    (CAN_PAY_SCI_FIELD_COUNT)//0x250
-#define PAY_BLOCK_SIZE    (CAN_PAY_HK_FIELD_COUNT)//0x100
+#define SCI_BLOCK_SIZE    0x250 //(CAN_PAY_SCI_FIELD_COUNT)//
+#define PAY_BLOCK_SIZE    0x100 //(CAN_PAY_HK_FIELD_COUNT)/
 #define EPS_BLOCK_SIZE    0x03//0x100
 #define OBC_BLOCK_SIZE    0x100
 #define STATUS_BLOCK_SIZE 0x100

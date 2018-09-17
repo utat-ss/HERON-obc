@@ -1,3 +1,3 @@
-PROG = mem_byte_write_test
+PROG = mem_read_test
 SRC = $(addprefix ../../src/,mem.c)
 include ../makefile
