@@ -5,7 +5,7 @@ CFLAGS = -std=gnu99 -Wall -g -mmcu=atmega32m1 -Os -mcall-prologues
 
 PGMR = stk500
 MCU = m32m1
-PORT = COM3 #/dev/tty.usbmodem00187462
+PORT = /dev/cu.usbmodem00208212
 
 OBJ = $(SRC:../../src%.c=..%.o)
 

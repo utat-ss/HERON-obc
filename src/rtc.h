@@ -53,7 +53,7 @@ void rtc_time_demo();
 
 
 // Pins and Ports
-#define RTC_CS      PB6
+#define RTC_CS      PB5
 #define RTC_PORT    PORTB
 #define RTC_DDR     DDRB
 

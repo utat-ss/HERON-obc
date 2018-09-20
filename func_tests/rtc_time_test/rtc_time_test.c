@@ -22,7 +22,7 @@ int main(void){
     _delay_ms(5000);
 
     for (;;){
-        _delay_ms(10000);
+        _delay_ms(1000);
 
         t = read_time();
         d = read_date();
