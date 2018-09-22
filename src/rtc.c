@@ -2,9 +2,6 @@
 
 void init_rtc(){
 
-    // the DS3234 requires this phase setting, which is not our default
-    SPCR |= _BV(CPHA);
-
     // initialize the Chip Select pin
     init_cs(RTC_CS, &RTC_DDR);
     set_cs_high(RTC_CS, &RTC_PORT);
@@ -13,21 +10,21 @@ void init_rtc(){
     rtc_write(RTC_CTRL_R, RTC_CTRL_DEF);
     rtc_write(RTC_STATUS_R, RTC_STATUS_DEF);
 
-    // Set back the phase
-    SPCR &= ~(_BV(CPHA));
-
 }
 
 void set_time(time_t time){
     // Uses a 24-hr clock
+
     rtc_write(RTC_SEC_R, dec_to_bcd(time.ss));
     rtc_write(RTC_MIN_R, dec_to_bcd(time.mm));
     rtc_write(RTC_HOUR_R, dec_to_bcd(time.hh));
+
 
 }
 
 time_t read_time (){
     // Reads time and returns result in decimal format
+
     time_t time;
     time.ss = bcd_to_dec(rtc_read(RTC_SEC_R));
     time.mm = bcd_to_dec(rtc_read(RTC_MIN_R));
@@ -96,6 +93,7 @@ uint8_t disable_alarm(uint8_t alarm_number){
 uint8_t rtc_read(uint8_t reg_address){
 
     // adjust the phase
+    // the DS3234 requires this phase setting, which is not our default
     SPCR |= _BV(CPHA);
 
     uint8_t return_data;
@@ -113,6 +111,9 @@ uint8_t rtc_read(uint8_t reg_address){
 
 void rtc_write(uint8_t reg_address, uint8_t data){
     //writes data to reg_address on the RTC chip
+
+    SPCR |= _BV(CPHA);
+
     set_cs_low(RTC_CS, &RTC_PORT);
 
     send_spi(RTC_W | reg_address);
@@ -121,10 +122,13 @@ void rtc_write(uint8_t reg_address, uint8_t data){
 
     set_cs_high(RTC_CS, &RTC_PORT);
 
+    SPCR &= ~(_BV(CPHA));
+
 }
 
 uint8_t bcd_to_dec(uint8_t bcd){
     //binary-coded-decimal to decimal converter
+    //binary-coded decimal uses four bits to store each digit of a decimal number
     bcd &= 0x7F;
     return ( 10*(bcd >> 4) + (bcd & 0x0F)) ;
 

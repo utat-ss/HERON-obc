@@ -17,15 +17,15 @@
 // Type definitions
 typedef struct Time time_t;
 struct Time {
-    uint8_t ss;
-    uint8_t mm;
-    uint8_t hh; //24 hour clock!
+    uint8_t ss; //seconds
+    uint8_t mm; //minutes
+    uint8_t hh; //hours, 24 hour clock!
 };
 
 typedef struct Date date_t;
 struct Date {
-    uint8_t dd;
-    uint8_t mm;
+    uint8_t dd; //date of the month (NOT "day", which means day of the week)
+    uint8_t mm; //month
     uint8_t yy; // 00 = 2000; 99 = 2099; century always 0.
 };
 
