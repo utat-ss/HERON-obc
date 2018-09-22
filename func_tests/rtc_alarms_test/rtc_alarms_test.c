@@ -30,7 +30,7 @@ int main(void){
     d_alarm.yy = 2018;
 
     set_alarm(t_alarm, d_alarm, 1);
-    disable_alarm(1); //comment out this line to test the functionality of the set_alarm function
+    //disable_alarm(1); //comment out this line to test the functionality of the set_alarm function
 
     for (;;){
         _delay_ms(10000);
