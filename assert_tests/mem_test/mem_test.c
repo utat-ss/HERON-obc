@@ -43,15 +43,15 @@ int main(void) {
     int j;
 
     for (j=0;j<4;j++) {
-        uint8_t read_test [10] = {0};
-        uint8_t test [4]= {0x08, 0x07, 0x06, 0x08};
+        uint8_t read_test [4] = {1};
+        uint8_t test [4]= {0x08, 0x07, 0x09, 0x14};
         /*  for(i=0; i<4; i++) {
         print ("%x\n", test[i]);
         }*/
         write_to_flash(SCI_TYPE, j, test);
         print ("\n***********Read back from expected address: %x******\n", 0x250+8+SCI_INIT+(4*j));
-        mem_read(0x250+8+(SCI_INIT+(4*j)), &read_test, 10);
-        for(i=0; i<10; i++) {
+        mem_read((0x250+8+SCI_INIT+(4*j)), read_test, 4);
+        for(i=0; i<4; i++) {
             print ("%x\n", read_test[i]);
         }
 

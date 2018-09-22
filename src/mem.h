@@ -25,9 +25,8 @@ void mem_status_w(uint8_t status, uint8_t chip);
 uint8_t mem_command(uint8_t command, uint8_t data, uint8_t chip);
 void mem_command_short(uint8_t command, uint8_t chip);
 void mem_unlock();
-void mem_lock(uint8_t sector);
 void mem_read(uint32_t address, uint8_t * data, uint8_t data_len);
-// void mem_write_multibyte (uint32_t address, uint8_t * data, uint8_t data_len);
+void mem_write(uint32_t address, uint8_t * data, uint8_t data_len);
 
 // Memory management
 uint32_t* pointer(uint8_t type);
@@ -49,15 +48,14 @@ void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data);
 
 // Commands and Special registers
 #define MEM_READ_STATUS         0x05
-#define MEM_ERASE               0x60
+#define MEM_ERASE               0xC7
+#define MEM_RST                 0x99
+#define MEM_RSTEN               0x66
 #define MEM_SECTOR_ERASE        0x20
 #define MEM_WRITE_STATUS        0x01
 #define MEM_WR_ENABLE           0x06
 #define MEM_WR_DISABLE          0x04
-#define MEM_WR_STATUS_ENABLE    0x50
 #define MEM_PG_PRG              0x02
-#define MEM_BUSY_ENABLE         0x70
-#define MEM_BUSY_DISABLE        0x80
 #define MEM_R_BYTE              0x03
 #define MEM_FAST_READ           0x0B
 
