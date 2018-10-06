@@ -55,7 +55,6 @@ void init_curr_stack_ptrs() {
     eeprom_write_dword ((uint32_t *) SCI_CURR_PTR_ADDR,SCI_INIT);
     eeprom_write_dword ((uint32_t *) PAY_HK_CURR_PTR_ADDR,PAY_INIT);
     eeprom_write_dword ((uint32_t *) EPS_HK_CURR_PTR_ADDR,EPS_INIT);
-    print ("EPS_INIT: %x\n",EPS_INIT);
 }
 
 //read curr_ptr and update by BLOCK_SIZE
@@ -64,7 +63,6 @@ uint8_t init_block(uint8_t type){
     curr_ptr = eeprom_read_dword (pointer(type));
     curr_ptr = curr_ptr + block_size (type);
     eeprom_write_dword (pointer(type),curr_ptr);
-    print ("Current pointer after init block is: %x\n",curr_ptr);
     return (uint8_t) ((curr_ptr-init_stack(type))/block_size(type));
 }
 
@@ -79,28 +77,21 @@ void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data) {
     uint32_t curr_ptr;
     if (field_num == 0x00) {
         uint8_t headerID = init_block(type);
-        // time_t time = read_time();
-        // date_t date = read_date();
+        time_t time = read_time();
+        date_t date = read_date();
         uint8_t error = 0xFF;
-        // uint8_t header[8] = {time.hh, time.mm, time.ss, date.yy,
-        //                      date.mm, date.dd, error, headerID};
-        uint8_t header[8] = {0x02, 0x03, 0x04, 0x05,
-                             0x06, 0x07, error, headerID};
+        uint8_t header[8] = {time.hh, time.mm, time.ss, date.yy,
+                             date.mm, date.dd, error, headerID};
+
         init_header(header, type);
     }
     curr_ptr = eeprom_read_dword (pointer(type));
     mem_write((curr_ptr + FIELD_SIZE*(field_num + HEADER_SIZE)), data, FIELD_SIZE);
-    print ("Address written to is : %x\n*******",(curr_ptr + FIELD_SIZE*(field_num + HEADER_SIZE)));
 }
 
-void read_from_flash (uint8_t type,uint8_t* data,uint8_t data_len) {
+void read_from_flash (uint8_t type,uint8_t* data,uint8_t data_len, uint8_t block_num, uint8_t field_num) {
 
-    print ("Read from address: %x\n",init_stack(type)+block_size);
-    mem_read(init_stack(type)+block_size(type), data, data_len);
-    int i;
-    for (i=0; i<data_len; i++) {
-        print("%02x ",data[i]);
-    }
+    mem_read(init_stack(type)+block_size(type)*block_num+field_num*FIELD_SIZE, data, data_len);
 }
 
 void init_mem(){
@@ -165,15 +156,11 @@ void mem_erase(uint8_t chip){
             a2 = (((address + i) >> 8) & 0xFF);
             a3 = ((address + i) & 0xFF);
 
-            print("%x %x %x \n", a1, a2, a3);
-
             chip_num = ((address + i) >> 24) & 0x03;
             if(chip_num > 2)
             {
                 chip_num = 0;
             }
-
-            print("%x \n", chip_num);
 
             mem_command_short(MEM_WR_ENABLE, chip_num); //enable writing to chip
             set_cs_low((chip_num + 2), &MEM_PORT);
@@ -231,7 +218,6 @@ void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
                 set_cs_low((chip_num + 2), &MEM_PORT);
             }
             /* Begin read on new chip */
-            print("%x \n", chip_num);
             send_spi(MEM_R_BYTE);
             send_spi(0x00);
             send_spi(0x00);
@@ -240,7 +226,6 @@ void mem_read(uint32_t address, uint8_t * data, uint8_t data_len){
 
         data[i] = send_spi(0x00);;
     }
-
     set_cs_high((chip_num + 2), &MEM_PORT);
 }
 
@@ -261,7 +246,7 @@ void mem_sector_erase(uint8_t sector, uint8_t chip){
 }
 
 void mem_unlock(){
-    for(int i = 0; i < 2; i++)
+    for(int i = 0; i < 3; i++)
     {
         mem_command_short(MEM_WR_ENABLE, i);
         mem_command_short(0x98, i);

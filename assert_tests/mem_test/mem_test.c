@@ -22,8 +22,18 @@ int main(void) {
     init_mem();
     init_rtc();
     init_curr_stack_ptrs();
+    time_t curr_time;
+    curr_time.ss = 00;
+    curr_time.mm = 00;
+    curr_time.hh = 15;
 
-    _delay_ms (5000);
+    date_t curr_date;
+    curr_date.dd = 06;
+    curr_date.mm = 10;
+    curr_date.yy = 18;
+
+    set_time(curr_time);
+    set_date(curr_date);
 
     /*
     What should happen in this test:
@@ -40,21 +50,16 @@ int main(void) {
     print ("Sci stack address curr ptr: %x\n", eeprom_read_dword(SCI_CURR_PTR_ADDR));
     print ("Pay housekeeping stack address curr ptr: %x\n", eeprom_read_dword(PAY_HK_CURR_PTR_ADDR));
 
-    int j;
 
-    for (j=0;j<4;j++) {
-        uint8_t read_test [4] = {1};
-        uint8_t test [4]= {0x08, 0x07, 0x09, 0x14};
-        /*  for(i=0; i<4; i++) {
-        print ("%x\n", test[i]);
-        }*/
-        write_to_flash(SCI_TYPE, j, test);
-        print ("\n***********Read back from expected address: %x******\n", 0x250+8+SCI_INIT+(4*j));
-        mem_read((0x250+8+SCI_INIT+(4*j)), read_test, 4);
-        for(i=0; i<4; i++) {
-            print ("%x\n", read_test[i]);
-        }
+    uint8_t read_test [12] = {1};
+    uint8_t test [4]= {0x08, 0x07, 0x09, 0x14};
 
+    write_to_flash(SCI_TYPE, 0x00, test);
+    print ("\n***********Read back from expected address: %x******\n", init_stack(SCI_TYPE)+block_size(SCI_TYPE));
+    read_from_flash(SCI_TYPE, read_test, 12, 0x1, 0x00);
+    for(i=0; i<12; i++)
+    {
+        print ("%x\n", read_test[i]);
     }
 
     print ("*** End of test******\n");

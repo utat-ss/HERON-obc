@@ -35,7 +35,7 @@ uint32_t init_stack(uint8_t type);
 void init_stacks();
 uint8_t init_block(uint8_t type);
 void init_header(uint8_t *header, uint8_t type);
-void read_from_flash (uint8_t type,uint8_t* data,uint8_t data_len);
+void read_from_flash (uint8_t type,uint8_t* data,uint8_t data_len, uint8_t block_num, uint8_t field_num);
 void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data);
 
 

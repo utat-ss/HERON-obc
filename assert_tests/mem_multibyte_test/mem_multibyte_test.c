@@ -12,7 +12,7 @@ int main(void) {
 
     for(i = 0; i < 255; i++)
     {
-        write[i] = 0x03;
+        write[i] = 0x05;
     }
 
     uint8_t read[255] = {0};
@@ -20,8 +20,8 @@ int main(void) {
     for(;;){
         _delay_ms(2000);
         print("\r\n\r\n");
-        mem_write(0x00FFFFF0, write, 255);
-        mem_read(0x00FFFFF0, read, 255);
+        mem_write(0x01FFFFF0, write, 255);
+        mem_read(0x01FFFFF0, read, 255);
         for (i=0; i<255; i++){
             print("\r\nREAD:%x", read[i]);
         }
