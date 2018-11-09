@@ -13,38 +13,35 @@
 // lib-common includes
 #include <spi/spi.h>
 #include <uart/uart.h>
+#include <can/data_protocol.h>
 #include "rtc.h"
 
-// Basic memory functions
-void init_mem();
-void init_curr_stack_ptrs();
-void mem_erase(uint8_t chip);
-void mem_sector_erase(uint8_t sector, uint8_t chip);
-uint8_t mem_status_r(uint8_t chip);
-void mem_status_w(uint8_t status, uint8_t chip);
-uint8_t mem_command(uint8_t command, uint8_t data, uint8_t chip);
-void mem_command_short(uint8_t command, uint8_t chip);
-void mem_unlock();
-void mem_read(uint32_t address, uint8_t * data, uint8_t data_len);
-void mem_write(uint32_t address, uint8_t * data, uint8_t data_len);
+// Sections in memory
+typedef struct {
+    // Start address of section in memory
+    uint32_t start_addr;
+    // Current block number being written to in this section of memory (starting from 0, increasing by 1)
+    uint32_t curr_block;
+    // Address in EEPROM that stores the current block number
+    uint32_t* curr_block_eeprom_addr;
+    // Number of fields in one block (NOT including the header/RTC data)
+    uint16_t num_fields_per_block;
+} mem_section_t;
 
-// Memory management
-uint32_t* pointer(uint8_t type);
-uint32_t block_size(uint8_t type);
-uint32_t init_stack(uint8_t type);
-void init_stacks();
-uint8_t init_block(uint8_t type);
-void init_header(uint8_t *header, uint8_t type);
-void read_from_flash (uint8_t type,uint8_t* data,uint8_t data_len, uint8_t block_num, uint8_t field_num);
-void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data);
+extern mem_section_t eps_hk_mem_section;
+extern mem_section_t pay_hk_mem_section;
+extern mem_section_t pay_sci_mem_section;
 
+// Chips are numbered 0-2
+#define MEM_NUM_CHIPS 3
 
 // Pins and Ports
-#define MEM_CS1     PB2
-#define MEM_CS2     PB3
-#define MEM_CS3     PB4
-#define MEM_PORT    PORTB
-#define MEM_DDR     DDRB
+// TODO - change
+#define MEM_CS_PORT         PORTB
+#define MEM_CS_DDR          DDRB
+#define MEM_CHIP0_CS_PIN    PB2
+#define MEM_CHIP1_CS_PIN    PB3
+#define MEM_CHIP2_CS_PIN    PB4
 
 // Commands and Special registers
 #define MEM_READ_STATUS         0x05
@@ -58,6 +55,7 @@ void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data);
 #define MEM_PG_PRG              0x02
 #define MEM_R_BYTE              0x03
 #define MEM_FAST_READ           0x0B
+#define MEM_ALL_SECTORS         0x3C
 
 // Status bits
 #define BUSY    0
@@ -69,37 +67,41 @@ void write_to_flash(uint8_t type, uint8_t field_num, uint8_t * data);
 #define AAI     6
 #define BPL     7
 
-#define MEM_ALL_SECTORS        0x3C
+// Number of bytes in a header
+#define HEADER_BYTES 8
+// Number of bytes in one field (one measurement)
+#define FIELD_BYTES 3
 
-//Memory organization
 
-//Initial values of the stack pointers
-#define SCI_INIT    0x0DB0 //TODO: FIX NUMBERS
-#define PAY_INIT    0x100000
-#define EPS_INIT    0x0DB0
-//#define OBC_INIT    0x180000
-//#define STATUS_INIT 0x1C0000
 
-//address in EEPROM that stores current pointer in corresponding stack
-//choose addresses 20-24
-#define SCI_CURR_PTR_ADDR       0x20
-#define PAY_HK_CURR_PTR_ADDR    0x24
-#define EPS_HK_CURR_PTR_ADDR    0x28
 
-//Field and block sizes
-#define FIELD_SIZE        0x04
-#define SCI_BLOCK_SIZE    0x250 //(CAN_PAY_SCI_FIELD_COUNT)//
-#define PAY_BLOCK_SIZE    0x100 //(CAN_PAY_HK_FIELD_COUNT)/
-#define EPS_BLOCK_SIZE    0x03//0x100
-#define OBC_BLOCK_SIZE    0x100
-#define STATUS_BLOCK_SIZE 0x100
+// Initialization
+void init_mem(void);
 
-//Block parameters
-#define HEADER_SIZE       0x02 //number of fields per header
-#define SCI_TYPE          0x00
-#define PAY_HK_TYPE       0x01
-#define EPS_HK_TYPE       0x02
-#define OBC_HK_TYPE       0x03
-#define STATUS_TYPE       0x04
+// EEPROM
+void write_curr_block_to_eeprom(mem_section_t* section);
+void read_curr_block_from_eeprom(mem_section_t* section);
+void increment_curr_block(mem_section_t* section);
+
+// Headers and fields
+void write_mem_header(mem_section_t* section, uint32_t block_num);
+void read_mem_header(mem_section_t* section, uint32_t block_num, uint8_t* data);
+void write_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_num, uint32_t data);
+uint32_t read_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_num);
+
+// Low-level operations
+void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
+void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
+void erase_mem(uint8_t chip);
+void erase_mem_sector(uint8_t sector, uint8_t chip);
+void unlock_mem(void);
+
+// Status
+uint8_t read_mem_status(uint8_t chip);
+void write_mem_status(uint8_t status, uint8_t chip);
+
+// Commands
+uint8_t send_mem_command(uint8_t command, uint8_t data, uint8_t chip);
+void send_short_mem_command(uint8_t command, uint8_t chip);
 
 #endif
