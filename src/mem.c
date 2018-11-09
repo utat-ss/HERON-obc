@@ -1,3 +1,15 @@
+/*
+Flash memory Library
+
+This library controls interfacing with the 3 flash memory chips connected to the OBC microcontroller. The 3 chips are treated as a single device with a continuous address space (3x the size of one chip's addresses).
+
+The memory is divided into "sections", where one section stored one category of data (EPS housekeeping, PAY housekeeping, or PAY science).
+
+Each section contains some number of "blocks", where each block contains a set of data measurements and a timestamp from the RTC (real-time clock) of when those measurements were taken (there is some delay between measurements but on the order of a few seconds).
+
+Each block contains a number of "fields", where each field is one measurement. The number of fields varies between sections but is constant within a section.
+*/
+
 #include "mem.h"
 
 uint32_t init_stack(uint8_t type){
@@ -187,6 +199,11 @@ void mem_erase(uint8_t chip){
         the continous roll-over functionality is hard-coded, and will need
         to be modified in the even of changes to the board design
 */
+
+    uint8_t a1;
+    uint8_t a2;
+    uint8_t a3;
+    uint8_t chip_num;
 
     uint16_t i = 0; //initialize counter
 

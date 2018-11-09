@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <util/delay.h>
-
+/*
 #define EPS_HK_FIELD_COUNT 3   // Number of fields
 #define EPS_HK_TYPE 0x02
 
@@ -469,12 +469,12 @@ void handle_actuate_motor() {
     resume_mob(&pay_cmd_tx);
     while (!is_paused(&pay_cmd_tx));
 }
-
+*/
 int main(void) {
     init_uart();
     print("\n\nUART\n");
 
-
+    /*
     init_can();
     init_spi();
 
@@ -523,7 +523,7 @@ int main(void) {
 
         _delay_ms(100);
     }
-    
+    */
 
     return 0;
 }
