@@ -4,6 +4,7 @@
 
 // avr-libc includes
 #include    <avr/io.h>
+#define F_CPU 8000000UL
 #include    <util/delay.h>
 
 // lib-common includes
@@ -21,7 +22,7 @@ int main(void) {
     init_spi();
     init_mem();
     init_rtc();
-    init_curr_stack_ptrs();
+
     time_t curr_time;
     curr_time.ss = 00;
     curr_time.mm = 00;
@@ -43,25 +44,19 @@ int main(void) {
     3. Read back the same values from SCI STACK- there should be a header
     FFF and then these 4 values.
     */
-    uint8_t i;
 
-    //  while (1) {
     print ("******EEPROM addresses are:\n");
-    print ("Sci stack address curr ptr: %x\n", eeprom_read_dword(SCI_CURR_PTR_ADDR));
-    print ("Pay housekeeping stack address curr ptr: %x\n", eeprom_read_dword(PAY_HK_CURR_PTR_ADDR));
+    print ("Pay sci section address curr ptr: %lx\n", pay_sci_mem_section.start_addr);
+    print ("Pay housekeeping section address curr ptr: %x\n", pay_hk_mem_section.start_addr);
 
+    uint32_t write_test = 0x070914;
+    uint32_t read_test = 0;
 
-    uint8_t read_test [12] = {1};
-    uint8_t test [4]= {0x08, 0x07, 0x09, 0x14};
-
-    write_to_flash(SCI_TYPE, 0x00, test);
-    print ("\n***********Read back from expected address: %x******\n", init_stack(SCI_TYPE)+block_size(SCI_TYPE));
-    read_from_flash(SCI_TYPE, read_test, 12, 0x1, 0x00);
-    for(i=0; i<12; i++)
-    {
-        print ("%x\n", read_test[i]);
-    }
+    write_mem_header(&pay_sci_mem_section, pay_sci_mem_section.curr_block);
+    write_mem_field(&pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x00, write_test);
+    // print ("\n***********Read back from expected address: %x******\n", pay_sci_mem_section.start_addr+block_size(SCI_TYPE));
+    read_test = read_mem_field(&pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x00);
+    print ("%lx\n", read_test);
 
     print ("*** End of test******\n");
-
 }

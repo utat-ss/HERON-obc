@@ -20,11 +20,10 @@ int main(void) {
     for(;;){
         _delay_ms(2000);
         print("\r\n\r\n");
-        mem_write(0x01FFFFF0, write, 255);
-        mem_read(0x01FFFFF0, read, 255);
+        write_mem_bytes(0x01FFFFF0, write, 255);
+        read_mem_bytes(0x01FFFFF0, read, 255);
         for (i=0; i<255; i++){
             print("\r\nREAD:%x", read[i]);
         }
     }
-
 }
