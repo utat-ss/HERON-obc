@@ -46,21 +46,21 @@ mem_section_t eps_hk_mem_section = {
     .start_addr = 0x0DB0UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x20,
-    .num_fields_per_block = CAN_EPS_HK_FIELD_COUNT   // Should be 12
+    .fields_per_block = CAN_EPS_HK_FIELD_COUNT   // Should be 12
 };
 
 mem_section_t pay_hk_mem_section = {
     .start_addr = 0x10000UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x24,
-    .num_fields_per_block = CAN_PAY_HK_FIELD_COUNT   // Should be 3
+    .fields_per_block = CAN_PAY_HK_FIELD_COUNT   // Should be 3
 };
 
 mem_section_t pay_sci_mem_section = {
     .start_addr = 0x20000UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x28,
-    .num_fields_per_block = CAN_PAY_SCI_FIELD_COUNT   // Should be 33
+    .fields_per_block = CAN_PAY_SCI_FIELD_COUNT   // Should be 33
 };
 
 
@@ -117,6 +117,28 @@ void increment_curr_block(mem_section_t* section) {
 }
 
 
+/*
+Calculates and returns the address of the start of a block (where the header starts).
+*/
+uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num) {
+    uint32_t bytes_per_block = BYTES_PER_HEADER +
+        (((uint32_t) section->fields_per_block) * BYTES_PER_FIELD);
+    uint32_t block_address = section->start_addr + (block_num * bytes_per_block);
+    return block_address;
+}
+
+
+/*
+Calculates and returns the address of the start of a field in a block (after the header).
+*/
+uint32_t mem_field_addr(mem_section_t* section, uint32_t block_num, uint32_t field_num) {
+    uint32_t block_address = mem_block_addr(section, block_num);
+    uint32_t field_address = block_address +
+        BYTES_PER_HEADER + (field_num * BYTES_PER_FIELD);
+    return field_address;
+}
+
+
 void write_mem_header(mem_section_t* section, uint32_t block_num){
     /*
     writes the header information array (which contains metadata such as
@@ -126,27 +148,23 @@ void write_mem_header(mem_section_t* section, uint32_t block_num){
     time_t time = read_time();
     date_t date = read_date();
     uint8_t error = 0x00;   // TODO
-    uint8_t header[HEADER_BYTES] = {
+    uint8_t header[BYTES_PER_HEADER] = {
         block_num,
         error,
         time.hh, time.mm, time.ss,
         date.yy, date.mm, date.dd
     };
 
-    uint32_t block_bytes = HEADER_BYTES + (section->num_fields_per_block * FIELD_BYTES);
-    uint32_t address = section->start_addr + (block_num * block_bytes);
-    write_mem_bytes(address, header, HEADER_BYTES);
+    write_mem_bytes(mem_block_addr(section, block_num), header, BYTES_PER_HEADER);
 }
 
 
 /*
 Reads the header data for the specified block number.
-data - must be already allocated (`HEADER_BYTES` bytes long) and passed to this function; this function will populate the data in it
+data - must be already allocated (`BYTES_PER_HEADER` bytes long) and passed to this function; this function will populate the data in it
 */
 void read_mem_header(mem_section_t* section, uint32_t block_num, uint8_t* data) {
-    uint32_t block_bytes = HEADER_BYTES + (section->num_fields_per_block * FIELD_BYTES);
-    uint32_t address = section->start_addr + (block_num * block_bytes);
-    read_mem_bytes(address, data, HEADER_BYTES);
+    read_mem_bytes(mem_block_addr(section, block_num), data, BYTES_PER_HEADER);
 }
 
 
@@ -163,18 +181,17 @@ void write_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_n
 */
 
     // TODO - write header first somewhere
-    // TODO - refactor address calculations
-    uint32_t block_bytes = HEADER_BYTES + (section->num_fields_per_block * FIELD_BYTES);
-    uint32_t address = section->start_addr + (block_num * block_bytes) + HEADER_BYTES + (field_num * FIELD_BYTES);
+
+    uint32_t address = mem_field_addr(section, block_num, field_num);
 
     // Split the data into 3 bytes
-    uint8_t data_bytes[FIELD_BYTES] = {
+    uint8_t data_bytes[BYTES_PER_FIELD] = {
         (data >> 16) & 0xFF,
         (data >> 8) & 0xFF,
         data & 0xFF
     };
 
-    write_mem_bytes(address, data_bytes, FIELD_BYTES);
+    write_mem_bytes(address, data_bytes, BYTES_PER_FIELD);
 }
 
 
@@ -184,14 +201,13 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num, uint8_t fiel
     Reads and returns the 24-bit data for the specified section, block, and field
 */
 
-    uint32_t block_bytes = HEADER_BYTES + (section->num_fields_per_block * FIELD_BYTES);
-    uint32_t address = section->start_addr + (block_num * block_bytes) + HEADER_BYTES + (field_num * FIELD_BYTES);
+    uint32_t address = mem_field_addr(section, block_num, field_num);
 
-    uint8_t data_bytes[FIELD_BYTES];
-    read_mem_bytes(address, data_bytes, FIELD_BYTES);
+    uint8_t data_bytes[BYTES_PER_FIELD];
+    read_mem_bytes(address, data_bytes, BYTES_PER_FIELD);
 
     uint32_t data = 0;
-    for (uint8_t i = 0; i < FIELD_BYTES; ++i) {
+    for (uint8_t i = 0; i < BYTES_PER_FIELD; ++i) {
         data = data << 8;
         data = data | data_bytes[i];
     }

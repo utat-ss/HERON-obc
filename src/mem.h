@@ -25,7 +25,7 @@ typedef struct {
     // Address in EEPROM that stores the current block number
     uint32_t* curr_block_eeprom_addr;
     // Number of fields in one block (NOT including the header/RTC data)
-    uint16_t num_fields_per_block;
+    uint16_t fields_per_block;
 } mem_section_t;
 
 extern mem_section_t eps_hk_mem_section;
@@ -68,9 +68,9 @@ extern mem_section_t pay_sci_mem_section;
 #define BPL     7
 
 // Number of bytes in a header
-#define HEADER_BYTES 8
+#define BYTES_PER_HEADER 8
 // Number of bytes in one field (one measurement)
-#define FIELD_BYTES 3
+#define BYTES_PER_FIELD 3
 
 
 
