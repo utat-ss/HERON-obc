@@ -28,6 +28,7 @@ typedef struct {
     uint16_t fields_per_block;
 } mem_section_t;
 
+// Make the memory sections visible to other files so they can write data to sections
 extern mem_section_t eps_hk_mem_section;
 extern mem_section_t pay_hk_mem_section;
 extern mem_section_t pay_sci_mem_section;

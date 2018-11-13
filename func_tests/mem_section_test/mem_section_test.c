@@ -1,3 +1,8 @@
+/*
+This program tests writing to and reading from specific sections and fields
+in memory for the layout scheme we have defined.
+*/
+
 // standard C libraries
 #include    <stdbool.h>
 #include    <stdint.h>
@@ -49,11 +54,14 @@ int main(void) {
     print ("Pay sci section address curr ptr: %lx\n", pay_sci_mem_section.start_addr);
     print ("Pay housekeeping section address curr ptr: %x\n", pay_hk_mem_section.start_addr);
 
+    // Example field data to write
     uint32_t write_test = 0x070914;
+    // Field data read back, should be the same
     uint32_t read_test = 0;
 
     write_mem_header(&pay_sci_mem_section, pay_sci_mem_section.curr_block);
     write_mem_field(&pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x00, write_test);
+
     // print ("\n***********Read back from expected address: %x******\n", pay_sci_mem_section.start_addr+block_size(SCI_TYPE));
     read_test = read_mem_field(&pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x00);
     print ("%lx\n", read_test);
