@@ -4,9 +4,12 @@ SST26VF016B
 
 Datasheet: http://ww1.microchip.com/downloads/en/DeviceDoc/20005262D.pdf
 
-This library controls interfacing with the 3 flash memory chips connected to the OBC microcontroller. The 3 chips are treated as a single device with a continuous address space (3x the size of one chip's addresses). Each flash chip is 16Mbit (2MB or 2 megabytes) in size, so in total we have 6MB of flash memory.
+This library controls interfacing with the 3 flash memory chips connected to the OBC microcontroller. 
+The 3 chips are treated as a single device with a continuous address space (3x the size of one chip's 
+addresses). Each flash chip is 16Mbit (2MB or 2 megabytes) in size, so in total we have 6MB of flash memory.
 
-The memory is divided into "sections", where one section stored one category of data (EPS housekeeping, PAY housekeeping, or PAY science).
+The memory is divided into "sections", where one section stored one category of data (EPS housekeeping, PAY 
+housekeeping, or PAY science).
 
 Each section contains some number of "blocks", where each block contains a set of measurements taken around the same time.
 
@@ -16,11 +19,15 @@ Each block contains an 8-byte header with:
 - 3 bytes - RTC (real-time clock) date (YY, MM, DD)
 - 3 bytes - RTC (real-time clock) time (HH, MM, SS)
 
-The RTC date and time are for when those measurements were taken (there is some delay between measurements but usually on the order of a few seconds).
+The RTC date and time are for when those measurements were taken (there is some delay between measurements 
+but usually on the order of a few seconds).
 
-The header is followed by aa number of "fields", where each field has 3 bytes (24 bits) for one measurement. The number of fields varies between sections but is constant within a section.
+The header is followed by a number of "fields", where each field has 3 bytes (24 bits) for one measurement. 
+The number of fields varies between sections but is constant within a section.
 
-EEPROM (Electronically Erasable Programmable Read Only Memory) is a non-volatile memory in the microcontroller, meaning the data persists even if the microcontroller is turned off or reset. We are using it to keep track of the current block number being written to for each section of memory.
+EEPROM (Electronically Erasable Programmable Read Only Memory) is a non-volatile memory in the microcontroller, 
+meaning the data persists even if the microcontroller is turned off or reset. We are using it to keep track of 
+the current block number being written to for each section of memory.
 */
 
 #include "mem.h"
@@ -169,7 +176,8 @@ void write_mem_header(mem_section_t* section, uint32_t block_num){
 
 /*
 Reads the header data for the specified block number.
-data - must be already allocated (`BYTES_PER_HEADER` bytes long) and passed to this function; this function will populate the data in it
+data - must be already allocated (`BYTES_PER_HEADER` bytes long) and passed to this function; this function will 
+populate the data in it
 */
 void read_mem_header(mem_section_t* section, uint32_t block_num, uint8_t* data) {
     read_mem_bytes(mem_block_addr(section, block_num), data, BYTES_PER_HEADER);
@@ -239,7 +247,7 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
         address space, combining three memory chips
 
         the continous roll-over functionality is hard-coded, and will need
-        to be modified in the even of changes to the board design
+        to be modified in the event of changes to the board design
 */
 
     uint8_t chip_num = (address >> 24) & 0x03; //calculate the initial chip number
