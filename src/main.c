@@ -13,13 +13,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <util/delay.h>
-/*
+
 #define EPS_HK_FIELD_COUNT 3   // Number of fields
 #define EPS_HK_TYPE 0x02
 
 #define PAY_CMD_TX_MOB 3
 #define EPS_CMD_TX_MOB 4
 #define DATA_RX_MOB 5
+
+queue_t arg_queue;
+queue_t command_queue;
 
 queue_t pay_tx_queue;
 queue_t eps_tx_queue;
@@ -101,8 +104,13 @@ void print_raw_can_data(void) {
     // print("\n");
 }
 
-
-
+void handle_resume_mob()
+{
+    mob_t * mob;
+    dequeue(&arg_queue, (uint8_t *) &mob);
+    resume_mob(mob);
+    while (!is_paused(mob));
+}
 
 void data_rx_callback(const uint8_t* data, uint8_t len) {
     // print("RX Callback\n");
@@ -147,6 +155,8 @@ void receive_pay_hk(const uint8_t* data, uint8_t len){
             d[1] = CAN_PAY_HK;
             d[2] = field_num + 1;
             enqueue(&pay_tx_queue, d);
+            enqueue(&command_queue, (uint8_t*) &handle_resume_mob);
+            enqueue(&arg_queue, (uint8_t *)&pay_cmd_tx);
             // print("Enqueued PAY_HK #%d\n", field_num + 1);
         } else {
             print("PAY_HK done\n");
@@ -156,6 +166,8 @@ void receive_pay_hk(const uint8_t* data, uint8_t len){
             d[1] = CAN_PAY_SCI;
             d[2] = 0;
             enqueue(&pay_tx_queue, d);
+            enqueue(&command_queue, (uint8_t *) &handle_resume_mob);
+            enqueue(&arg_queue, (uint8_t *) &pay_cmd_tx);
         }
     }
 
@@ -180,6 +192,8 @@ void receive_pay_sci(const uint8_t* data, uint8_t len){
             d[1] = CAN_PAY_SCI;
             d[2] = field_num + 1;
             enqueue(&pay_tx_queue, d);
+            enqueue(&command_queue, (uint8_t *) &handle_resume_mob);
+            enqueue(&arg_queue, (uint8_t *) &pay_cmd_tx);
         } else {
           //  print("PAY_SCI done\n");
 
@@ -188,6 +202,8 @@ void receive_pay_sci(const uint8_t* data, uint8_t len){
             d[1] = CAN_EPS_HK;
             d[2] = 0;
             enqueue(&eps_tx_queue, d);
+            enqueue(&command_queue, (uint8_t *) &handle_resume_mob);
+            enqueue(&arg_queue, (uint8_t *) &eps_cmd_tx);
         }
     }
 }
@@ -209,6 +225,8 @@ void receive_eps_hk(const uint8_t* data, uint8_t len){
             d[1] = CAN_EPS_HK;
             d[2] = field_num + 1;
             enqueue(&eps_tx_queue, d);
+            enqueue(&command_queue, (uint8_t *) &handle_resume_mob);
+            enqueue(&arg_queue, (uint8_t *) &eps_cmd_tx);
             print("Enqueued\n");
         } else {
             print("EPS_HK done\n");
@@ -277,7 +295,7 @@ mob_t pay_cmd_tx = {
     .mob_type = TX_MOB,
     .id_tag = OBC_PAY_CMD_TX_MOB_ID,
     .ctrl = default_tx_ctrl,
-  //  .tx_data_cb = pay_cmd_tx_data_callback
+    .tx_data_cb = pay_cmd_tx_data_callback
 };
 
 // CAN mob for sending commands to EPS
@@ -302,15 +320,11 @@ mob_t data_rx = {
 };
 
 
-
-
-queue_t uart_cmd_queue;
-
-typedef void(*uart_cmd_fn_t)(void);
+typedef void(*cmd_fn_t)(void);
 
 typedef struct {
     char* cmd;
-    uart_cmd_fn_t fn;
+    cmd_fn_t fn;
 } cmd_t;
 
 // Available UART commands
@@ -388,7 +402,7 @@ uint8_t handle_uart_cmd(const uint8_t* data, uint8_t len) {
 
             if (match) {
                 // WOW: just enqueue the command directly into the queue!
-                enqueue(&uart_cmd_queue, (uint8_t*)cmd);
+                enqueue(&command_queue, (uint8_t*)&(cmd -> fn));
                 // print("Enqueued %s\n", cmd->cmd);
                 // Downside, can't actually pass the data/len through;
                 // this means we can't support variable sized commands
@@ -416,8 +430,8 @@ void handle_pay_eps_req() {
     d[1] = CAN_PAY_HK;
     d[2] = 0;
     enqueue(&pay_tx_queue, d);
-    resume_mob(&pay_cmd_tx);
-    while (!is_paused(&pay_cmd_tx));
+    enqueue(&command_queue, (uint8_t *) &handle_resume_mob);
+    enqueue(&arg_queue, (uint8_t *) &pay_cmd_tx);
 
 
     // Uncomment to send EPS_HK first
@@ -427,6 +441,8 @@ void handle_pay_eps_req() {
     d[1] = CAN_EPS_HK;
     d[2] = 0;
     enqueue(&eps_tx_queue, d);
+    enqueue(&command_queue, (uint8_t *) &handle_resume_mob);
+    enqueue(&arg_queue, (uint8_t *) &pay_cmd_tx);
     //resume_mob(&eps_cmd_tx);
     // while (!is_paused(&eps_cmd_tx));
 }
@@ -466,15 +482,17 @@ void handle_actuate_motor() {
     d[1] = CAN_PAY_MOTOR;
     d[2] = CAN_PAY_MOTOR_ACTUATE;
     enqueue(&pay_tx_queue, d);
-    resume_mob(&pay_cmd_tx);
-    while (!is_paused(&pay_cmd_tx));
+    enqueue(&command_queue, (uint8_t *) &handle_resume_mob);
+    enqueue(&arg_queue, (uint8_t *) &pay_cmd_tx)
 }
-*/
+
+
+
 int main(void) {
     init_uart();
     print("\n\nUART\n");
 
-    /*
+
     init_can();
     init_spi();
 
@@ -500,30 +518,19 @@ int main(void) {
     handle_pay_eps_req();
 
     while (1) {
-        if (!is_empty(&uart_cmd_queue)) {
-            // dequeue the latest UART command and execute it
-            cmd_t cmd;
+        if (!is_empty(&command_queue)) {
+            // dequeue the latest command and execute it
+            cmd_fn_t cmd;
             //print("Dequeueing\n");
-            dequeue(&uart_cmd_queue, (uint8_t*)&cmd);
+            dequeue(&command_queue, (uint8_t *) &cmd);
             //print("Dequeued command\n");
-            (cmd.fn)();
+            (cmd)();
             // Now, callbacks are no longer executed in ISRs, so we
             // can actually resume/pause MObs inside them
         }
-
-        if (!is_empty(&pay_tx_queue)) {
-            resume_mob(&pay_cmd_tx);
-            while (!is_paused(&pay_cmd_tx));
-        }
-
-        if (!is_empty(&eps_tx_queue)) {
-            resume_mob(&eps_cmd_tx);
-            while (!is_paused(&eps_cmd_tx));
-        }
-
         _delay_ms(100);
     }
-    */
+
 
     return 0;
 }
