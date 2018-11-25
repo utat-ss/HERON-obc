@@ -7,9 +7,7 @@
 #include <queue/queue.h>
 #include <uart/uart.h>
 
-extern queue_t pay_tx_msg_queue;
-extern queue_t eps_tx_msg_queue;
-extern queue_t data_rx_msg_queue;
+#include "can_commands.h"
 
 extern mob_t pay_cmd_tx_mob;
 extern mob_t eps_cmd_tx_mob;

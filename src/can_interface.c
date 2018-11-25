@@ -2,10 +2,6 @@
 
 #include "can_interface.h"
 
-queue_t pay_tx_msg_queue;
-queue_t eps_tx_msg_queue;
-queue_t data_rx_msg_queue;
-
 void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
     if (queue_empty(&pay_tx_msg_queue)) {
         *len = 0;

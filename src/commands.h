@@ -15,11 +15,11 @@ typedef struct {
     cmd_fn_t fn;
 } cmd_t;
 
-// TODO - voltatile variable for currently executing command?
+// TODO - volatile variable to point to currently executing command?
 
 extern queue_t cmd_queue;
-extern queue_t cmd_arg_queue;
 
-extern cmd_t resume_mob_cmd;
+void enqueue_cmd(queue_t* queue, cmd_t* cmd);
+void dequeue_cmd(queue_t* queue, cmd_t* cmd);
 
 #endif

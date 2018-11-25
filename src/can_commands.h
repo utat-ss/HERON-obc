@@ -10,6 +10,15 @@
 #include "can_interface.h"
 #include "commands.h"
 
+extern queue_t eps_tx_msg_queue;
+extern queue_t pay_tx_msg_queue;
+extern queue_t data_rx_msg_queue;
+
 void handle_rx_msg(void);
+
+void enqueue_eps_hk_req_can_msg(uint8_t field_num);
+void enqueue_pay_hk_req_can_msg(uint8_t field_num);
+void enqueue_pay_sci_req_can_msg(uint8_t field_num);
+void enqueue_actuate_motor_can_msg(void);
 
 #endif
