@@ -1,12 +1,11 @@
 #include "commands.h"
 
-void resume_mob_fn(void);
 void req_eps_hk_fn(void);
 void req_pay_hk_fn(void);
 void req_pay_sci_fn(void);
+void actuate_motor_fn(void);
 void write_flash_fn(void);
 void read_flash_fn(void);
-void actuate_motor_fn(void);
 
 
 // Queue of commands that need to be executed but have not been executed yet
@@ -31,17 +30,6 @@ cmd_t write_flash_cmd = {
 cmd_t read_flash_cmd = {
     .fn = read_flash_fn
 };
-
-
-// All possible commands
-cmd_t* all_cmds_list[] = {
-    &req_eps_hk_cmd,
-    &req_pay_hk_cmd,
-    &actuate_motor_cmd,
-    &write_flash_cmd,
-    &read_flash_cmd
-};
-const uint8_t all_cmds_list_len = sizeof(all_cmds_list) / sizeof(all_cmds_list[0]);
 
 
 
