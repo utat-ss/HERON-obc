@@ -12,6 +12,11 @@ int main(void) {
     init_spi();
     init_mem();
 
+    //erase all three memory chips
+    for(uint8_t i = 0; i < MEM_NUM_CHIPS; i++) {
+        erase_mem(i);
+    }
+
     // Create some sample data to write
     uint8_t write[255] = {0x00};
     for(uint8_t i = 0; i < 255; i++) {

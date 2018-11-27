@@ -1,33 +1,12 @@
 /*
 Flash memory Library
 SST26VF016B
-
 Datasheet: http://ww1.microchip.com/downloads/en/DeviceDoc/20005262D.pdf
 
-This library controls interfacing with the 3 flash memory chips connected to the OBC microcontroller. 
-The 3 chips are treated as a single device with a continuous address space (3x the size of one chip's 
-addresses). Each flash chip is 16Mbit (2MB or 2 megabytes) in size, so in total we have 6MB of flash memory.
+This library controls interfacing with the 3 flash memory chips connected to the OBC microcontroller.
 
-The memory is divided into "sections", where one section stored one category of data (EPS housekeeping, PAY 
-housekeeping, or PAY science).
-
-Each section contains some number of "blocks", where each block contains a set of measurements taken around the same time.
-
-Each block contains an 8-byte header with:
-- 1 byte - block number
-- 1 byte - errors (TODO later)
-- 3 bytes - RTC (real-time clock) date (YY, MM, DD)
-- 3 bytes - RTC (real-time clock) time (HH, MM, SS)
-
-The RTC date and time are for when those measurements were taken (there is some delay between measurements 
-but usually on the order of a few seconds).
-
-The header is followed by a number of "fields", where each field has 3 bytes (24 bits) for one measurement. 
-The number of fields varies between sections but is constant within a section.
-
-EEPROM (Electronically Erasable Programmable Read Only Memory) is a non-volatile memory in the microcontroller, 
-meaning the data persists even if the microcontroller is turned off or reset. We are using it to keep track of 
-the current block number being written to for each section of memory.
+The organization of data memory follows the OBC Flash Memory Protocol:
+https://utat-ss.readthedocs.io/en/master/our-protocols/obc-mem.html
 */
 
 #include "mem.h"
@@ -95,14 +74,7 @@ void init_mem(void){
 
     unlock_mem(); //use global unlock to unlock memory
 
-    for(uint8_t i = 0; i < MEM_NUM_CHIPS; i++)
-    {
-        // TODO - DO NOT do this, we might be starting up multiple times
-        erase_mem(i); //erase all three memory chips
-    }
-
     // TODO - initialize block numbers from EEPROM
-    // TODO - BEFORE LAUNCH, RESET ALL MICROCONTROLLERS' EEPROM TO ALL 0s
 }
 
 
@@ -176,7 +148,7 @@ void write_mem_header(mem_section_t* section, uint32_t block_num){
 
 /*
 Reads the header data for the specified block number.
-data - must be already allocated (`BYTES_PER_HEADER` bytes long) and passed to this function; this function will 
+data - must be already allocated (`BYTES_PER_HEADER` bytes long) and passed to this function; this function will
 populate the data in it
 */
 void read_mem_header(mem_section_t* section, uint32_t block_num, uint8_t* data) {
@@ -195,8 +167,6 @@ void write_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_n
 
     data - the least significant 24 bits will be written to memory
 */
-
-    // TODO - write header first somewhere
 
     uint32_t address = mem_field_addr(section, block_num, field_num);
 
@@ -234,7 +204,6 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num, uint8_t fiel
 void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
 /*
-
     writes data to memory starting at the specified address
     data MUST be at least of length data_len
     all data at addresses in the array higher than data_len will be ignored
@@ -346,7 +315,7 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
         {
             set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 
-            if (chip_num == MEM_NUM_CHIPS - 1) {
+            if (chip_num >= MEM_NUM_CHIPS - 1) {
                 //ensure wrap-around back to chip 0
                 chip_num = 0;
             }

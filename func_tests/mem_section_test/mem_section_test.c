@@ -28,6 +28,11 @@ int main(void) {
     init_mem();
     init_rtc();
 
+    //erase all three memory chips
+    for(uint8_t i = 0; i < MEM_NUM_CHIPS; i++) {
+        erase_mem(i);
+    }
+
     time_t curr_time;
     curr_time.ss = 00;
     curr_time.mm = 00;
