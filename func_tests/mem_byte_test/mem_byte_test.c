@@ -79,5 +79,23 @@ int main(void) {
         else {
             print("\nAll values were as expected");
         }
+
+
+        // Test chip rollover
+        uint32_t address[] = {0x00FFFFFD, 0x01FFFFFD, 0x02FFFFFD};
+        // Chip number: (address >> 24) & 0x03
+
+        // Testing all 3 chip rollover conditions
+        for (uint8_t i = 0; i < 3; i ++) {
+            uint8_t write_data[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+            uint8_t read_data[8] = {0};
+
+            write_mem_bytes(address[i], write_data, 8);
+            read_mem_bytes(address[i], read_data, 8);
+
+            print ("Testing chip rollover for address %lx\n", address[i]);
+            print ("Values in memory after writing:\n");
+            print_bytes(read_data, 8);
+        }
     }
 }

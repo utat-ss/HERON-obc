@@ -71,20 +71,5 @@ int main(void) {
     read_test = read_mem_field(&pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x00);
     print ("%lx\n", read_test);
 
-    // Test chip rollover
-    uint32_t address[] = {0x00FFFFFD, 0x01FFFFFD, 0x02FFFFFD};
-    // Chip number: (address >> 24) & 0x03
-
-    // Testing all 3 chip rollover conditions
-    for (uint8_t i = 0; i < 3; i ++) {
-        write_mem_header((long) address[i], pay_sci_mem_section.curr_block);
-        write_mem_field((long) address[i], pay_sci_mem_section.curr_block, 0x00, write_test);
-        read_test = read_mem_field((long) address[i], pay_sci_mem_section.curr_block, 0x00);
-
-        print ("Testing chip rollover for address %lx\n", address[i]);
-        print ("Values in Pay sci address after writing 0x070914:\n");
-        print ("%lx\n", read_test);
-    }
-
     print ("*** End of test******\n");
 }
