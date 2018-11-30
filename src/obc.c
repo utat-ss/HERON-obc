@@ -27,7 +27,6 @@ void init_obc_core(void) {
     init_queue(&cmd_queue);
 
     //init_heartbeat();
-    print("Initalized.\n");
 }
 
 // Initializes the comms/transceiver parts of OBC that must be delayed after initial startup

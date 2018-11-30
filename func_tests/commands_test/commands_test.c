@@ -39,6 +39,12 @@ cmd_t print_local_data_cmd = {
     .fn = print_local_data_fn
 };
 
+// Special command just for this test to clear local data (set to all 0s)
+void clear_local_data_fn(void);
+cmd_t clear_local_data_cmd = {
+    .fn = clear_local_data_fn
+};
+
 
 // All possible commands
 uart_cmd_t all_cmds[] = {
@@ -69,6 +75,10 @@ uart_cmd_t all_cmds[] = {
     {
         .description = "Print local data",
         .cmd = &print_local_data_cmd
+    },
+    {
+        .description = "Clear local data",
+        .cmd = &clear_local_data_cmd
     }
 };
 // Length of array
@@ -86,21 +96,35 @@ void print_cmds(void) {
 void print_local_data_fn(void) {
     print("EPS HK:\n");
     for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
-        print("%lu ", eps_hk_data[i]);
+        print("%.3lu ", eps_hk_data[i]);
     }
-    print("\n\n");
+    print("\n");
 
     print("PAY HK:\n");
     for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
-        print("%lu ", pay_hk_data[i]);
+        print("%.4lu ", pay_hk_data[i]);
     }
-    print("\n\n");
+    print("\n");
 
     print("PAY SCI:\n");
     for (uint8_t i = 0; i < CAN_PAY_SCI_FIELD_COUNT; i++) {
-        print("%lu ", pay_sci_data[i]);
+        print("%.6lu ", pay_sci_data[i]);
     }
-    print("\n\n");
+    print("\n");
+}
+
+void clear_local_data_fn(void) {
+    for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
+        eps_hk_data[i] = 0;
+    }
+
+    for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
+        pay_hk_data[i] = 0;
+    }
+
+    for (uint8_t i = 0; i < CAN_PAY_SCI_FIELD_COUNT; i++) {
+        pay_sci_data[i] = 0;
+    }
 }
 
 
@@ -176,7 +200,7 @@ void sim_eps_tx_msg(void) {
     }
 
     // Simulate waiting to receive the message
-    delay_random_ms(5000);
+    delay_random_ms(100);
     enqueue(&data_rx_msg_queue, rx_msg);
 }
 
@@ -225,7 +249,7 @@ void sim_pay_tx_msg(void) {
     }
 
     // Simulate waiting to receive the message
-    delay_random_ms(5000);
+    delay_random_ms(100);
     enqueue(&data_rx_msg_queue, rx_msg);
 }
 
@@ -264,6 +288,7 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
 
 int main(void){
     init_obc_core();
+    print("\n\n\nInitialized OBC core\n");
 
     print("At any time, press h to show the command menu\n");
     print_cmds();
