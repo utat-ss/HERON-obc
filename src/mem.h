@@ -36,6 +36,10 @@ extern mem_section_t pay_sci_mem_section;
 // Chips are numbered 0-2
 #define MEM_NUM_CHIPS 3
 
+// The number of bits used to address all bytes in one chip
+// Because one chip is 2MB and each adddress is for one byte
+#define MEM_CHIP_ADDR_WIDTH 21
+
 // Pins and Ports
 // TODO - change
 #define MEM_CS_PORT         PORTB
