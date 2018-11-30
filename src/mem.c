@@ -12,6 +12,7 @@ Addresses are composed as follows (as uint32_t):
 { 0 (9 bits), chip_num (2 bits), chip_addr (21 bits)}
 
 TODO - test read/write to EEPROM
+TODO - test reading/writing section headers/fields
 TODO - make sure EEPROM addresses don't conflict with heartbeat
 TODO - develop harness-based test
 */
@@ -42,21 +43,21 @@ pin_info_t mem_cs[MEM_NUM_CHIPS] = {
 
 
 mem_section_t eps_hk_mem_section = {
-    .start_addr = 0x0DB0UL,
+    .start_addr = 0x0DB00UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x20,
     .fields_per_block = CAN_EPS_HK_FIELD_COUNT   // Should be 12
 };
 
 mem_section_t pay_hk_mem_section = {
-    .start_addr = 0x10000UL,
+    .start_addr = 0x100000UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x24,
     .fields_per_block = CAN_PAY_HK_FIELD_COUNT   // Should be 3
 };
 
 mem_section_t pay_sci_mem_section = {
-    .start_addr = 0x20000UL,
+    .start_addr = 0x200000UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x28,
     .fields_per_block = CAN_PAY_SCI_FIELD_COUNT   // Should be 33
