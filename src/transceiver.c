@@ -1,11 +1,25 @@
 /*
-Note that all/most setting configurations will return 1 if configuration successful
+Note that all/most setting configuration functionss will return 1 if configuration successful
 and 0 if not successful
+
+Status Control Register Bits:
+15-14: Reserved
+13-12: Baudrate = 0 for 9600
+11: Reset
+10-8: RfMode Choose 0
+7: UART Echo Enable (1 = ON 0 = OFF)
+6: Beacon Message Enable (1 = ON 0 = OFF)
+5: Pipeline Communication Enable
+All bits below this point are read only (no writing)
+4: Bootloader mode: 1, Application Mode: 0
+3/2: CTS/SEC (Reserved)
+1: Correct initialization of FRAM (0 = Error)
+0: Correct initialization of Radio Transceiver (0 = Error)
 */
 
 #include "transceiver.h"
 
-//Default Address - may change to a variable so that we can set value
+//Default Address - do not change
 #define TRANS_ADDR  0x22
 
 // Has '\0' termination
@@ -13,8 +27,18 @@ volatile uint8_t received_cmd[20];
 volatile bool received_cmd_available = false;
 
 void init_trans(void) {
+  //TODO: Rf Mode chosen to be default 3 for now
+  /* From LSB to MSB Default: 0303
+  baud_rate = 0b00;
+  reset = 0b0;
+  rF_mode = 0b011;
+  echo = 0b0;
+  beacon = 0b0;
+  pipeline = 0b0;*/
+
   register_callback(trans_cb);
-  //set_trans_scw
+  uint16_t reg = 0x0303;
+  set_trans_scw(reg);
   set_trans_freq();
 }
 
@@ -35,7 +59,7 @@ uint8_t trans_cb(const uint8_t* buf, uint8_t len) {
 }
 
 // Converts the ASCII representation of a hex number to the integer
-uint8_t char_hex_to_dec(char c) {
+uint8_t char_hex_to_dec(uint8_t c) {
     if ('0' <= c && c <= '9') {
         return c - '0';
     } else if ('A' <= c && c <= 'F') {
@@ -51,7 +75,7 @@ Extracts ASCII characters representing a hex number and returns the correspondin
 offset - starting index in the string
 count - number of characters (between 1 and 8)
 */
-uint32_t scan_uint(char* string, uint8_t offset, uint8_t count) {
+uint32_t scan_uint(uint8_t* string, uint8_t offset, uint8_t count) {
     uint32_t value = 0;
     for (uint8_t i = offset; i < offset + count; i++) {
         value = value << 4;
@@ -67,23 +91,21 @@ Values: 'OK' means that command was successful. Return 1
 Values: 'ERR' means that Command was not sucessful. Return 0
 Other values are unexpected. Return 0
 */
-uint8_t valid_cmd(char* string) {
-    char valid[] = "OK"; //TODO: check if this declaration is valid
-    char invalid[] = "ERR";
+uint8_t valid_cmd(uint8_t* string) {//TODO: check if this declaration is valid
+    uint8_t valid[] = {0x4F, 0x4B}; //"OK"
+    uint8_t invalid[] = {0x45, 0x52, 0x52}; //"ERR"
 
     if (string_cmp(valid, string, 2) == 1) {
         return 1;
     }
-    else if (string_cmp(invalid, string, 3) ==1) {
+    else if (string_cmp(invalid, string, 3) ==1) { //"ERR"
         return 0;
     }
-    else {
         return 0;
-    }
 }
 
 //Compares strings, returns 1 if strings are the same, returns 0 otherwise
-uint8_t string_cmp(char* string, char* string2, uint8_t len) {
+uint8_t string_cmp(uint8_t* string, uint8_t* string2, uint8_t len) {
     for (uint8_t i = 0; i < len; i++) {
         if (string[i] != string2[i]) {
             return 0;
@@ -91,6 +113,8 @@ uint8_t string_cmp(char* string, char* string2, uint8_t len) {
     }
     return 1;
 }
+
+//1. Status control register conditions
 
 //1. Write to status control register
 uint8_t set_trans_scw(uint16_t reg) {
@@ -115,7 +139,7 @@ uint16_t read_trans_scw() {
     print("ES+R%2X00\r", TRANS_ADDR);
     //Answer is received through trans_cb
 
-    while (!received_cmd_available) {}
+    while (!received_cmd_available ) {}
     //Wait for response
     //response format: OK+[RR]0000[WWWW]<CR>
     uint8_t cmnd[20];
@@ -172,6 +196,7 @@ uint32_t read_trans_freq() {
     return freq;
 }
 
+/* Apparently we don't want this function
 //Consider making TRANS_ADDR a variable if wanting to implement this function
 //3. Change device address
 uint8_t set_trans_addr(uint8_t addr) {
@@ -205,11 +230,33 @@ uint8_t set_trans_addr(uint8_t addr) {
     }
     return 0;
 
+}*/
+
+//turn on pipeline mode
+void set_pipeline () {
+    uint16_t reg = read_trans_scw();
+    reg |= 0x0020; //bit 5
+    set_trans_scw(reg);
 }
 
 // from p.18
+// Turns off of pipeline mode if there are no UART messages
 void set_trans_pipe_timeout(uint8_t timeout) {
     print("ES+W%2X06000000%2X\r", TRANS_ADDR, timeout);
+}
+
+//turn on beacon mode
+void set_beacon () {
+    uint16_t reg = read_trans_scw();
+    reg |= 0x0040; //bit 6
+    set_trans_scw(reg);
+}
+
+//turn off beacon mode
+void off_beacon () {
+    uint16_t reg = read_trans_scw();
+    reg &= ~(0x0040); //bit 6
+    set_trans_scw(reg);
 }
 
 /*
@@ -301,12 +348,12 @@ uint32_t read_beacon_content() {
 7. Set destination call-sign
 Callsign is 6 bytes long
 */
-uint8_t set_destination_callsign(uint32_t callsign) {
+uint8_t set_destination_callsign(char* c) {
     //callsign = (callsign2 << 16) + callsign1
-    uint16_t callsign1 = callsign; //truncating callsign to be 24 bites
-    uint8_t callsign2 = callsign >> (4*4);
+    //uint16_t callsign1 = callsign; //truncating callsign to be 24 bites
+    //uint8_t callsign2 = (callsign >> (4*4));
 
-    print("ES+W%2XF5%2X%4X\r", TRANS_ADDR, callsign2, callsign1);
+    print("ES+W%2XF5%c%c%c%c%c%c\r", TRANS_ADDR, c[0], c[1],c[2],c[3],c[4],c[5]);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -337,7 +384,7 @@ uint32_t read_destination_callsign() {
     received_cmd_available = false;
 
     uint16_t callsign1 = scan_uint(cmnd, 5, 4);
-    uint8_t callsign2 = scan_uint(cmnd, 3, 2);
+    uint32_t callsign2 = scan_uint(cmnd, 3, 2);
     uint32_t callsign = 0;
 
     //put together
@@ -346,12 +393,12 @@ uint32_t read_destination_callsign() {
 }
 
 // 8. Set source callsign
-uint8_t set_source_callsign(uint32_t callsign) {
+uint8_t set_source_callsign(char* c) {
     //callsign = (callsign2 << 16) + callsign1
-    uint16_t callsign1 = callsign; //truncating callsign to be 24 bites
-    uint8_t callsign2 = callsign >> (4*4);
+    //uint16_t callsign1 = callsign; //truncating callsign to be 24 bites
+    //uint8_t callsign2 = callsign >> (4*4);
 
-    print("ES+W%2XF6%2X%4X\r", TRANS_ADDR, callsign2, callsign1);
+    print("ES+W%2XF6%c%c%c%c%c%c\r", TRANS_ADDR, c[0], c[1],c[2],c[3],c[4],c[5]);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -383,7 +430,7 @@ uint32_t read_source_callsign() {
     received_cmd_available = false;
 
     uint16_t callsign1 = scan_uint(cmnd, 5, 4);
-    uint8_t callsign2 = scan_uint(cmnd, 3, 2);
+    uint32_t callsign2 = scan_uint(cmnd, 3, 2);
     uint32_t callsign = 0;
 
     //put together
@@ -471,3 +518,5 @@ uint32_t get_received_num_of_packets_CRC(){
 
   return num_of_packets_CRC_error;
 }
+
+//Unneded: Beacon, packets
