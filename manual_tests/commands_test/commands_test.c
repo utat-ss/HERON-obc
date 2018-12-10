@@ -20,7 +20,7 @@ If set to false, it simulate both the EPS and PAY PCBs responding to CAN message
 #include <spi/spi.h>
 
 #include "../../src/commands.h"
-#include "../../src/obc.h"
+#include "../../src/general.h"
 
 // Set to true to use an actual CAN connection
 const bool use_ext_can = false;
