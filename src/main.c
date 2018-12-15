@@ -1,4 +1,4 @@
-#include "obc.h"
+#include "general.h"
 
 int main(void) {
     init_obc_core();

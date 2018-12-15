@@ -27,7 +27,7 @@ int main(void){
     date_t d_alarm;
     d_alarm.dd = 01;
     d_alarm.mm = 01;
-    d_alarm.yy = 2018;
+    d_alarm.yy = 18;
 
     set_alarm(t_alarm, d_alarm, 1);
     //disable_alarm(1); //comment out this line to test the functionality of the set_alarm function

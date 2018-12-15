@@ -1,57 +1,16 @@
-.DS_Store
+# This .gitignore is meant to be used in any software repository
 
-# Prerequisites
+# Compiled files
 *.d
-.DS_Store
-
-# Object files
 *.o
-*.ko
-*.obj
 *.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
 *.hex
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
+# macOS files
+.DS_Store
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# Windows files
+Thumbs.db
 
-# macOS hidden files
-*.DS_Store
+# Xcode files
+xcuserdata

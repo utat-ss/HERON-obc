@@ -1,19 +1,15 @@
 #ifndef MEM_H
 #define MEM_H
 
-#ifndef F_CPU
-#define F_CPU 8000000UL
-#endif
-
 // AVR Library Includes
 #include <avr/io.h>
-#include <util/delay.h>
 #include <avr/eeprom.h>
 
 // lib-common includes
 #include <spi/spi.h>
 #include <uart/uart.h>
 #include <can/data_protocol.h>
+
 #include "rtc.h"
 
 // Sections in memory

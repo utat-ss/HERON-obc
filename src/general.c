@@ -1,4 +1,4 @@
-#include "obc.h"
+#include "general.h"
 
 // Declare fresh_start as global var. to keep track of fresh start and restart
 uint8_t fresh_start;

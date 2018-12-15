@@ -1,17 +1,12 @@
 #ifndef RTC_H
 #define RTC_H
 
-#ifndef F_CPU
-#define F_CPU 8000000UL
-#endif
-
 // AVR Library Includes
-#include    <avr/io.h>
-#include    <util/delay.h>
+#include <avr/io.h>
 
 // lib-common includes
-#include    <spi/spi.h>
-#include    <uart/uart.h>
+#include <spi/spi.h>
+#include <uart/uart.h>
 
 
 // Type definitions

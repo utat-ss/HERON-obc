@@ -1,5 +1,5 @@
-#ifndef OBC_H
-#define OBC_H
+#ifndef GENERAL_H
+#define GENERAL_H
 
 #include <stdint.h>
 
