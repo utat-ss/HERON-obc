@@ -4,6 +4,7 @@ are written as comments.
 */
 
 #include <uart/uart.h>
+#include <utilities/utilities.h>
 #include "../../src/transceiver.h"
 
 //Note that read functions return the value - however we first must test how
@@ -11,11 +12,13 @@ are written as comments.
 
 int main(void){
     init_uart();
+    print("\n\n\r"); //for avoiding programming gibberish
 
     //Might need to add a delay function here
 
     init_trans();
-
+    read_trans_scw();
+/*
     //Go through functions
     set_trans_freq();
     read_trans_freq();
@@ -41,5 +44,5 @@ int main(void){
     //Turn off Beacon
     //off_beacon();
 
-    get_trans_uptime();
+    get_trans_uptime();*/
 }

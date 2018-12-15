@@ -37,9 +37,6 @@ void init_trans(void) {
   pipeline = 0b0;*/
 
   register_callback(trans_cb);
-  uint16_t reg = 0x0303;
-  set_trans_scw(reg);
-  set_trans_freq();
 }
 
 uint8_t trans_cb(const uint8_t* buf, uint8_t len) {
@@ -118,7 +115,7 @@ uint8_t string_cmp(uint8_t* string, uint8_t* string2, uint8_t len) {
 
 //1. Write to status control register
 uint8_t set_trans_scw(uint16_t reg) {
-    print("ES+W%2X00%4X\r", TRANS_ADDR, reg);
+    print("\rES+W%2X00%4X\r", TRANS_ADDR, reg);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -136,10 +133,10 @@ uint8_t set_trans_scw(uint16_t reg) {
 
 //1. Read and return status control register
 uint16_t read_trans_scw() {
-    print("ES+R%2X00\r", TRANS_ADDR);
+    print("\rES+R%2X00\r", TRANS_ADDR);
     //Answer is received through trans_cb
 
-    while (!received_cmd_available ) {}
+    while (!received_cmd_available) {}
     //Wait for response
     //response format: OK+[RR]0000[WWWW]<CR>
     uint8_t cmnd[20];
@@ -156,14 +153,13 @@ uint16_t read_trans_scw() {
         uint16_t scw = scan_uint(cmnd, offset, count); //TODO: check if truncation from 32-16 is ok
         return scw;
     }
-
     //Invalid response
     return 0;
 }
 
 //2. Set transceiver frequency default chosen - 435MHz
 uint8_t set_trans_freq() {
-    print("ES+W%2X01%8X\r", TRANS_ADDR, FREQ);
+    print("\rES+W%2X01%8X\r", TRANS_ADDR, FREQ);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -180,7 +176,8 @@ uint8_t set_trans_freq() {
 
 //2.
 uint32_t read_trans_freq() {
-    print("ES+R%2X01\r", TRANS_ADDR);
+    print("\rES+R%2X01\r", TRANS_ADDR);
+
 
     while (!received_cmd_available) {}
     //Answer format: OK+[RR][FFFFFF][NN]
@@ -196,42 +193,6 @@ uint32_t read_trans_freq() {
     return freq;
 }
 
-/* Apparently we don't want this function
-//Consider making TRANS_ADDR a variable if wanting to implement this function
-//3. Change device address
-uint8_t set_trans_addr(uint8_t addr) {
-  if (addr != 0x23 && addr != 0x22) {
-      return 0; //invalid address
-  }
-    print("ES+R%2XFC%2X\r", TRANS_ADDR, addr);
-
-    //return 1 or 0 if failed or succeeded
-    while (!received_cmd_available) {}
-    // TODO set timeout for waiting for command
-    // Answer: OK+[NewAddr]<CR>
-
-    //Check validity
-    uint8_t cmnd[20];
-    for (uint8_t i = 0; i < 20; i ++) {
-        cmnd[i] = received_cmd[i];
-    }
-    received_cmd_available = false;
-
-    uint8_t validity = valid_cmd(cmnd);
-
-    if (validity == 0) {
-        return 0;
-    }
-
-    uint8_t new_addr = scan_uint(cmnd, 3, 2);
-    //If new address is the same as desired
-    if (new_addr == addr) {
-        return 1;
-    }
-    return 0;
-
-}*/
-
 //turn on pipeline mode
 void set_pipeline () {
     uint16_t reg = read_trans_scw();
@@ -242,7 +203,7 @@ void set_pipeline () {
 // from p.18
 // Turns off of pipeline mode if there are no UART messages
 void set_trans_pipe_timeout(uint8_t timeout) {
-    print("ES+W%2X06000000%2X\r", TRANS_ADDR, timeout);
+    print("\rES+W%2X06000000%2X\r", TRANS_ADDR, timeout);
 }
 
 //turn on beacon mode
@@ -265,7 +226,7 @@ Takes in desired period in seconds
 Max val = 0xFFFF = 65535s = 1092min = 18.2h
 */
 uint8_t set_beacon_period (uint16_t period) {
-    print("ES+W%2X070000%4X\r", TRANS_ADDR, period);
+    print("\rES+W%2X070000%4X\r", TRANS_ADDR, period);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -282,7 +243,7 @@ uint8_t set_beacon_period (uint16_t period) {
 }
 
 uint16_t read_beacon_period () {
-    print("ES+R%2X07%4X\r", TRANS_ADDR);
+    print("\rES+R%2X07%4X\r", TRANS_ADDR);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -309,7 +270,7 @@ protocol, also len must be less than 128 bytes because of S/W version (hardware)
 //TODO: Are we expecting changing contents? Or need to make printing message
 //variable to allow for different sizes in content
 uint8_t set_beacon_content(uint32_t content, uint8_t len) {
-    print("ES+W%2XFB%2X%4X\r", TRANS_ADDR, len, content);
+    print("\rES+W%2XFB%2X%4X\r", TRANS_ADDR, len, content);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -327,7 +288,7 @@ uint8_t set_beacon_content(uint32_t content, uint8_t len) {
 
 //For now, it is assumed that beacon messages are uint32_t in length
 uint32_t read_beacon_content() {
-    print("ES+R%2XFB\r", TRANS_ADDR);
+    print("\rES+R%2XFB\r", TRANS_ADDR);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -353,7 +314,7 @@ uint8_t set_destination_callsign(char* c) {
     //uint16_t callsign1 = callsign; //truncating callsign to be 24 bites
     //uint8_t callsign2 = (callsign >> (4*4));
 
-    print("ES+W%2XF5%c%c%c%c%c%c\r", TRANS_ADDR, c[0], c[1],c[2],c[3],c[4],c[5]);
+    print("\rES+W%2XF5%c%c%c%c%c%c\r", TRANS_ADDR, c[0], c[1],c[2],c[3],c[4],c[5]);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -370,7 +331,7 @@ uint8_t set_destination_callsign(char* c) {
 }
 
 uint32_t read_destination_callsign() {
-    print("ES+R%2XF5\r", TRANS_ADDR);
+    print("\rES+R%2XF5\r", TRANS_ADDR);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -398,7 +359,7 @@ uint8_t set_source_callsign(char* c) {
     //uint16_t callsign1 = callsign; //truncating callsign to be 24 bites
     //uint8_t callsign2 = callsign >> (4*4);
 
-    print("ES+W%2XF6%c%c%c%c%c%c\r", TRANS_ADDR, c[0], c[1],c[2],c[3],c[4],c[5]);
+    print("\rES+W%2XF6%c%c%c%c%c%c\r", TRANS_ADDR, c[0], c[1],c[2],c[3],c[4],c[5]);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -416,7 +377,7 @@ uint8_t set_source_callsign(char* c) {
 
 //Get source callsign
 uint32_t read_source_callsign() {
-    print("ES+R%2XF6\r", TRANS_ADDR);
+    print("\rES+R%2XF6\r", TRANS_ADDR);
 
     while (!received_cmd_available) {}
     // TODO set timeout for waiting for command
@@ -440,7 +401,7 @@ uint32_t read_source_callsign() {
 
 // 16. Get uptime
 uint32_t get_trans_uptime(){
-  print("ES+R%2X02", TRANS_ADDR);
+  print("\rES+R%2X02", TRANS_ADDR);
   uint8_t offset = 5;
   uint8_t count = 8;
 
@@ -460,7 +421,7 @@ uint32_t get_trans_uptime(){
 
 // 17. Get number of transmitted packets
 uint32_t get_transmitted_num_of_packets(){
-  print("ES+R%2X03", TRANS_ADDR);
+  print("\rES+R%2X03", TRANS_ADDR);
   uint8_t offset = 5;
   uint8_t count = 8;
 
@@ -480,7 +441,7 @@ uint32_t get_transmitted_num_of_packets(){
 
 // 18. Get number of received packets
 uint32_t get_received_num_of_packets(){
-  print("ES+R%2X04", TRANS_ADDR);
+  print("\rES+R%2X04", TRANS_ADDR);
   uint8_t offset = 5;
   uint8_t count = 8;
 
@@ -501,7 +462,7 @@ uint32_t get_received_num_of_packets(){
 
 // 19. Get number of packets with CRC error
 uint32_t get_received_num_of_packets_CRC(){
-  print("ES+R%2X05", TRANS_ADDR);
+  print("\rES+R%2X05", TRANS_ADDR);
   uint8_t offset = 5;
   uint8_t count = 8;
 

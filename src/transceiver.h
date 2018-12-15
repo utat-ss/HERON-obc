@@ -1,7 +1,5 @@
 // AVR Library Includes
 #include <avr/io.h>
-#define F_CPU 8000000UL
-#include <util/delay.h>
 #include <stdio.h>
 #include <stdbool.h>
 
