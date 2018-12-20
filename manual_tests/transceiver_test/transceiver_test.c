@@ -17,32 +17,52 @@ int main(void){
     //Might need to add a delay function here
 
     init_trans();
-    read_trans_scw();
+    uint16_t scw;
+    uint8_t ret;
+
+    ret = get_trans_scw(&scw);
+    print("scw = %.4X\n", scw);
+
+    // Turn off beacon mode
+    scw &= ~_BV(TRANS_BCN);
+    ret = set_trans_scw(scw);
+    print("set SCW: %u\n", ret);
+
+    ret = get_trans_scw(&scw);
+    print("scw = %.4X\n", scw);
+
+    // uint32_t freq;
+    // get_trans_freq(&freq);
+    // uint32_t dest_call_sign;
+    // get_trans_dest_call_sign(&dest_call_sign);
+    // uint32_t src_call_sign;
+    // get_trans_src_call_sign(&src_call_sign);
+    // uint32_t uptime;
+    // get_trans_uptime(&uptime);
+
 /*
     //Go through functions
     set_trans_freq();
-    read_trans_freq();
 
     uint8_t pipeline_timeout = 15; //in seconds
     set_trans_pipe_timeout(pipeline_timeout);
 
     char callsign[6] = "VA3ZZZ"; //Random callsign - get a legit one later
-    set_destination_callsign(callsign);
-    read_destination_callsign();
+    set_trans_dest_call_sign(callsign);
+
 
     char source_callsign[6] = "VA3ZBR"; //Brytni's callsign
-    set_source_callsign(source_callsign);
-    read_source_callsign();
+    set_trans_src_call_sign(source_callsign);
 
-    //set_pipeline();
+
+    //set_trans_pipeline();
     //delay(15500); //wait for timeout
     //Should return the same value as what was set - 15
-    //read_trans_scw()
+    //get_trans_scw()
 
     //Turn on Beacon
-    //set_beacon();
+    //turn_on_trans_beacon();
     //Turn off Beacon
-    //off_beacon();
-
-    get_trans_uptime();*/
+    //turn_off_trans_beacon();
+    */
 }
