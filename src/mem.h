@@ -57,21 +57,22 @@ extern mem_section_t pay_sci_mem_section;
 #define MEM_R_BYTE              0x03
 #define MEM_FAST_READ           0x0B
 #define MEM_ALL_SECTORS         0x3C
+#define MEM_UNLOCK              0x98
 
 // Status bits
-#define BUSY    0
-#define WEL     1
-#define BP0     2
-#define BP1     3
-#define BP2     4
-#define BP3     5
-#define AAI     6
-#define BPL     7
+#define MEM_BUSY    0
+#define MEM_WEL     1
+#define MEM_BP0     2
+#define MEM_BP1     3
+#define MEM_BP2     4
+#define MEM_BP3     5
+#define MEM_AAI     6
+#define MEM_BPL     7
 
 // Number of bytes in a header
-#define BYTES_PER_HEADER 8
+#define MEM_BYTES_PER_HEADER 8
 // Number of bytes in one field (one measurement)
-#define BYTES_PER_FIELD 3
+#define MEM_BYTES_PER_FIELD 3
 
 
 
@@ -90,14 +91,16 @@ void read_mem_header(mem_section_t* section, uint32_t block_num, uint8_t* data);
 void write_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_num, uint32_t data);
 uint32_t read_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_num);
 
+void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1, uint8_t* addr2, uint8_t* addr3);
+
 // Low-level operations
 void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
 void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
 void erase_mem(uint8_t chip);
-void erase_mem_sector(uint8_t sector, uint8_t chip);
 void unlock_mem(void);
 
 // Status
+void wait_for_mem_not_busy(uint8_t chip_num);
 uint8_t read_mem_status(uint8_t chip);
 void write_mem_status(uint8_t status, uint8_t chip);
 

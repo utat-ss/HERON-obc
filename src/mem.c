@@ -15,6 +15,7 @@ TODO - test read/write to EEPROM
 TODO - test reading/writing section headers/fields
 TODO - make sure EEPROM addresses don't conflict with heartbeat
 TODO - develop harness-based test
+TODO - add read-eeprom command to makefiles (see lib-common/examples/eeprom_rw)
 */
 
 #include "mem.h"
@@ -113,8 +114,8 @@ void increment_curr_block(mem_section_t* section) {
 Calculates and returns the address of the start of a block (where the header starts).
 */
 uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num) {
-    uint32_t bytes_per_block = BYTES_PER_HEADER +
-        (((uint32_t) section->fields_per_block) * BYTES_PER_FIELD);
+    uint32_t bytes_per_block = MEM_BYTES_PER_HEADER +
+        (((uint32_t) section->fields_per_block) * MEM_BYTES_PER_FIELD);
     uint32_t block_address = section->start_addr + (block_num * bytes_per_block);
     return block_address;
 }
@@ -126,7 +127,7 @@ Calculates and returns the address of the start of a field in a block (after the
 uint32_t mem_field_addr(mem_section_t* section, uint32_t block_num, uint32_t field_num) {
     uint32_t block_address = mem_block_addr(section, block_num);
     uint32_t field_address = block_address +
-        BYTES_PER_HEADER + (field_num * BYTES_PER_FIELD);
+        MEM_BYTES_PER_HEADER + (field_num * MEM_BYTES_PER_FIELD);
     return field_address;
 }
 
@@ -140,24 +141,24 @@ void write_mem_header(mem_section_t* section, uint32_t block_num){
     time_t time = read_time();
     date_t date = read_date();
     uint8_t error = 0x00;   // TODO
-    uint8_t header[BYTES_PER_HEADER] = {
+    uint8_t header[MEM_BYTES_PER_HEADER] = {
         block_num,
         error,
         date.yy, date.mm, date.dd,
         time.hh, time.mm, time.ss
     };
 
-    write_mem_bytes(mem_block_addr(section, block_num), header, BYTES_PER_HEADER);
+    write_mem_bytes(mem_block_addr(section, block_num), header, MEM_BYTES_PER_HEADER);
 }
 
 
 /*
 Reads the header data for the specified block number.
-data - must be already allocated (`BYTES_PER_HEADER` bytes long) and passed to this function; this function will
+data - must be already allocated (`MEM_BYTES_PER_HEADER` bytes long) and passed to this function; this function will
 populate the data in it
 */
 void read_mem_header(mem_section_t* section, uint32_t block_num, uint8_t* data) {
-    read_mem_bytes(mem_block_addr(section, block_num), data, BYTES_PER_HEADER);
+    read_mem_bytes(mem_block_addr(section, block_num), data, MEM_BYTES_PER_HEADER);
 }
 
 
@@ -175,13 +176,13 @@ void write_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_n
     uint32_t address = mem_field_addr(section, block_num, field_num);
 
     // Split the data into 3 bytes
-    uint8_t data_bytes[BYTES_PER_FIELD] = {
+    uint8_t data_bytes[MEM_BYTES_PER_FIELD] = {
         (data >> 16) & 0xFF,
         (data >> 8) & 0xFF,
         data & 0xFF
     };
 
-    write_mem_bytes(address, data_bytes, BYTES_PER_FIELD);
+    write_mem_bytes(address, data_bytes, MEM_BYTES_PER_FIELD);
 }
 
 
@@ -192,15 +193,41 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num, uint8_t fiel
 
     uint32_t address = mem_field_addr(section, block_num, field_num);
 
-    uint8_t data_bytes[BYTES_PER_FIELD];
-    read_mem_bytes(address, data_bytes, BYTES_PER_FIELD);
+    uint8_t data_bytes[MEM_BYTES_PER_FIELD];
+    read_mem_bytes(address, data_bytes, MEM_BYTES_PER_FIELD);
 
     uint32_t data = 0;
-    for (uint8_t i = 0; i < BYTES_PER_FIELD; ++i) {
+    for (uint8_t i = 0; i < MEM_BYTES_PER_FIELD; ++i) {
         data <<= 8;
         data |= data_bytes[i];
     }
     return data;
+}
+
+
+
+
+/*
+Processes an address (virtual 23-bit address) and calculates (splits up) the chip number and physical address on that chip.
+address - virtual 23-bit address
+chip_num - gets set by this function to the chip number (0 to 2)
+addr1 - gets set by this function to the MSB (5 bits) of the physical address
+addr2 - gets set by this function to the middle (8 bits) of the physical address
+addr3 - gets set by this function to the LSB (8 bits) of the physical address
+*/
+void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1, uint8_t* addr2, uint8_t* addr3) {
+    if (chip_num != NULL) {
+        *chip_num = (address >> MEM_CHIP_ADDR_WIDTH) & 0x03;
+    }
+    if (addr1 != NULL) {
+        *addr1 = (address >> 16) & 0x1F;
+    }
+    if (addr2 != NULL) {
+        *addr2 = (address >> 8) & 0xFF;
+    }
+    if (addr3 != NULL) {
+        *addr3 = address & 0xFF;
+    }
 }
 
 
@@ -221,40 +248,32 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
         to be modified in the event of changes to the board design
 */
 
-    uint8_t chip_num = (address >> MEM_CHIP_ADDR_WIDTH) & 0x03; //calculate the initial chip number
+    uint8_t chip_num;
+    uint8_t addr1;
+    uint8_t addr2;
+    uint8_t addr3;
+    //calculate the initial chip number
+    process_mem_addr(address, &chip_num, &addr1, &addr2, &addr3);
 
     //initialize counter
-    for(uint16_t i = 0; i < data_len; i++){
+    for (uint16_t i = 0; i < data_len; i++) {
 
         //rollover condition for chip and page boundaries
-        if(((address + i) % 256 == 0) || (i == 0))
-        {
-            set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port); //end previous write operation
+        if (((address + i) % 256 == 0) || (i == 0)) {
+            //end previous write operation
+            set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 
             //used to determine the end of a write operation
-            uint8_t busy = 1;
-            //ensures that the polling loop terminates
-            uint16_t timeout = UINT16_MAX;
-            while(busy && timeout > 0)
-            {
-                //wait for previous operation to terminate
-                busy = read_mem_status(chip_num) & 0x01;
-                timeout--;
-            }
+            //wait for previous operation to terminate
+            wait_for_mem_not_busy(chip_num);
 
             send_short_mem_command(MEM_WR_DISABLE, chip_num);
 
             //calculate address bytes
-            uint8_t a1 = (((address + i) >> 16) & 0xFF);
-            uint8_t a2 = (((address + i) >> 8) & 0xFF);
-            uint8_t a3 = ((address + i) & 0xFF);
-
             //recalculate and rollover the chip number,
             //stored in the most significant bits of the address
-
-            chip_num = ((address + i) >> MEM_CHIP_ADDR_WIDTH) & 0x03;
-            if(chip_num > 2)
-            {
+            process_mem_addr(address + i, &chip_num, &addr1, &addr2, &addr3);
+            if (chip_num >= MEM_NUM_CHIPS) {
                 chip_num = 0;
             }
 
@@ -265,9 +284,9 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
             send_spi(MEM_PG_PRG);
 
-            send_spi(a1);
-            send_spi(a2);
-            send_spi(a3);
+            send_spi(addr1);
+            send_spi(addr2);
+            send_spi(addr3);
         }
 
         send_spi(data[i]);
@@ -276,14 +295,7 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
     set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 
     //used to determine the end of a write operation
-    uint8_t busy = 1;
-    uint16_t timeout = UINT16_MAX;
-
-    while(busy && timeout > 0)
-    {
-        busy = read_mem_status(chip_num) & 0x01;
-        timeout--;
-    }
+    wait_for_mem_not_busy(chip_num);
 
     send_short_mem_command(MEM_WR_DISABLE, chip_num);
 }
@@ -300,32 +312,37 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
         reads continously across chips (ie behaves as a continous address space)
 */
 
-    //Assume this starts at 0, not 2 (as in the actual hardware)
-    uint8_t chip_num = (address >> MEM_CHIP_ADDR_WIDTH) & 0x03;
+    uint8_t chip_num;
+    uint8_t addr1;
+    uint8_t addr2;
+    uint8_t addr3;
+    process_mem_addr(address, &chip_num, &addr1, &addr2, &addr3);
 
     set_cs_low(mem_cs[chip_num].pin, mem_cs[chip_num].port);
     send_spi(MEM_R_BYTE);
-    send_spi((address >> 16) & 0xFF);
-    send_spi((address >> 8) & 0xFF);
-    send_spi(address & 0xFF);
+    send_spi(addr1);
+    send_spi(addr2);
+    send_spi(addr3);
 
-    for (uint8_t i = 0; i < data_len; i++){
+    for (uint8_t i = 0; i < data_len; i++) {
+        // Get the chip number of the next address
+        uint8_t new_chip_num;
+        process_mem_addr(address + i, &new_chip_num, &addr1, &addr2, &addr3);
 
-        //checks from chip rollover condition
-        if ((((address + i) >> MEM_CHIP_ADDR_WIDTH) & 0x03) != chip_num)
+        // checks for chip rollover condition (moving to address on new chip)
+        if (new_chip_num != chip_num)
         {
+            // Stop reading from this chip
             set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 
-            if (chip_num >= MEM_NUM_CHIPS - 1) {
-                //ensure wrap-around back to chip 0
+            chip_num = new_chip_num;
+            //ensure wrap-around back to chip 0
+            if (chip_num >= MEM_NUM_CHIPS) {
                 chip_num = 0;
             }
-            else {
-                chip_num++;
-            }
 
-            set_cs_low(mem_cs[chip_num].pin, mem_cs[chip_num].port);
             /* Begin read on new chip */
+            set_cs_low(mem_cs[chip_num].pin, mem_cs[chip_num].port);
             send_spi(MEM_R_BYTE);
             send_spi(0x00);
             send_spi(0x00);
@@ -347,46 +364,31 @@ void erase_mem(uint8_t chip){
     send_short_mem_command(MEM_ERASE, chip);
     send_short_mem_command(MEM_WR_DISABLE, chip);
 
-    uint8_t busy = 1;
-    uint32_t timeout = UINT16_MAX;
-    while(busy && timeout > 0)
-    {
-        timeout--;
-        busy = read_mem_status(chip) & 0x01;
-    }
+    wait_for_mem_not_busy(chip);
 }
 
 
-void erase_mem_sector(uint8_t sector, uint8_t chip){
-    /*
-    erase a specific sector in memory, on indicated chip
-    functionality not used in the higher-level implementation
-    TODO - test this
-    */
-
-    uint32_t address = sector * 4096;
-
-    send_short_mem_command(MEM_WR_ENABLE, chip);
-
-    set_cs_low(mem_cs[chip].pin, mem_cs[chip].port);
-    send_spi(MEM_SECTOR_ERASE);
-    send_spi((address >> 16) & 0xFF);
-    send_spi((address >> 8) & 0xFF);
-    send_spi(address & 0xFF);
-    set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
-
-    send_short_mem_command(MEM_WR_DISABLE, chip);
-}
 
 
 void unlock_mem(void){
     // send the global mem unlock command to enable write operations
     for(uint8_t i = 0; i < MEM_NUM_CHIPS; i++) {
         send_short_mem_command(MEM_WR_ENABLE, i);
-        send_short_mem_command(0x98, i);
+        send_short_mem_command(MEM_UNLOCK, i);
     }
 }
 
+/*
+Loops until the busy bit in the memory status is not set. Times out after 65,535 cycles.
+*/
+void wait_for_mem_not_busy(uint8_t chip_num) {
+    uint8_t busy = 1;
+
+    uint16_t timeout;
+    for (timeout = UINT16_MAX; busy && (timeout > 0); timeout--) {
+        busy = read_mem_status(chip_num) & 0x01;
+    }
+}
 
 uint8_t read_mem_status(uint8_t chip){
     // read from the status register
@@ -424,3 +426,31 @@ void send_short_mem_command(uint8_t command, uint8_t chip){
     send_spi(command);
     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
 }
+
+
+
+
+
+
+
+
+// void erase_mem_sector(uint8_t sector, uint8_t chip){
+//     /*
+//     erase a specific sector in memory, on indicated chip
+//     functionality not used in the higher-level implementation
+//     UNTESTED!!
+//     */
+//
+//     uint32_t address = sector * 4096;
+//
+//     send_short_mem_command(MEM_WR_ENABLE, chip);
+//
+//     set_cs_low(mem_cs[chip].pin, mem_cs[chip].port);
+//     send_spi(MEM_SECTOR_ERASE);
+//     send_spi((address >> 16) & 0xFF);
+//     send_spi((address >> 8) & 0xFF);
+//     send_spi(address & 0xFF);
+//     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
+//
+//     send_short_mem_command(MEM_WR_DISABLE, chip);
+// }
