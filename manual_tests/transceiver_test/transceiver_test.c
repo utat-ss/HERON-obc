@@ -5,6 +5,14 @@ are written as comments.
 IMPORTANT NOTES:
 - See the transceiver handling guide before touching the transceiver: https://utat-ss.readthedocs.io/en/master/our-protocols/transceiver.html
 - MAKE SURE an antenna is attached to the coax cable before powering the transceiver - it must have an antenna when transmitting or else this will cause damage
+
+TODO - seems to have UART RX character dropping issues - first 2-3 commands
+work, then for most of the following commands, the "O" or the "OK" is not
+detected - occasionally the '\r' is not detected - commenting out the first
+couple of commands then allows the following couple of commands to work
+TODO - investigate character dropping in UART library
+It seems like all the write commands work successfully. Perhaps it is because
+write responses are shorter than read responses?
 */
 
 #include <uart/uart.h>
@@ -26,56 +34,13 @@ int main(void){
 
     init_trans();
 
-    get_trans_scw(NULL, NULL);
+    // get_trans_scw(NULL, NULL);
 
-    test_all_gets();
+    // test_all_gets();
     // test_sets();
     // test_all_gets();
     // test_reset();
     // test_all_gets();
-
-
-/*
-    // // Turn off beacon mode
-    // scw &= ~_BV(TRANS_BCN);
-    // ret = set_trans_scw(scw);
-    // print("set SCW: %u\n", ret);
-    // ret = get_trans_scw(&rssi, &scw);
-    // print("scw = %.4X\n", scw);
-
-    // uint32_t freq;
-    // get_trans_freq(&freq);
-    // uint32_t dest_call_sign;
-    // get_trans_dest_call_sign(&dest_call_sign);
-    // uint32_t src_call_sign;
-    // get_trans_src_call_sign(&src_call_sign);
-    // uint32_t uptime;
-    // get_trans_uptime(&uptime);
-
-    //Go through functions
-    set_trans_freq();
-
-    uint8_t pipeline_timeout = 15; //in seconds
-    set_trans_pipe_timeout(pipeline_timeout);
-
-    char callsign[6] = "VA3ZZZ"; //Random callsign - get a legit one later
-    set_trans_dest_call_sign(callsign);
-
-
-    char source_callsign[6] = "VA3ZBR"; //Brytni's callsign
-    set_trans_src_call_sign(source_callsign);
-
-
-    //set_trans_pipeline();
-    //delay(15500); //wait for timeout
-    //Should return the same value as what was set - 15
-    //get_trans_scw()
-
-    //Turn on Beacon
-    //turn_on_trans_beacon();
-    //Turn off Beacon
-    //turn_off_trans_beacon();
-    */
 }
 
 
@@ -100,21 +65,13 @@ void test_all_gets(void) {
     ret = get_trans_beacon_period(&rssi, &beacon_period);
     print("get_trans_beacon_period: ret = %u, rssi = %02X, beacon_period = %04X\n", ret, rssi, beacon_period);
 
-    char dest_call_sign[TRANS_CALL_SIGN_LEN] = { 0 };
+    char dest_call_sign[TRANS_CALL_SIGN_LEN + 1] = { 0 };
     ret = get_trans_dest_call_sign(dest_call_sign);
-    print("get_trans_dest_call_sign: ret = %u, dest_call_sign = ", ret);
-    for (uint8_t i = 0; i < 6; i++) {
-        print("%c", dest_call_sign[i]);
-    }
-    print("\n");
+    print("get_trans_dest_call_sign: ret = %u, dest_call_sign = %s\n", ret, dest_call_sign);
 
-    char src_call_sign[TRANS_CALL_SIGN_LEN] = { 0 };
+    char src_call_sign[TRANS_CALL_SIGN_LEN + 1] = { 0 };
     ret = get_trans_src_call_sign(src_call_sign);
-    print("get_trans_src_call_sign: ret = %u, src_call_sign = ", ret);
-    for (uint8_t i = 0; i < 6; i++) {
-        print("%c", src_call_sign[i]);
-    }
-    print("\n");
+    print("get_trans_src_call_sign: ret = %u, src_call_sign = %s\n", ret, src_call_sign);
 
     uint32_t uptime = 0;
     ret = get_trans_uptime(&rssi, &uptime);
@@ -161,13 +118,13 @@ void test_sets(void) {
     ret = set_trans_beacon_period(2);
     print("set_trans_beacon_period: ret = %u\n", ret);
 
-    char dest_call_sign[TRANS_CALL_SIGN_LEN] =
-        {'A', 'B', 'C', 'D', 'E', 'F'};
+    // Random call sign
+    char dest_call_sign[TRANS_CALL_SIGN_LEN + 1] = "ABCDEF";
     ret = set_trans_dest_call_sign(dest_call_sign);
     print("set_trans_dest_call_sign: ret = %u\n", ret);
 
-    char src_call_sign[TRANS_CALL_SIGN_LEN] =
-        {'F', 'E', 'D', 'C', 'B', 'A'};
+    // Brytni's call sign
+    char src_call_sign[TRANS_CALL_SIGN_LEN + 1] = "VA3ZBR";
     ret = set_trans_src_call_sign(src_call_sign);
     print("set_trans_src_call_sign: ret = %u\n", ret);
 }
@@ -177,4 +134,5 @@ void test_reset(void) {
     print("Resetting transceiver...\n");
     reset_trans();
     print("Reset transceiver\n");
+    _delay_ms(5000);
 }

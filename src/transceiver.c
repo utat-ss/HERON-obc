@@ -221,7 +221,7 @@ uint8_t set_trans_scw(uint16_t scw) {
     }
 
     //Check validity
-    uint8_t validity = valid_cmd_response(12);
+    uint8_t validity = valid_cmd_response(7);
     return validity;
 }
 
@@ -230,6 +230,8 @@ uint8_t set_trans_scw(uint16_t scw) {
 
 scw - this function will set it to the 16-bit register data of register
 Returns - 1 for success, 0 for failure
+
+TODO - return reset counter
 
 Example (different format from datasheet):
 ES+R2200
@@ -295,7 +297,13 @@ uint8_t set_trans_scw_bit(uint8_t bit_index, uint8_t value) {
 /*
 1. Resets the transceiver (using status register)
 Returns - 1 for success, 0 for failure
-TODO - does the transceiver output a response?
+
+TODO - wait some time after reset before sending commands again to allow the
+reset to complete - a 5000ms delay worked in testing
+
+From testing, it seems that the transceiver responds with OK+8787 when the reset
+bit is set.
+
 TODO - should it do re-initialization after?
 */
 uint8_t reset_trans(void) {
@@ -526,7 +534,7 @@ uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
 
 /*
 7. Set destination call-sign (p.20)
-call_sign - the call sign to set (6 bytes array)
+call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_dest_call_sign(char* call_sign) {
@@ -549,7 +557,7 @@ uint8_t set_trans_dest_call_sign(char* call_sign) {
 
 /*
 7. Get destination call-sign (p.20)
-call_sign - a pre-allocated 6-byte array that gets set to the call sign read
+call_sign - a 7-char array that will be set by this function to the call sign read (6 chars plus '\0' termination)
 Returns - 1 for success, 0 for failure
 
 Answer: OK+DDDDDD<CR>
@@ -571,6 +579,7 @@ uint8_t get_trans_dest_call_sign(char* call_sign) {
             for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
                 call_sign[i] = cmd_response[3 + i];
             }
+            call_sign[TRANS_CALL_SIGN_LEN] = '\0';
         }
     }
 
@@ -580,7 +589,7 @@ uint8_t get_trans_dest_call_sign(char* call_sign) {
 
 /*
 8. Set source call-sign (p.20)
-call_sign - the call sign to set (6 bytes array)
+call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_src_call_sign(char* call_sign) {
@@ -603,7 +612,7 @@ uint8_t set_trans_src_call_sign(char* call_sign) {
 
 /*
 8. Get source call-sign (p.20)
-call_sign - a pre-allocated 6-byte array that gets set to the call sign read
+call_sign - a 7-char array that will be set by this function to the call sign read (6 chars plus '\0' termination)
 Returns - 1 for success, 0 for failure
 
 Answer: OK+DDDDDD<CR>
@@ -625,6 +634,7 @@ uint8_t get_trans_src_call_sign(char* call_sign) {
             for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
                 call_sign[i] = cmd_response[3 + i];
             }
+            call_sign[TRANS_CALL_SIGN_LEN] = '\0';
         }
     }
 

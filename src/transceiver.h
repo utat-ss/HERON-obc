@@ -23,7 +23,8 @@
 #define TRANS_FRAM      1
 #define TRANS_RFTS      0
 
-// Number of characters in a call sign
+// Number of characters in a call sign (NOT INCLUDING '\0' termination)
+// Need to add 1 to array sizes for '\0' terminating character
 #define TRANS_CALL_SIGN_LEN 6
 
 
