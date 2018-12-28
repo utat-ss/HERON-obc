@@ -44,7 +44,7 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len);
 
 // 1
 uint8_t set_trans_scw(uint16_t scw);
-uint8_t get_trans_scw(uint8_t* rssi, uint16_t* scw);
+uint8_t get_trans_scw(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw);
 uint8_t set_trans_scw_bit(uint8_t bit_index, uint8_t value);
 uint8_t reset_trans(void);
 uint8_t set_trans_rf_mode(uint8_t mode);

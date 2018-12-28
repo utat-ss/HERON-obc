@@ -38,7 +38,6 @@ pipeline = 0b0;
 
 Unneded: Beacon contents, packets
 
-TODO - if a command fails, try it again some number of times
 TODO - macro for repeating command attempts?
 */
 
@@ -245,7 +244,7 @@ uint8_t set_trans_scw(uint16_t scw) {
 }
 
 
-uint8_t get_trans_scw_attempt(uint8_t* rssi, uint16_t* scw) {
+uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
     // Send command
     print("\rES+R%02X00\r", TRANS_ADDR);
 
@@ -263,6 +262,9 @@ uint8_t get_trans_scw_attempt(uint8_t* rssi, uint16_t* scw) {
         if (rssi != NULL) {
             *rssi = (uint8_t) scan_uint(cmd_response, 3, 2);
         }
+        if (reset_count != NULL) {
+            *reset_count = (uint8_t) scan_uint(cmd_response, 7, 2);
+        }
         if (scw != NULL) {
             *scw = (uint16_t) scan_uint(cmd_response, 9, 4);
         }
@@ -274,24 +276,24 @@ uint8_t get_trans_scw_attempt(uint8_t* rssi, uint16_t* scw) {
 /*
 1. Read status control register (p. 15-16)
 
+rssi - this function will set it to the last RSSI
+reset_count - this function will set it to the number of times the transceiver
+    has been reset
 scw - this function will set it to the 16-bit register data of register
 Returns - 1 for success, 0 for failure
-
-TODO - return reset counter
 
 Example (different format from datasheet):
 ES+R2200
 OK+0022DD0303
-
 00 - unknown, probably RSSI
 22 - device address
-DD - device reset counter (increases by 1 every time the transceiver is reset or power cycled)
+DD - device reset counter (observed to increase by 1 every time the transceiver is reset or power cycled)
 0303 - contents of status register
 */
-uint8_t get_trans_scw(uint8_t* rssi, uint16_t* scw) {
+uint8_t get_trans_scw(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
     uint8_t ret = 0;
     for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_scw_attempt(rssi, scw);
+        ret = get_trans_scw_attempt(rssi, reset_count, scw);
     }
     return ret;
 }
@@ -300,9 +302,10 @@ uint8_t get_trans_scw(uint8_t* rssi, uint16_t* scw) {
 uint8_t set_trans_scw_bit_attempt(uint8_t bit_index, uint8_t value) {
     uint8_t ret;
     uint8_t rssi;
+    uint8_t reset_count;
     uint16_t scw;
 
-    ret = get_trans_scw(&rssi, &scw);
+    ret = get_trans_scw(&rssi, &reset_count, &scw);
     if (ret == 0) {
         return 0;
     }
@@ -336,25 +339,26 @@ uint8_t set_trans_scw_bit(uint8_t bit_index, uint8_t value) {
 1. Resets the transceiver (using status register)
 Returns - 1 for success, 0 for failure
 
-TODO - wait some time after reset before sending commands again to allow the
-reset to complete - a 5000ms delay worked in testing
-
 From testing, it seems that the transceiver responds with OK+8787 when the reset
-bit is set.
-
-TODO - should it do re-initialization after?
+bit is set. It seems that it preserves the value of the status register across
+resets.
 */
 uint8_t reset_trans(void) {
-    return set_trans_scw_bit(TRANS_RESET, 1);
+    uint8_t ret = set_trans_scw_bit(TRANS_RESET, 1);
+    // Delay to give the transceiver time to actually reset
+    // (without a delay, operations done quickly after reset will always fail)
+    _delay_ms(5000);
+    return ret;
 }
 
 
 uint8_t set_trans_rf_mode_attempt(uint8_t mode) {
     uint8_t ret;
     uint8_t rssi;
+    uint8_t reset_count;
     uint16_t scw;
 
-    ret = get_trans_scw(&rssi, &scw);
+    ret = get_trans_scw(&rssi, &reset_count, &scw);
     if (ret == 0) {
         return 0;
     }

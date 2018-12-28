@@ -21,7 +21,9 @@ write responses are shorter than read responses?
 
 
 void test_all_gets(void);
-void test_sets(void);
+void test_all_sets(void);
+void test_scw_bits(void);
+void test_pipe(void);
 void test_reset(void);
 
 
@@ -34,13 +36,15 @@ int main(void){
 
     init_trans();
 
-    // get_trans_scw(NULL, NULL);
+    get_trans_scw(NULL, NULL, NULL);
 
-    // test_all_gets();
-    // test_sets();
-    // test_all_gets();
-    // test_reset();
-    // test_all_gets();
+    test_all_gets();
+    test_all_sets();
+    test_scw_bits();
+    test_pipe();
+    test_reset();
+
+    test_all_gets();
 }
 
 
@@ -49,9 +53,10 @@ void test_all_gets(void) {
     uint8_t ret = 0;
     uint8_t rssi = 0;
 
+    uint8_t reset_count = 0;
     uint16_t scw = 0;
-    ret = get_trans_scw(&rssi, &scw);
-    print("get_trans_scw: ret = %u, rssi = %02X, scw = %04X\n", ret, rssi, scw);
+    ret = get_trans_scw(&rssi, &reset_count, &scw);
+    print("get_trans_scw: ret = %u, rssi = %02X, reset_count = %02X, scw = %04X\n", ret, rssi, reset_count, scw);
 
     uint32_t freq = 0;
     ret = get_trans_freq(&rssi, &freq);
@@ -91,23 +96,11 @@ void test_all_gets(void) {
 }
 
 
-void test_sets(void) {
+void test_all_sets(void) {
     uint8_t ret = 0;
 
-    ret = set_trans_rf_mode(3);
-    print("set_trans_rf_mode: ret = %u\n", ret);
-
-    ret = turn_on_trans_echo();
-    print("turn_on_trans_echo: ret = %u\n", ret);
-
-    ret = turn_off_trans_echo();
-    print("turn_off_trans_echo: ret = %u\n", ret);
-
-    ret = turn_on_trans_beacon();
-    print("turn_on_trans_beacon: ret = %u\n", ret);
-
-    ret = turn_off_trans_beacon();
-    print("turn_off_trans_beacon: ret = %u\n", ret);
+    ret = set_trans_scw(0x0303);
+    print("set_trans_scw: ret = %u\n", ret);
 
     ret = set_trans_freq(TRANS_DEF_FREQ);
     print("set_trans_freq: ret = %u\n", ret);
@@ -130,9 +123,52 @@ void test_sets(void) {
 }
 
 
+void test_scw_bits(void) {
+    uint8_t ret = 0;
+
+    ret = set_trans_rf_mode(3);
+    print("set_trans_rf_mode: ret = %u\n", ret);
+
+    ret = turn_on_trans_echo();
+    print("turn_on_trans_echo: ret = %u\n", ret);
+
+    ret = turn_off_trans_echo();
+    print("turn_off_trans_echo: ret = %u\n", ret);
+
+    ret = turn_on_trans_beacon();
+    print("turn_on_trans_beacon: ret = %u\n", ret);
+
+    ret = turn_off_trans_beacon();
+    print("turn_off_trans_beacon: ret = %u\n", ret);
+}
+
+
+void test_pipe(void) {
+    uint8_t ret = 0;
+
+    ret = set_trans_pipe_timeout(5);
+    print("set_trans_pipe_timeout: ret = %u\n", ret);
+
+    ret = turn_on_trans_pipe();
+    print("turn_on_trans_pipe: ret = %u\n", ret);
+
+    // This should send data (TX packet)
+    // It should stay in pipe mode because we refresh the 5s timeout every time
+    // we send data
+    // TODO - is it sending 5 separate packets or 1 single packet?
+    for (uint8_t i = 0; i < 10; i++) {
+        print("Sending data in pipe mode\n");
+        _delay_ms(1000);
+    }
+
+    _delay_ms(6000);
+
+    print("Pipe mode should be timed out\n");
+}
+
+
 void test_reset(void) {
     print("Resetting transceiver...\n");
     reset_trans();
     print("Reset transceiver\n");
-    _delay_ms(5000);
 }
