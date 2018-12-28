@@ -3,10 +3,14 @@ Transceiver library
 EnduroSat UHF Transceiver Type II
 
 UART commands are sent through UART (print statements)
-Transceiver responses are handled in trans_cb
+Transceiver responses are handled in trans_uart_rx_cb
 
-Note that all/most configuration functions will return 1 if configuration/read successful
-and 0 if not successful
+Note that all/most configuration functions will return 1 if configuration/read
+successful and 0 if not successful
+
+Each of the command functions has the structure of an "attempt" function,
+which is repeated until the response is successfully received (with a maximum
+number of attempts).
 
 Status Control Register Bits:
 15-14: Reserved
@@ -35,6 +39,7 @@ pipeline = 0b0;
 Unneded: Beacon contents, packets
 
 TODO - if a command fails, try it again some number of times
+TODO - macro for repeating command attempts?
 */
 
 #include "transceiver.h"
@@ -59,7 +64,7 @@ Converts the ASCII representation of a hex number to an integer value.
 c - character in ASCII format (should be between '0' to '9' or 'A' to 'F')
 Returns - value between 0 to 15, or 0 if invalid character
 */
-uint8_t char_hex_to_dec(uint8_t c) {
+uint8_t char_to_hex(uint8_t c) {
     if ('0' <= c && c <= '9') {
         return c - '0';
     } else if ('A' <= c && c <= 'F') {
@@ -81,7 +86,7 @@ uint32_t scan_uint(volatile uint8_t* string, uint8_t offset, uint8_t count) {
     uint32_t value = 0;
     for (uint8_t i = offset; i < offset + count; i++) {
         value = value << 4;
-        value = value + char_hex_to_dec(string[i]);
+        value = value + char_to_hex(string[i]);
     }
     return value;
 }
@@ -94,7 +99,7 @@ second - second string to compare
 len - number of characters to compare
 Returns - 1 if strings are the same, returns 0 otherwise
 */
-uint8_t string_cmp(volatile uint8_t* first, uint8_t* second, uint8_t len) {
+uint8_t string_cmp(volatile uint8_t* first, char* second, uint8_t len) {
     for (uint8_t i = 0; i < len; i++) {
         if (first[i] != second[i]) {
             return 0;
@@ -122,18 +127,20 @@ uint8_t valid_cmd_response(uint8_t expected_len) {
     }
 
     // Check if the string starts with "OK"
-    uint8_t valid[] = {'O', 'K'};
+    char* valid = "OK";
     if (string_cmp(cmd_response, valid, 2) == 0) {
         return 0;
     }
 
-    // "ERR" (command was not sucessful) is considered invalid, but we don't need to check for it explicitly
+    // "ERR" (command was not sucessful) is considered invalid, but we don't
+    // need to check for it explicitly
 
     // Check if the string's length matched the expected number of characters
     if (cmd_response_len != expected_len) {
         return 0;
     }
 
+    // If none of the false conditions returned 0, the response is valid
     return 1;
 }
 
@@ -170,16 +177,18 @@ uint8_t wait_for_cmd_response(uint16_t *timeout_left) {
 Initializes the transceiver for UART RX callbacks (does not change any settings).
 */
 void init_trans(void) {
-    set_uart_rx_cb(trans_cb);
+    set_uart_rx_cb(trans_uart_rx_cb);
 }
 
 /*
 UART RX callback
-buf - array of receivedc characters
+buf - array of received characters
 len - number of received characters
 Returns - number of characters processed
+
+TODO - handle received messages from the ground station
 */
-uint8_t trans_cb(const uint8_t* buf, uint8_t len) {
+uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
     // If we found the termination, copy the command
     if (buf[len - 1] == '\r') {
         // Copy each character
@@ -204,13 +213,9 @@ uint8_t trans_cb(const uint8_t* buf, uint8_t len) {
 }
 
 
-/*
-1. Write to status control register (p. 15-16)
 
-scw - 16-bit data to write to register
-Returns - 1 for success, 0 for failure
-*/
-uint8_t set_trans_scw(uint16_t scw) {
+
+uint8_t set_trans_scw_attempt(uint16_t scw) {
     // Send command
     print("\rES+W%02X00%04X\r", TRANS_ADDR, scw);
 
@@ -226,23 +231,21 @@ uint8_t set_trans_scw(uint16_t scw) {
 }
 
 /*
-1. Read status control register (p. 15-16)
+1. Write to status control register (p. 15-16)
 
-scw - this function will set it to the 16-bit register data of register
+scw - 16-bit data to write to register
 Returns - 1 for success, 0 for failure
-
-TODO - return reset counter
-
-Example (different format from datasheet):
-ES+R2200
-OK+0022DD0303
-
-00 - unknown, probably RSSI
-22 - device address
-DD - device reset counter (increases by 1 every time the transceiver is reset or power cycled)
-0303 - contents of status register
 */
-uint8_t get_trans_scw(uint8_t* rssi, uint16_t* scw) {
+uint8_t set_trans_scw(uint16_t scw) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = set_trans_scw_attempt(scw);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_scw_attempt(uint8_t* rssi, uint16_t* scw) {
     // Send command
     print("\rES+R%02X00\r", TRANS_ADDR);
 
@@ -269,12 +272,32 @@ uint8_t get_trans_scw(uint8_t* rssi, uint16_t* scw) {
 }
 
 /*
-Sets the specified bit in the SCW register.
-bit_index - index of the bit in the SCW register (MSB is 15, LSB is 0)
-value - 0 or 1
+1. Read status control register (p. 15-16)
+
+scw - this function will set it to the 16-bit register data of register
 Returns - 1 for success, 0 for failure
+
+TODO - return reset counter
+
+Example (different format from datasheet):
+ES+R2200
+OK+0022DD0303
+
+00 - unknown, probably RSSI
+22 - device address
+DD - device reset counter (increases by 1 every time the transceiver is reset or power cycled)
+0303 - contents of status register
 */
-uint8_t set_trans_scw_bit(uint8_t bit_index, uint8_t value) {
+uint8_t get_trans_scw(uint8_t* rssi, uint16_t* scw) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_scw_attempt(rssi, scw);
+    }
+    return ret;
+}
+
+
+uint8_t set_trans_scw_bit_attempt(uint8_t bit_index, uint8_t value) {
     uint8_t ret;
     uint8_t rssi;
     uint16_t scw;
@@ -295,6 +318,21 @@ uint8_t set_trans_scw_bit(uint8_t bit_index, uint8_t value) {
 }
 
 /*
+Sets the specified bit in the SCW register.
+bit_index - index of the bit in the SCW register (MSB is 15, LSB is 0)
+value - 0 or 1
+Returns - 1 for success, 0 for failure
+*/
+uint8_t set_trans_scw_bit(uint8_t bit_index, uint8_t value) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = set_trans_scw_bit_attempt(bit_index, value);
+    }
+    return ret;
+}
+
+
+/*
 1. Resets the transceiver (using status register)
 Returns - 1 for success, 0 for failure
 
@@ -310,12 +348,8 @@ uint8_t reset_trans(void) {
     return set_trans_scw_bit(TRANS_RESET, 1);
 }
 
-/*
-Sets the RF Mode in the SCW register (p. 15).
-mode - must be between 0 and 7 (see p. 15 table)
-Returns - 1 for success, 0 for failure
-*/
-uint8_t set_trans_rf_mode(uint8_t mode) {
+
+uint8_t set_trans_rf_mode_attempt(uint8_t mode) {
     uint8_t ret;
     uint8_t rssi;
     uint16_t scw;
@@ -334,12 +368,27 @@ uint8_t set_trans_rf_mode(uint8_t mode) {
 }
 
 /*
+Sets the RF Mode in the SCW register (p. 15).
+mode - must be between 0 and 7 (see p. 15 table)
+Returns - 1 for success, 0 for failure
+*/
+uint8_t set_trans_rf_mode(uint8_t mode) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = set_trans_rf_mode_attempt(mode);
+    }
+    return ret;
+}
+
+
+/*
 1. Turn on echo mode (using status register, p. 16)
 Returns - 1 for success, 0 for failure
 */
 uint8_t turn_on_trans_echo(void) {
     return set_trans_scw_bit(TRANS_ECHO, 1);
 }
+
 
 /*
 1. Turn off echo mode (using status register, p. 16)
@@ -349,6 +398,7 @@ uint8_t turn_off_trans_echo(void) {
     return set_trans_scw_bit(TRANS_ECHO, 0);
 }
 
+
 /*
 1. Turn on beacon mode (using status register)
 Returns - 1 for success, 0 for failure
@@ -357,6 +407,7 @@ uint8_t turn_on_trans_beacon(void) {
     return set_trans_scw_bit(TRANS_BCN, 1);
 }
 
+
 /*
 1. Turn off beacon mode (using status register)
 Returns - 1 for success, 0 for failure
@@ -364,6 +415,7 @@ Returns - 1 for success, 0 for failure
 uint8_t turn_off_trans_beacon(void) {
     return set_trans_scw_bit(TRANS_BCN, 0);
 }
+
 
 /*
 1. Turn on pipe (transparent) mode (using status control register) (p. 15-16).
@@ -374,14 +426,7 @@ uint8_t turn_on_trans_pipe(void) {
 }
 
 
-/*
-2. Set transceiver frequency (p. 17-18)
-
-freq - frequency to write, already in the converted 32-bit format that the
-       transceiver expects (the output of the conversion program)
-Returns - 1 for success, 0 for failure
-*/
-uint8_t set_trans_freq(uint32_t freq) {
+uint8_t set_trans_freq_attempt(uint32_t freq) {
     print("\rES+W%02X01%08X\r", TRANS_ADDR, freq);
 
     // Wait for response
@@ -396,13 +441,22 @@ uint8_t set_trans_freq(uint32_t freq) {
 }
 
 /*
-2. Get transceiver frequency (p. 17-18)
-freq - will be set to the read 32-bit value
-Returns - 1 for sucess, 0 for failure
+2. Set transceiver frequency (p. 17-18)
 
-Answer format: OK+[RR][FFFFFF][NN]
+freq - frequency to write, already in the converted 32-bit format that the
+       transceiver expects (the output of the conversion program)
+Returns - 1 for success, 0 for failure
 */
-uint8_t get_trans_freq(uint8_t* rssi, uint32_t* freq) {
+uint8_t set_trans_freq(uint32_t freq) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = set_trans_freq_attempt(freq);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
     print("\rES+R%02X01\r", TRANS_ADDR);
 
     //Wait for response
@@ -426,14 +480,23 @@ uint8_t get_trans_freq(uint8_t* rssi, uint32_t* freq) {
     return validity;
 }
 
-
 /*
-4. Set transparent (pipe) mode timeout (p.18)
-Sets timeout to turn off pipe mode if there are no UART messages
-timeout - timeout (in seconds) to set
-Returns - 1 for success, 0 for failure
+2. Get transceiver frequency (p. 17-18)
+freq - will be set to the read 32-bit value
+Returns - 1 for sucess, 0 for failure
+
+Answer format: OK+[RR][FFFFFF][NN]
 */
-uint8_t set_trans_pipe_timeout(uint8_t timeout) {
+uint8_t get_trans_freq(uint8_t* rssi, uint32_t* freq) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_freq_attempt(rssi, freq);
+    }
+    return ret;
+}
+
+
+uint8_t set_trans_pipe_timeout_attempt(uint8_t timeout) {
     print("\rES+W%02X06000000%02X\r", TRANS_ADDR, timeout);
 
     // Wait for response
@@ -448,12 +511,21 @@ uint8_t set_trans_pipe_timeout(uint8_t timeout) {
 }
 
 /*
-4. Get transparent (pipe) mode timeout (p.18)
-Gets timeout to turn off pipe mode if there are no UART messages
-timeout - is set by this function to the timeout (in seconds)
+4. Set transparent (pipe) mode timeout (p.18)
+Sets timeout to turn off pipe mode if there are no UART messages
+timeout - timeout (in seconds) to set
 Returns - 1 for success, 0 for failure
 */
-uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout) {
+uint8_t set_trans_pipe_timeout(uint8_t timeout) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = set_trans_pipe_timeout_attempt(timeout);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
     print("\rES+R%02X06\r", TRANS_ADDR);
 
     // Wait for response
@@ -478,14 +550,22 @@ uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout) {
     return validity;
 }
 
-
 /*
-5. Set beacon transmission period - Default is 60s (p. 19)
-period - desired period between beacon message transmissions (in seconds)
-Max val = 0xFFFF = 65535s = 1092min = 18.2h
+4. Get transparent (pipe) mode timeout (p.18)
+Gets timeout to turn off pipe mode if there are no UART messages
+timeout - is set by this function to the timeout (in seconds)
 Returns - 1 for success, 0 for failure
 */
-uint8_t set_trans_beacon_period(uint16_t period) {
+uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_pipe_timeout_attempt(rssi, timeout);
+    }
+    return ret;
+}
+
+
+uint8_t set_trans_beacon_period_attempt(uint16_t period) {
     print("\rES+W%02X070000%04X\r", TRANS_ADDR, period);
 
     // Wait for response
@@ -500,14 +580,21 @@ uint8_t set_trans_beacon_period(uint16_t period) {
 }
 
 /*
-5. Get beacon transmission period (p. 19)
-period - set to desired period between beacon message transmissions (in seconds)
+5. Set beacon transmission period - Default is 60s (p. 19)
+period - desired period between beacon message transmissions (in seconds)
 Max val = 0xFFFF = 65535s = 1092min = 18.2h
 Returns - 1 for success, 0 for failure
-
-Answer: OK+[RR]0000[TTTT]<CR>
 */
-uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
+uint8_t set_trans_beacon_period(uint16_t period) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = set_trans_beacon_period_attempt(period);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
     print("\rES+R%02X07%04X\r", TRANS_ADDR);
 
     //Wait for response
@@ -531,13 +618,24 @@ uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
     return validity;
 }
 
-
 /*
-7. Set destination call-sign (p.20)
-call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
+5. Get beacon transmission period (p. 19)
+period - set to desired period between beacon message transmissions (in seconds)
+Max val = 0xFFFF = 65535s = 1092min = 18.2h
 Returns - 1 for success, 0 for failure
+
+Answer: OK+[RR]0000[TTTT]<CR>
 */
-uint8_t set_trans_dest_call_sign(char* call_sign) {
+uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_beacon_period_attempt(rssi, period);
+    }
+    return ret;
+}
+
+
+uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {
     print("\rES+W%02XF5", TRANS_ADDR);
     for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
         print("%c", call_sign[i]);
@@ -556,13 +654,20 @@ uint8_t set_trans_dest_call_sign(char* call_sign) {
 }
 
 /*
-7. Get destination call-sign (p.20)
-call_sign - a 7-char array that will be set by this function to the call sign read (6 chars plus '\0' termination)
+7. Set destination call-sign (p.20)
+call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
 Returns - 1 for success, 0 for failure
-
-Answer: OK+DDDDDD<CR>
 */
-uint8_t get_trans_dest_call_sign(char* call_sign) {
+uint8_t set_trans_dest_call_sign(char* call_sign) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = set_trans_dest_call_sign_attempt(call_sign);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_dest_call_sign_attempt(char* call_sign) {
     print("\rES+R%02XF5\r", TRANS_ADDR);
 
     //Wait for response
@@ -586,13 +691,23 @@ uint8_t get_trans_dest_call_sign(char* call_sign) {
     return validity;
 }
 
-
 /*
-8. Set source call-sign (p.20)
-call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
+7. Get destination call-sign (p.20)
+call_sign - a 7-char array that will be set by this function to the call sign read (6 chars plus '\0' termination)
 Returns - 1 for success, 0 for failure
+
+Answer: OK+DDDDDD<CR>
 */
-uint8_t set_trans_src_call_sign(char* call_sign) {
+uint8_t get_trans_dest_call_sign(char* call_sign) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_dest_call_sign_attempt(call_sign);
+    }
+    return ret;
+}
+
+
+uint8_t set_trans_src_call_sign_attempt(char* call_sign) {
     print("\rES+W%02XF6", TRANS_ADDR);
     for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
         print("%c", call_sign[i]);
@@ -611,13 +726,20 @@ uint8_t set_trans_src_call_sign(char* call_sign) {
 }
 
 /*
-8. Get source call-sign (p.20)
-call_sign - a 7-char array that will be set by this function to the call sign read (6 chars plus '\0' termination)
+8. Set source call-sign (p.20)
+call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
 Returns - 1 for success, 0 for failure
-
-Answer: OK+DDDDDD<CR>
 */
-uint8_t get_trans_src_call_sign(char* call_sign) {
+uint8_t set_trans_src_call_sign(char* call_sign) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = set_trans_src_call_sign_attempt(call_sign);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_src_call_sign_attempt(char* call_sign) {
     print("\rES+R%02XF6\r", TRANS_ADDR);
 
     //Wait for response
@@ -641,14 +763,23 @@ uint8_t get_trans_src_call_sign(char* call_sign) {
     return validity;
 }
 
-
 /*
-16. Get uptime (p. 23)
-rssi - gets set to the last RSSI
-uptime - gets set to the uptime
+8. Get source call-sign (p.20)
+call_sign - a 7-char array that will be set by this function to the call sign read (6 chars plus '\0' termination)
 Returns - 1 for success, 0 for failure
+
+Answer: OK+DDDDDD<CR>
 */
-uint8_t get_trans_uptime(uint8_t* rssi, uint32_t* uptime) {
+uint8_t get_trans_src_call_sign(char* call_sign) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_src_call_sign_attempt(call_sign);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_uptime_attempt(uint8_t* rssi, uint32_t* uptime) {
     print("\rES+R%02X02\r", TRANS_ADDR);
 
     //Wait for response
@@ -673,14 +804,22 @@ uint8_t get_trans_uptime(uint8_t* rssi, uint32_t* uptime) {
     return validity;
 }
 
-
 /*
-17. Get number of transmitted packets (p.23)
+16. Get uptime (p. 23)
 rssi - gets set to the last RSSI
-num_tx_packets - gets set to the number of transmitted packets
+uptime - gets set to the uptime
 Returns - 1 for success, 0 for failure
 */
-uint8_t get_trans_num_tx_packets(uint8_t* rssi, uint32_t* num_tx_packets) {
+uint8_t get_trans_uptime(uint8_t* rssi, uint32_t* uptime) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_uptime_attempt(rssi, uptime);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_num_tx_packets_attempt(uint8_t* rssi, uint32_t* num_tx_packets) {
     print("\rES+R%02X03\r", TRANS_ADDR);
 
     //Wait for response
@@ -704,14 +843,22 @@ uint8_t get_trans_num_tx_packets(uint8_t* rssi, uint32_t* num_tx_packets) {
     return validity;
 }
 
-
 /*
-18. Get number of received packets (p.23)
+17. Get number of transmitted packets (p.23)
 rssi - gets set to the last RSSI
-num_rx_packets - gets set to the number of received packets
+num_tx_packets - gets set to the number of transmitted packets
 Returns - 1 for success, 0 for failure
 */
-uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets) {
+uint8_t get_trans_num_tx_packets(uint8_t* rssi, uint32_t* num_tx_packets) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_num_tx_packets_attempt(rssi, num_tx_packets);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_num_rx_packets_attempt(uint8_t* rssi, uint32_t* num_rx_packets) {
     print("\rES+R%02X04\r", TRANS_ADDR);
 
     //Wait for response
@@ -735,14 +882,22 @@ uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets) {
     return validity;
 }
 
-
 /*
-19. Get number of received packets with CRC error (p.23)
+18. Get number of received packets (p.23)
 rssi - gets set to the last RSSI
-num_rx_packets_crc - gets set to the number of received packets with CRC error
+num_rx_packets - gets set to the number of received packets
 Returns - 1 for success, 0 for failure
 */
-uint8_t get_trans_num_rx_packets_crc(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
+uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_num_rx_packets_attempt(rssi, num_rx_packets);
+    }
+    return ret;
+}
+
+
+uint8_t get_trans_num_rx_packets_crc_attempt(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
     print("\rES+R%02X05\r", TRANS_ADDR);
 
     //Wait for response
@@ -764,4 +919,18 @@ uint8_t get_trans_num_rx_packets_crc(uint8_t* rssi, uint32_t* num_rx_packets_crc
     }
 
     return validity;
+}
+
+/*
+19. Get number of received packets with CRC error (p.23)
+rssi - gets set to the last RSSI
+num_rx_packets_crc - gets set to the number of received packets with CRC error
+Returns - 1 for success, 0 for failure
+*/
+uint8_t get_trans_num_rx_packets_crc(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = get_trans_num_rx_packets_crc_attempt(rssi, num_rx_packets_crc);
+    }
+    return ret;
 }

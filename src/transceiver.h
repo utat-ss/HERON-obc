@@ -27,17 +27,20 @@
 // Need to add 1 to array sizes for '\0' terminating character
 #define TRANS_CALL_SIGN_LEN 6
 
+// Maximum number of times to attempt each command
+#define TRANS_MAX_CMD_ATTEMPTS 10
 
-//Helper Functions to process responses
-uint8_t char_hex_to_dec(uint8_t c);
+
+// Helper Functions to process responses
+uint8_t char_to_hex(uint8_t c);
 uint32_t scan_uint(volatile uint8_t* string, uint8_t offset, uint8_t count);
-uint8_t string_cmp(volatile uint8_t* first, uint8_t* second, uint8_t len);
+uint8_t string_cmp(volatile uint8_t* first, char* second, uint8_t len);
 uint8_t valid_cmd_response(uint8_t expected_len);
 uint8_t wait_for_cmd_response(uint16_t *timeout_left);
 
 // Initialization
 void init_trans(void);
-uint8_t trans_cb(const uint8_t* buf, uint8_t len);
+uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len);
 
 // 1
 uint8_t set_trans_scw(uint16_t scw);
