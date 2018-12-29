@@ -6,6 +6,30 @@ IMPORTANT NOTES:
 - See the transceiver handling guide before touching the transceiver: https://utat-ss.readthedocs.io/en/master/our-protocols/transceiver.html
 - MAKE SURE an antenna is attached to the coax cable before powering the transceiver - it must have an antenna when transmitting or else this will cause damage
 
+Hardware Setup:
+    - Need equipment:
+        - Transceiver
+        - Transceiver evaluation protoboard
+        - Transceiver antenna
+        - 2 programmers
+        - one of our PCBs with UART (should be any of them)
+    - Transceiver connected to evaluation protoboard with PC104 header
+    - Antenna connected to transceiver!! (VERY IMPORTANT - SEE ABOVE)
+    - Transceiver 5V -> power supply 5V
+    - Transceiver GND -> power supply GND
+    - PCB MOSI -> Transceiver RxD
+    - PCB SCK/RX -> Transceiver TxD
+    - Programmer 1 6-pin programming header -> PCB programming header
+    - Programmer 1 RX -> transceiver RxD
+    - Programmer 1 GND -> transceiver GND
+    - Programmer 2 RX -> transceiver TxD
+    - Programmer 2 GND -> transceiver GND or power supply GND
+
+Other Notes:
+- Need to unplug SCK/RX from the PCB when uploading a new program, then plug it
+    back in when the program is running
+- Might need/want to press the reset button on the PCB to restart the program
+
 TODO - seems to have UART RX character dropping issues - first 2-3 commands
 work, then for most of the following commands, the "O" or the "OK" is not
 detected - occasionally the '\r' is not detected - commenting out the first
@@ -29,22 +53,28 @@ void test_reset(void);
 
 int main(void){
     init_uart();
-    print("\n\n"); //for avoiding programming gibberish
+    print("\n\n");
 
+    // Time to connect the SCK/RX pin after programming
     print("Waiting 5 seconds...\n");
     _delay_ms(5000);
 
     init_trans();
 
-    get_trans_scw(NULL, NULL, NULL);
+    // Single command test
+    // get_trans_scw(NULL, NULL, NULL);
 
+    // Test all functionality
     test_all_gets();
     test_all_sets();
     test_scw_bits();
     test_pipe();
     test_reset();
 
+    // Get values again
     test_all_gets();
+
+    print("\nDone transceiver test\n\n");
 }
 
 
@@ -156,19 +186,22 @@ void test_pipe(void) {
     // It should stay in pipe mode because we refresh the 5s timeout every time
     // we send data
     // TODO - is it sending 5 separate packets or 1 single packet?
+    print("\n");
     for (uint8_t i = 0; i < 10; i++) {
         print("Sending data in pipe mode\n");
         _delay_ms(1000);
     }
 
-    _delay_ms(6000);
-
+    print("Stopped sending data in pipe mode\n");
+    print("Waiting 10 seconds...\n");
+    _delay_ms(10000);
     print("Pipe mode should be timed out\n");
+    print("\n");
 }
 
 
 void test_reset(void) {
     print("Resetting transceiver...\n");
     reset_trans();
-    print("Reset transceiver\n");
+    print("Done resetting transceiver\n");
 }

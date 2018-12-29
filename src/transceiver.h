@@ -7,8 +7,9 @@
 #include <uart/uart.h>
 #include <utilities/utilities.h>
 
-// Default frequency
-#define TRANS_DEF_FREQ 0x9DD80942UL //default 437 MHz freq
+
+//Default Address - DO NOT CHANGE
+#define TRANS_ADDR  0x22
 
 // Status control register bits
 #define TRANS_UART_BAUD 12  // bits 13-12
@@ -23,12 +24,29 @@
 #define TRANS_FRAM      1
 #define TRANS_RFTS      0
 
+/*
+Default status register value
+
+baud rate = 0b00 (9600)
+reset = 0b0 (not reset)
+RF Mode = 0b011 (mode 3 - 2GFSK, 9600 bps data rate, 2400 Hz Fdev, 0.5 ModInd)
+echo = 0b0 (off)
+beacon = 0b0 (off)
+pipe = 0b0 (off)
+boot = 0b0 (application mode)
+*/
+#define TRANS_DEF_SCW   0x0303
+
+// Default frequency
+#define TRANS_DEF_FREQ 0x9DD80942UL //default 437 MHz freq
+
 // Number of characters in a call sign (NOT INCLUDING '\0' termination)
 // Need to add 1 to array sizes for '\0' terminating character
 #define TRANS_CALL_SIGN_LEN 6
 
 // Maximum number of times to attempt each command
-#define TRANS_MAX_CMD_ATTEMPTS 10
+// TODO - what number?
+#define TRANS_MAX_CMD_ATTEMPTS 3
 
 
 // Helper Functions to process responses

@@ -2,7 +2,7 @@
 Transceiver library
 EnduroSat UHF Transceiver Type II
 
-UART commands are sent through UART (print statements)
+Commands are sent through UART (by calling print())
 Transceiver responses are handled in trans_uart_rx_cb
 
 Note that all/most configuration functions will return 1 if configuration/read
@@ -26,25 +26,25 @@ All bits below this point are read only (no writing)
 1: Correct initialization of FRAM (0 = Error)
 0: Correct initialization of Radio Transceiver (0 = Error)
 
-TODO: default status control word
-RF Mode chosen to be default 3 for now
-From LSB to MSB Default: 0303
-baud_rate = 0b00;
-reset = 0b0;
-rF_mode = 0b011;
-echo = 0b0;
-beacon = 0b0;
-pipeline = 0b0;
+Unused features: Beacon contents, packets
 
-Unneded: Beacon contents, packets
+TODO - For most of the get commands, OBC misses the first 1 or 2 characters in
+    the response for the first attempt, but the second attempt seems to always work
 
+TODO - it was observed that after either sending data in pipe mode, the
+    transceiver sent the UART message "+ESTTC<CR>" - figure out what this is
+
+TODO - default status register and frequency?
 TODO - macro for repeating command attempts?
+TODO - if commands to the transceiver fail, change UART baud rate and switch
+    the transceiver back to 9600 baud
+TODO - clear cmd_response buffer before sending a command
+TODO - for ground station messages, use the first one or two bytes as the
+    number of bytes in the message?
 */
 
 #include "transceiver.h"
 
-//Default Address - DO NOT CHANGE
-#define TRANS_ADDR  0x22
 
 /* Command response received back from transceiver */
 // String - has '\0' termination
@@ -68,6 +68,8 @@ uint8_t char_to_hex(uint8_t c) {
         return c - '0';
     } else if ('A' <= c && c <= 'F') {
         return c - 'A' + 10;
+    } else if ('a' <= c && c <= 'f') {
+        return c - 'a' + 10;
     } else {
         return 0;
     }
@@ -132,7 +134,7 @@ uint8_t valid_cmd_response(uint8_t expected_len) {
     }
 
     // "ERR" (command was not sucessful) is considered invalid, but we don't
-    // need to check for it explicitly
+    // need to check for it explicitly if it is not equal to "OK"
 
     // Check if the string's length matched the expected number of characters
     if (cmd_response_len != expected_len) {
@@ -188,27 +190,28 @@ Returns - number of characters processed
 TODO - handle received messages from the ground station
 */
 uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
-    // If we found the termination, copy the command
-    if (buf[len - 1] == '\r') {
-        // Copy each character
-        for (uint8_t i = 0; i < len - 1; ++i) {
-            cmd_response[i] = buf[i];
-        }
-        // Add termination character
-        cmd_response[len - 1] = '\0';
-        // Set length
-        cmd_response_len = len - 1;
-        // Set command available flag
-        cmd_response_available = true;
-
-        print("received response: %u chars: %s\n", cmd_response_len, cmd_response);
-
-        // Processed all characters
-        return len;
+    // If we haven't found the termination, don't process anything yet
+    if (buf[len - 1] != '\r') {
+        return 0;
     }
 
-    // If we haven't found the termination, don't process anything yet
-    return 0;
+    // If we found the termination:
+
+    // Copy each character
+    for (uint8_t i = 0; i < len - 1; ++i) {
+        cmd_response[i] = buf[i];
+    }
+    // Add termination character
+    cmd_response[len - 1] = '\0';
+    // Set length
+    cmd_response_len = len - 1;
+    // Set command available flag
+    cmd_response_available = true;
+
+    print("received response: %u chars: %s\n", cmd_response_len, cmd_response);
+
+    // Processed all characters
+    return len;
 }
 
 
@@ -323,7 +326,7 @@ uint8_t set_trans_scw_bit_attempt(uint8_t bit_index, uint8_t value) {
 /*
 Sets the specified bit in the SCW register.
 bit_index - index of the bit in the SCW register (MSB is 15, LSB is 0)
-value - 0 or 1
+value - value to set the bit to (0 or 1)
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_scw_bit(uint8_t bit_index, uint8_t value) {
@@ -424,6 +427,7 @@ uint8_t turn_off_trans_beacon(void) {
 /*
 1. Turn on pipe (transparent) mode (using status control register) (p. 15-16).
 The transceiver will turn off pipe mode on its own based on the pipe timeout.
+Returns - 1 for success, 0 for failure
 */
 uint8_t turn_on_trans_pipe(void) {
     return set_trans_scw_bit(TRANS_PIPE, 1);
@@ -431,7 +435,7 @@ uint8_t turn_on_trans_pipe(void) {
 
 
 uint8_t set_trans_freq_attempt(uint32_t freq) {
-    print("\rES+W%02X01%08X\r", TRANS_ADDR, freq);
+    print("\rES+W%02X01%08lX\r", TRANS_ADDR, freq);
 
     // Wait for response
     uint8_t ret = wait_for_cmd_response(NULL);
@@ -448,7 +452,7 @@ uint8_t set_trans_freq_attempt(uint32_t freq) {
 2. Set transceiver frequency (p. 17-18)
 
 freq - frequency to write, already in the converted 32-bit format that the
-       transceiver expects (the output of the conversion program)
+       transceiver expects (the output of the fwu conversion program)
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_freq(uint32_t freq) {
@@ -486,6 +490,7 @@ uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
 
 /*
 2. Get transceiver frequency (p. 17-18)
+rssi -  is set by this function to the last RSSI value
 freq - will be set to the read 32-bit value
 Returns - 1 for sucess, 0 for failure
 
@@ -557,6 +562,7 @@ uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
 /*
 4. Get transparent (pipe) mode timeout (p.18)
 Gets timeout to turn off pipe mode if there are no UART messages
+rssi -  is set by this function to the last RSSI value
 timeout - is set by this function to the timeout (in seconds)
 Returns - 1 for success, 0 for failure
 */
@@ -599,7 +605,7 @@ uint8_t set_trans_beacon_period(uint16_t period) {
 
 
 uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
-    print("\rES+R%02X07%04X\r", TRANS_ADDR);
+    print("\rES+R%02X07\r", TRANS_ADDR);
 
     //Wait for response
     uint8_t ret = wait_for_cmd_response(NULL);
@@ -624,6 +630,7 @@ uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
 
 /*
 5. Get beacon transmission period (p. 19)
+rssi -  is set by this function to the last RSSI value
 period - set to desired period between beacon message transmissions (in seconds)
 Max val = 0xFFFF = 65535s = 1092min = 18.2h
 Returns - 1 for success, 0 for failure
