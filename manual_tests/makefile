@@ -53,7 +53,7 @@ endif
 
 
 # Special commands
-.PHONY: all clean debug help lib-common upload
+.PHONY: all clean debug help lib-common read-eeprom upload
 
 # SRC - defined in the example-specific makefile
 # All .c files in src map to .o files
@@ -87,22 +87,30 @@ debug:
 	@echo ————————————
 
 help:
-	@echo "usage: make [all | clean | debug | help | lib-common | upload]"
+	@echo "usage: make [all | clean | debug | help | lib-common | read-eeprom | upload]"
 	@echo "Running make without any arguments is equivalent to running make all."
 	@echo "all            build this program"
 	@echo "clean          clear build files"
 	@echo "debug          display debugging information"
 	@echo "help           display this help message"
 	@echo "lib-common     fetch and build the latest version of lib-common"
+	@echo "read-eeprom    read the display the contents of the microcontroller's EEPROM"
 	@echo "upload         upload this program to a board"
 
-# Update and build lib-common
 lib-common:
 	@echo "Fetching latest version of lib-common..."
 	git submodule update --remote
 	@echo "Compiling lib-common..."
 	make -C ../../lib-common clean
 	make -C ../../lib-common
+
+# Create a file called eeprom.bin, which contains a raw binary copy of the micro's EEPROM memory.
+# View the contents of the binary file in hex
+read-eeprom:
+	@echo "Reading EEPROM to binary file eeprom.bin..."
+	avrdude -p m32m1 -c stk500 -P $(PORT) -U eeprom:r:eeprom.bin:r
+	@echo "Displaying eeprom.bin in hex..."
+	hexdump eeprom.bin
 
 upload: $(PROG)
 	avrdude -p $(MCU) -c $(PGMR) -P $(PORT) -U flash:w:./$^.hex

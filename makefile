@@ -59,7 +59,7 @@ endif
 
 
 # Special commands
-.PHONY: all clean debug help lib-common manual_tests upload
+.PHONY: all clean debug help lib-common manual_tests read-eeprom upload
 
 # Get all .c files in src folder
 SRC = $(wildcard ./src/*.c)
@@ -101,7 +101,7 @@ debug:
 
 # Help shows available commands
 help:
-	@echo "usage: make [all | clean | debug | help | lib-common | manual_tests | upload]"
+	@echo "usage: make [all | clean | debug | help | lib-common | manual_tests | read-eeprom | upload]"
 	@echo "Running make without any arguments is equivalent to running make all."
 	@echo "all            build the main program (src directory)"
 	@echo "clean          clear the build directory and all subdirectories"
@@ -109,9 +109,9 @@ help:
 	@echo "help           display this help message"
 	@echo "lib-common     fetch and build the latest version of lib-common"
 	@echo "manual_tests   build all manual test programs (manual_tests directory)"
+	@echo "read-eeprom    read the display the contents of the microcontroller's EEPROM"
 	@echo "upload         upload the main program to a board"
 
-# Update and build lib-common
 lib-common:
 	@echo "Fetching latest version of lib-common..."
 	git submodule update --remote
@@ -126,6 +126,14 @@ manual_tests:
 		make ; \
 		cd ../.. ; \
 	done
+
+# Create a file called eeprom.bin, which contains a raw binary copy of the micro's EEPROM memory.
+# View the contents of the binary file in hex
+read-eeprom:
+	@echo "Reading EEPROM to binary file eeprom.bin..."
+	avrdude -p m32m1 -c stk500 -P $(PORT) -U eeprom:r:eeprom.bin:r
+	@echo "Displaying eeprom.bin in hex..."
+	hexdump eeprom.bin
 
 # Upload program to board
 upload: $(PROG)
