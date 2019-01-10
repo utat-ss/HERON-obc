@@ -11,7 +11,7 @@ memory addresses, independent of any memory layout/section scheme.
 
 // len - number of bytes in each of write and read
 void print_write_read(uint32_t addr, uint8_t* write, uint8_t* read, uint8_t len) {
-    print("addr = 0x%.6lx\n", addr);
+    print("addr = 0x%.8lx\n", addr);
     if (write != NULL) {
         print("write = ");
         print_bytes(write, len);
@@ -22,9 +22,27 @@ void print_write_read(uint32_t addr, uint8_t* write, uint8_t* read, uint8_t len)
     }
 }
 
+void compare_write_read(uint8_t* write, uint8_t* read, uint8_t len) {
+    //flag for if values were as expected. 1 = expected, 0 = unexpected
+    uint8_t pass = 1;
+    for (uint8_t i = 0; i < len; i++){
+        //Not as expected
+        if (read[i] != write[i]){
+            pass = 0;
+        }
+    }
+
+    //check if values were as expected
+    if (pass == 1){
+        print("\nPASS: All values match\n");
+    } else {
+        print("\nFAIL: Not all values match\n");
+    }
+}
+
 
 #define SINGLE_ADDR 0x3ABCDE
-#define SINGLE_DATA 0x17
+#define SINGLE_DATA 0xA7
 
 // Write single bytes
 void test_single_write_read(void) {
@@ -43,8 +61,8 @@ void test_single_write_read(void) {
 
 
 // NOTE: should change this seed periodically
-#define ERASE_SEED          0x66BFDE12
-#define ERASE_ADDR_COUNT    20
+#define ERASE_SEED          0x66BFAE12
+#define ERASE_ADDR_COUNT    10
 
 // Generate random numbers
 // NOTE: srandom() and random() are for 32-bit integers,
@@ -66,8 +84,6 @@ void test_erase(void) {
 
     for (uint8_t i = 0; i < ERASE_ADDR_COUNT; i++) {
         uint32_t addr = random() % num_addrs;
-        print("addr = 0x%.8lx\n", addr);
-
         uint8_t read[1] = { 0x00 };
         read_mem_bytes(addr, read, 1);
         print_write_read(addr, NULL, read, 1);
@@ -77,9 +93,9 @@ void test_erase(void) {
 }
 
 
-#define MULTI_ADDR   0x3FEFFF
+#define MULTI_ADDR   0x3FE7FF
 #define MULTI_LEN    5
-#define MULTI_DATA   { 0x01, 0x00, 0xFF, 0x3A, 0x79 }
+#define MULTI_DATA   { 0x01, 0x00, 0xFF, 0x94, 0x79 }
 
 // Write multiple bytes
 void test_multi_write_read(void) {
@@ -93,24 +109,9 @@ void test_multi_write_read(void) {
     // Write data and read it back
     write_mem_bytes(MULTI_ADDR, write, MULTI_LEN);
     read_mem_bytes(MULTI_ADDR, read, MULTI_LEN);
+
     print_write_read(MULTI_ADDR, write, read, MULTI_LEN);
-
-    //flag for if values were as expected. 1 = expected, 0 = unexpected
-    uint8_t expected = 1;
-    for (uint8_t i = 0; i < MULTI_LEN; i++){
-        //Not as expected
-        if (read[i] != write[i]){
-            expected = 0;
-        }
-    }
-
-    //check if values were as expected
-    if (expected == 0){
-        print("\nThere were unexpected values\n");
-    }
-    else {
-        print("\nAll values were as expected\n");
-    }
+    compare_write_read(write, read, MULTI_LEN);
 
     print("\nDone multi write/read test\n");
 }
@@ -118,7 +119,7 @@ void test_multi_write_read(void) {
 
 #define PATTERN_ADDR    0x5100FF
 #define PATTERN_LEN     5
-#define PATTERN_OFFSET  10
+#define PATTERN_OFFSET  17
 
 // Generate numbers with a specific pattern
 void test_pattern_write_read(void) {
@@ -135,31 +136,16 @@ void test_pattern_write_read(void) {
     // Write data and read it back
     write_mem_bytes(PATTERN_ADDR, write, PATTERN_LEN);
     read_mem_bytes(PATTERN_ADDR, read, PATTERN_LEN);
+
     print_write_read(PATTERN_ADDR, write, read, PATTERN_LEN);
-
-    //flag for if values were as expected. 1 = expected, 0 = unexpected
-    uint8_t expected = 1;
-    for (uint8_t i = 0; i < PATTERN_LEN; i++){
-        //Not as expected
-        if (read[i] != write[i]){
-            expected = 0;
-        }
-    }
-
-    //check if values were as expected
-    if (expected == 0){
-        print("\nThere were unexpected values\n");
-    }
-    else {
-        print("\nAll values were as expected\n");
-    }
+    compare_write_read(write, read, PATTERN_LEN);
 
     print("\nDone pattern test\n");
 }
 
 
 // NOTE: should change this seed manually
-#define RANDOM_SEED     0x6ABCDE12
+#define RANDOM_SEED     0x68BCDE12
 #define RANDOM_MAX_LEN  255
 
 // Generate random numbers
@@ -191,24 +177,9 @@ void test_random_write_read(void) {
     //read and write
     write_mem_bytes(addr, write, len);
     read_mem_bytes(addr, read, len);
+
     print_write_read(addr, write, read, len);
-
-    uint8_t expected = 1;
-    //Check values
-    for (uint8_t i = 0; i < len; i++){
-        //Not as expected
-        if (read[i] != write[i]){
-            expected = 0;
-        }
-    }
-
-    //check if values were as expected
-    if (expected == 0){
-        print("\nThere were unexpected values\n");
-    }
-    else {
-        print("\nAll values were as expected\n");
-    }
+    compare_write_read(write, read, len);
 
     print("\nDone random test\n");
 }
@@ -216,7 +187,7 @@ void test_random_write_read(void) {
 
 #define ROLLOVER_ADDR_COUNT 3
 #define ROLLOVER_LEN        8
-#define ROLLOVER_DATA       { 1, 2, 3, 4, 5, 6, 7, 8 }
+#define ROLLOVER_DATA       { 1, 2, 19, 4, 5, 6, 7, 8 }
 
 // Test chip rollover
 // Chip number: (address >> 21) & 0x03

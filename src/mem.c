@@ -73,8 +73,7 @@ void init_mem(void){
     write_all_mem_sections_eeprom() and read_all_mem_sections_eeprom() separately
 */
     // initialize the Chip Select pins
-    for(uint8_t i = 0; i < MEM_NUM_CHIPS; i++)
-    {
+    for (uint8_t i = 0; i < MEM_NUM_CHIPS; i++) {
         init_cs(mem_cs[i].pin, mem_cs[i].ddr);
         set_cs_high(mem_cs[i].pin, mem_cs[i].port);
     }
