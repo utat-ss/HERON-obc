@@ -9,9 +9,6 @@ in memory for the layout scheme we have defined.
 
 // avr-libc includes
 #include    <avr/io.h>
-#define F_CPU 8000000UL
-#include    <util/delay.h>
-
 // lib-common includes
 #include    <spi/spi.h>
 #include    <uart/uart.h>
@@ -69,8 +66,11 @@ int main(void) {
         &pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x03);
     print ("Initial value in PAY SCI address: %.6lx\n", read_test);
 
-    write_mem_header(
-        &pay_sci_mem_section, pay_sci_mem_section.curr_block);
+    uint8_t error = 0x00;
+    date_t date = read_date();
+    time_t time = read_time();
+    write_mem_header(&pay_sci_mem_section, pay_sci_mem_section.curr_block,
+        error, date, time);
     write_mem_field(
         &pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x03, write_test);
 

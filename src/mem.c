@@ -15,7 +15,6 @@ TODO - test read/write to EEPROM
 TODO - test reading/writing section headers/fields
 TODO - make sure EEPROM addresses don't conflict with heartbeat
 TODO - develop harness-based test
-TODO - add read-eeprom command to makefiles (see lib-common/examples/eeprom_rw)
 */
 
 #include "mem.h"
@@ -70,6 +69,8 @@ mem_section_t pay_sci_mem_section = {
 void init_mem(void){
 /*
     intializes the chip select pin, unlocks (un-write protects)
+    NOTE: this function DOES NOT read from EEPROM - need to call
+    write_all_mem_sections_eeprom() and read_all_mem_sections_eeprom() separately
 */
     // initialize the Chip Select pins
     for(uint8_t i = 0; i < MEM_NUM_CHIPS; i++)
@@ -79,68 +80,64 @@ void init_mem(void){
     }
 
     unlock_mem(); //use global unlock to unlock memory
-
-    // TODO - initialize block numbers from EEPROM
 }
 
 
 // TODO - update current stack pointers after block writes, store current address variables
-void write_curr_block_to_eeprom(mem_section_t* section) {
+void write_mem_section_eeprom(mem_section_t* section) {
     /*
     writes the current block number of `section` to its designated address in EEPROM
     */
     eeprom_write_dword (section->curr_block_eeprom_addr, section->curr_block);
 }
 
+/*
+Writes data for all memory sections to EEPROM.
+*/
+void write_all_mem_sections_eeprom(void) {
+    write_mem_section_eeprom(&eps_hk_mem_section);
+    write_mem_section_eeprom(&pay_hk_mem_section);
+    write_mem_section_eeprom(&pay_sci_mem_section);
+}
 
-void read_curr_block_from_eeprom(mem_section_t* section) {
+
+void read_mem_section_eeprom(mem_section_t* section) {
     /*
     reads the current block number from its designated address in EEPROM and stores it in `section`
     */
     section->curr_block = eeprom_read_dword (section->curr_block_eeprom_addr);
 }
 
+/*
+Reads data for all memory sections from EEPROM.
+*/
+void read_all_mem_sections_eeprom(void) {
+    read_mem_section_eeprom(&eps_hk_mem_section);
+    read_mem_section_eeprom(&pay_hk_mem_section);
+    read_mem_section_eeprom(&pay_sci_mem_section);
+}
 
-void increment_curr_block(mem_section_t* section) {
+
+void inc_mem_section_curr_block(mem_section_t* section) {
     /*
-    Increments the section's current block number by 1 and updates the value stored in EEPROM
+    Increments the section's current block number by 1.
+    NOTE: this DOES NOT update the value stored in EEPROM
     */
     section->curr_block++;
-    write_curr_block_to_eeprom(section);
 }
 
 
-/*
-Calculates and returns the address of the start of a block (where the header starts).
-*/
-uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num) {
-    uint32_t bytes_per_block = MEM_BYTES_PER_HEADER +
-        (((uint32_t) section->fields_per_block) * MEM_BYTES_PER_FIELD);
-    uint32_t block_address = section->start_addr + (block_num * bytes_per_block);
-    return block_address;
-}
 
 
-/*
-Calculates and returns the address of the start of a field in a block (after the header).
-*/
-uint32_t mem_field_addr(mem_section_t* section, uint32_t block_num, uint32_t field_num) {
-    uint32_t block_address = mem_block_addr(section, block_num);
-    uint32_t field_address = block_address +
-        MEM_BYTES_PER_HEADER + (field_num * MEM_BYTES_PER_FIELD);
-    return field_address;
-}
-
-
-void write_mem_header(mem_section_t* section, uint32_t block_num){
+void write_mem_header(mem_section_t* section, uint8_t block_num, uint8_t error,
+        date_t date, time_t time) {
     /*
     writes the header information array (which contains metadata such as
-    block number, timestamp, and error codes) into the current block of the section
+    block number, timestamp, and error codes) into the current block of the
+        section
+    TODO - should block_num be a bigger integer?
     */
 
-    time_t time = read_time();
-    date_t date = read_date();
-    uint8_t error = 0x00;   // TODO
     uint8_t header[MEM_BYTES_PER_HEADER] = {
         block_num,
         error,
@@ -148,22 +145,37 @@ void write_mem_header(mem_section_t* section, uint32_t block_num){
         time.hh, time.mm, time.ss
     };
 
-    write_mem_bytes(mem_block_addr(section, block_num), header, MEM_BYTES_PER_HEADER);
+    write_mem_bytes(mem_block_addr(section, block_num), header,
+        MEM_BYTES_PER_HEADER);
 }
 
 
 /*
 Reads the header data for the specified block number.
-data - must be already allocated (`MEM_BYTES_PER_HEADER` bytes long) and passed to this function; this function will
-populate the data in it
+expected_block_num - the expected block number (determines the address to start
+    reading from) - expected to be equal to the block_num set by this function
+block_num, error, date, time - will be set by this function to the results
 */
-void read_mem_header(mem_section_t* section, uint32_t block_num, uint8_t* data) {
-    read_mem_bytes(mem_block_addr(section, block_num), data, MEM_BYTES_PER_HEADER);
+void read_mem_header(mem_section_t* section, uint8_t expected_block_num,
+        uint8_t* block_num, uint8_t* error, date_t* date, time_t* time) {
+    uint8_t header[MEM_BYTES_PER_HEADER];
+    read_mem_bytes(mem_block_addr(section, expected_block_num), header,
+        MEM_BYTES_PER_HEADER);
+
+    *block_num = header[0];
+    *error = header[1];
+    date->yy = header[2];
+    date->mm = header[3];
+    date->dd = header[4];
+    time->hh = header[5];
+    time->mm = header[6];
+    time->ss = header[7];
 }
 
 
 // fields are indexed from ZERO
-void write_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_num, uint32_t data) {
+void write_mem_field(mem_section_t* section, uint32_t block_num,
+        uint8_t field_num, uint32_t data) {
 /*
     writes a field (3 bytes) to flash, and automatically creates a new
     block in the stack whenever field zero is reached
@@ -186,7 +198,8 @@ void write_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_n
 }
 
 
-uint32_t read_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_num) {
+uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
+        uint8_t field_num) {
 /*
     Reads and returns the 24-bit data for the specified section, block, and field
 */
@@ -207,15 +220,41 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num, uint8_t fiel
 
 
 
+
 /*
-Processes an address (virtual 23-bit address) and calculates (splits up) the chip number and physical address on that chip.
+Calculates and returns the address of the start of a block (where the header starts).
+*/
+uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num) {
+    uint32_t bytes_per_block = MEM_BYTES_PER_HEADER +
+        (((uint32_t) section->fields_per_block) * MEM_BYTES_PER_FIELD);
+    uint32_t block_address = section->start_addr + (block_num * bytes_per_block);
+    return block_address;
+}
+
+
+/*
+Calculates and returns the address of the start of a field in a block (after the header).
+*/
+uint32_t mem_field_addr(mem_section_t* section, uint32_t block_num,
+        uint32_t field_num) {
+    uint32_t block_address = mem_block_addr(section, block_num);
+    uint32_t field_address = block_address +
+        MEM_BYTES_PER_HEADER + (field_num * MEM_BYTES_PER_FIELD);
+    return field_address;
+}
+
+
+/*
+Processes an address (virtual 23-bit address) and calculates (splits up) the
+    chip number and physical address on that chip.
 address - virtual 23-bit address
 chip_num - gets set by this function to the chip number (0 to 2)
 addr1 - gets set by this function to the MSB (5 bits) of the physical address
 addr2 - gets set by this function to the middle (8 bits) of the physical address
 addr3 - gets set by this function to the LSB (8 bits) of the physical address
 */
-void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1, uint8_t* addr2, uint8_t* addr3) {
+void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1,
+        uint8_t* addr2, uint8_t* addr3) {
     if (chip_num != NULL) {
         *chip_num = (address >> MEM_CHIP_ADDR_WIDTH) & 0x03;
     }
@@ -277,7 +316,8 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
                 chip_num = 0;
             }
 
-            send_short_mem_command(MEM_WR_ENABLE, chip_num); //enable writing to chip
+            //enable writing to chip
+            send_short_mem_command(MEM_WR_ENABLE, chip_num);
             set_cs_low(mem_cs[chip_num].pin, mem_cs[chip_num].port);
             /* all bytes to be written must be
             proceeded by the Page Program command */
@@ -368,8 +408,6 @@ void erase_mem(uint8_t chip){
 }
 
 
-
-
 void unlock_mem(void){
     // send the global mem unlock command to enable write operations
     for(uint8_t i = 0; i < MEM_NUM_CHIPS; i++) {
@@ -378,8 +416,12 @@ void unlock_mem(void){
     }
 }
 
+
+
+
 /*
-Loops until the busy bit in the memory status is not set. Times out after 65,535 cycles.
+Loops until the busy bit in the memory status is not set. Times out after 65,535
+    cycles.
 */
 void wait_for_mem_not_busy(uint8_t chip_num) {
     uint8_t busy = 1;

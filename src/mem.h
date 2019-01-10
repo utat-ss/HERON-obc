@@ -75,25 +75,34 @@ extern mem_section_t pay_sci_mem_section;
 #define MEM_BYTES_PER_FIELD 3
 
 
-
-
 // Initialization
 void init_mem(void);
 
 // EEPROM
-void write_curr_block_to_eeprom(mem_section_t* section);
-void read_curr_block_from_eeprom(mem_section_t* section);
-void increment_curr_block(mem_section_t* section);
+void write_mem_section_eeprom(mem_section_t* section);
+void write_all_mem_sections_eeprom(void);
+void read_mem_section_eeprom(mem_section_t* section);
+void read_all_mem_sections_eeprom(void);
+void inc_mem_section_curr_block(mem_section_t* section);
 
-// Headers and fields
-void write_mem_header(mem_section_t* section, uint32_t block_num);
-void read_mem_header(mem_section_t* section, uint32_t block_num, uint8_t* data);
-void write_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_num, uint32_t data);
-uint32_t read_mem_field(mem_section_t* section, uint32_t block_num, uint8_t field_num);
+// High-level operations - headers and fields
+void write_mem_header(mem_section_t* section, uint8_t block_num, uint8_t error,
+    date_t date, time_t time);
+void read_mem_header(mem_section_t* section, uint8_t expected_block_num,
+    uint8_t* block_num, uint8_t* error, date_t* date, time_t* time);
+void write_mem_field(mem_section_t* section, uint32_t block_num,
+    uint8_t field_num, uint32_t data);
+uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
+    uint8_t field_num);
 
-void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1, uint8_t* addr2, uint8_t* addr3);
+// Address calculations
+uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num);
+uint32_t mem_field_addr(mem_section_t* section, uint32_t block_num,
+    uint32_t field_num);
+void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1,
+    uint8_t* addr2, uint8_t* addr3);
 
-// Low-level operations
+// Low-level operations - bytes
 void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
 void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
 void erase_mem(uint8_t chip);
