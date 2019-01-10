@@ -32,9 +32,9 @@ typedef struct {
     // Error data - TODO
     uint8_t error;
     // RTC data
-    date_t date;
+    rtc_date_t date;
     // RTC time
-    time_t time;
+    rtc_time_t time;
 } mem_header_t;
 
 // Make the memory sections visible to other files so they can write data to sections

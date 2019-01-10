@@ -7,24 +7,24 @@ int main(void){
     init_spi();
     init_rtc();
 
-    time_t t;
+    rtc_time_t t;
     t.ss = 30;
     t.mm = 59;
     t.hh = 23;
     set_time(t);
 
-    date_t d;
+    rtc_date_t d;
     d.dd = 31;
     d.mm = 12;
     d.yy = 17;
     set_date(d);
 
-    time_t t_alarm;
+    rtc_time_t t_alarm;
     t_alarm.ss = 00;
     t_alarm.mm = 00;
     t_alarm.hh = 00;
 
-    date_t d_alarm;
+    rtc_date_t d_alarm;
     d_alarm.dd = 01;
     d_alarm.mm = 01;
     d_alarm.yy = 18;
