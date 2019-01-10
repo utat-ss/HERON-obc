@@ -6,9 +6,11 @@ in memory for the layout scheme we have defined.
 // standard C libraries
 #include    <stdbool.h>
 #include    <stdint.h>
+#include    <stdlib.h>
 
 // avr-libc includes
 #include    <avr/io.h>
+
 // lib-common includes
 #include    <spi/spi.h>
 #include    <uart/uart.h>
@@ -18,21 +20,26 @@ in memory for the layout scheme we have defined.
 #include     "../../src/mem.h"
 #include     "../../src/rtc.c"
 
-int main(void) {
-    init_uart();
-    init_spi();
-    init_mem();
-    init_rtc();
+void print_section(char* name, mem_section_t* section) {
+    print("%s: start_addr = 0x%.8lx, curr_block = %lu, fields_per_block = %u\n",
+        name, section->start_addr, section->curr_block,
+        section->fields_per_block);
+}
 
-    print("\n\n\nStarting test\n");
+void print_sections(void) {
+    print_section("EPS_HK", &eps_hk_mem_section);
+    print_section("PAY_HK", &pay_hk_mem_section);
+    print_section("PAY_SCI", &pay_sci_mem_section);
+}
 
-    //erase all three memory chips
-    for(uint8_t i = 0; i < MEM_NUM_CHIPS; i++) {
-        erase_mem(i);
-    }
+void print_header(mem_header_t* header) {
+    print("block_num = %u, error = %u, date = %u %u %u, time = %u %u %u\n",
+        header->block_num, header->error,
+        header->date.yy, header->date.mm, header->date.dd,
+        header->time.hh, header->time.mm, header->time.ss);
+}
 
-    print("\nErased memory\n\n");
-
+void set_rtc(void) {
     time_t curr_time;
     curr_time.ss = 00;
     curr_time.mm = 00;
@@ -45,6 +52,91 @@ int main(void) {
 
     set_time(curr_time);
     set_date(curr_date);
+    print("Set RTC date and time\n");
+}
+
+void test_eeprom(void) {
+    print_sections();
+    print("\n");
+
+    read_all_mem_sections_eeprom();
+    print("Loaded section data from EEPROM\n");
+    print_sections();
+    print("\n");
+
+    inc_mem_section_curr_block(&eps_hk_mem_section);
+    inc_mem_section_curr_block(&pay_hk_mem_section);
+    inc_mem_section_curr_block(&pay_sci_mem_section);
+    write_all_mem_sections_eeprom();
+    print("Incremented all current blocks and wrote to EEPROM\n");
+}
+
+
+void test_header(char* name, mem_section_t* section) {
+    print("\nTesting %s section - header\n", name);
+
+
+    mem_header_t write = {
+        .block_num = section->curr_block,
+        .error = 0x00,
+        .date = read_date(),
+        .time = read_time()
+    };
+    mem_header_t read;
+
+    read_mem_header(section, section->curr_block, &read);
+    print("Initial value in memory: ");
+    print_header(&read);
+
+    write_mem_header(section, section->curr_block, &write);
+    print("Wrote header to memory: ");
+    print_header(&write);
+
+    read_mem_header(section, section->curr_block, &read);
+    print("Final value in memory: ");
+    print_header(&read);
+}
+
+
+void test_field(char* name, mem_section_t* section) {
+    print("\nTesting %s section - field\n", name);
+
+    uint8_t field_num = random() % section->fields_per_block;
+    print("field_num = %u\n", field_num);
+
+    // Example field data to write
+    uint32_t write = random() & 0xFFFFFF;
+    // Field data read back, should be the same
+    uint32_t read = 0;
+
+    // Check to see initial value
+    read = read_mem_field(section, section->curr_block, field_num);
+    print("Initial value in memory: 0x%.6lx\n", read);
+
+    write_mem_field(section, section->curr_block, field_num, write);
+    print("Wrote field to memory: 0x%.6lx\n", write);
+
+    read = read_mem_field(section, section->curr_block, field_num);
+    print("Final value in memory: 0x%.6lx\n", read);
+}
+
+
+// Need to change this manually
+#define RANDOM_SEED 0x48BCDE14
+
+int main(void) {
+    init_uart();
+    init_spi();
+    init_mem();
+    init_rtc();
+
+    print("\n\n\n**Starting test**\n\n");
+
+    srandom(RANDOM_SEED);
+    print("Random seed = 0x%.8lx\n", RANDOM_SEED);
+
+    set_rtc();
+    test_eeprom();
 
     /*
     What should happen in this test:
@@ -53,30 +145,13 @@ int main(void) {
     3. Read back the same values from PAY SCI
     */
 
-    print ("PAY HK section address: %.6lx\n", pay_hk_mem_section.start_addr);
-    print ("PAY SCI section address: %.6lx\n", pay_sci_mem_section.start_addr);
+    test_header("EPS_HK", &eps_hk_mem_section);
+    test_header("PAY_HK", &pay_hk_mem_section);
+    test_header("PAY_SCI", &pay_sci_mem_section);
 
-    // Example field data to write
-    uint32_t write_test = 0x07091B;
-    // Field data read back, should be the same
-    uint32_t read_test = 0;
+    test_field("EPS_HK", &eps_hk_mem_section);
+    test_field("PAY_HK", &pay_hk_mem_section);
+    test_field("PAY_SCI", &pay_sci_mem_section);
 
-    // Check to see if values had been initialized (mem_erase)
-    read_test = read_mem_field(
-        &pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x03);
-    print ("Initial value in PAY SCI address: %.6lx\n", read_test);
-
-    uint8_t error = 0x00;
-    date_t date = read_date();
-    time_t time = read_time();
-    write_mem_header(&pay_sci_mem_section, pay_sci_mem_section.curr_block,
-        error, date, time);
-    write_mem_field(
-        &pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x03, write_test);
-
-    read_test = read_mem_field(
-        &pay_sci_mem_section, pay_sci_mem_section.curr_block, 0x03);
-    print ("Final value in PAY SCI address: %.6lx\n", read_test);
-
-    print ("*** End of test ***\n");
+    print ("\n*** End of test ***\n");
 }

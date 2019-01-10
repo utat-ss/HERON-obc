@@ -11,8 +11,6 @@ https://utat-ss.readthedocs.io/en/master/our-protocols/obc-mem.html
 Addresses are composed as follows (as uint32_t):
 { 0 (9 bits), chip_num (2 bits), chip_addr (21 bits)}
 
-TODO - test read/write to EEPROM
-TODO - test reading/writing section headers/fields
 TODO - make sure EEPROM addresses don't conflict with heartbeat
 TODO - develop harness-based test
 */
@@ -63,6 +61,13 @@ mem_section_t pay_sci_mem_section = {
     .fields_per_block = CAN_PAY_SCI_FIELD_COUNT   // Should be 33
 };
 
+// All memory sections
+mem_section_t* all_mem_sections[MEM_NUM_SECTIONS] = {
+    &eps_hk_mem_section,
+    &pay_hk_mem_section,
+    &pay_sci_mem_section
+};
+
 
 
 
@@ -82,7 +87,6 @@ void init_mem(void){
 }
 
 
-// TODO - update current stack pointers after block writes, store current address variables
 void write_mem_section_eeprom(mem_section_t* section) {
     /*
     writes the current block number of `section` to its designated address in EEPROM
@@ -128,47 +132,47 @@ void inc_mem_section_curr_block(mem_section_t* section) {
 
 
 
-void write_mem_header(mem_section_t* section, uint8_t block_num, uint8_t error,
-        date_t date, time_t time) {
+void write_mem_header(mem_section_t* section, uint8_t block_num,
+    mem_header_t* header) {
+
     /*
     writes the header information array (which contains metadata such as
     block number, timestamp, and error codes) into the current block of the
         section
-    TODO - should block_num be a bigger integer?
     */
 
-    uint8_t header[MEM_BYTES_PER_HEADER] = {
-        block_num,
-        error,
-        date.yy, date.mm, date.dd,
-        time.hh, time.mm, time.ss
+    uint8_t bytes[MEM_BYTES_PER_HEADER] = {
+        header->block_num,
+        header->error,
+        header->date.yy, header->date.mm, header->date.dd,
+        header->time.hh, header->time.mm, header->time.ss
     };
 
-    write_mem_bytes(mem_block_addr(section, block_num), header,
-        MEM_BYTES_PER_HEADER);
+    write_mem_bytes(mem_block_addr(section, block_num), bytes, MEM_BYTES_PER_HEADER);
 }
 
 
 /*
 Reads the header data for the specified block number.
-expected_block_num - the expected block number (determines the address to start
-    reading from) - expected to be equal to the block_num set by this function
-block_num, error, date, time - will be set by this function to the results
+block_num - the expected block number (determines the address to start reading
+    from) - expected to be equal to header->block_num set by this function
+header - will be set by this function to the results
 */
-void read_mem_header(mem_section_t* section, uint8_t expected_block_num,
-        uint8_t* block_num, uint8_t* error, date_t* date, time_t* time) {
-    uint8_t header[MEM_BYTES_PER_HEADER];
-    read_mem_bytes(mem_block_addr(section, expected_block_num), header,
+void read_mem_header(mem_section_t* section, uint8_t block_num,
+    mem_header_t* header) {
+
+    uint8_t bytes[MEM_BYTES_PER_HEADER];
+    read_mem_bytes(mem_block_addr(section, block_num), bytes,
         MEM_BYTES_PER_HEADER);
 
-    *block_num = header[0];
-    *error = header[1];
-    date->yy = header[2];
-    date->mm = header[3];
-    date->dd = header[4];
-    time->hh = header[5];
-    time->mm = header[6];
-    time->ss = header[7];
+    header->block_num = bytes[0];
+    header->error = bytes[1];
+    header->date.yy = bytes[2];
+    header->date.mm = bytes[3];
+    header->date.dd = bytes[4];
+    header->time.hh = bytes[5];
+    header->time.mm = bytes[6];
+    header->time.ss = bytes[7];
 }
 
 

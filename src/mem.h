@@ -24,10 +24,24 @@ typedef struct {
     uint16_t fields_per_block;
 } mem_section_t;
 
+// A collection of the data for one header in memory
+typedef struct {
+    // Block number within section
+    // TODO - should it be 32-bit?
+    uint8_t block_num;
+    // Error data - TODO
+    uint8_t error;
+    // RTC data
+    date_t date;
+    // RTC time
+    time_t time;
+} mem_header_t;
+
 // Make the memory sections visible to other files so they can write data to sections
 extern mem_section_t eps_hk_mem_section;
 extern mem_section_t pay_hk_mem_section;
 extern mem_section_t pay_sci_mem_section;
+extern mem_section_t* all_mem_sections[];
 
 // Chips are numbered 0-2
 #define MEM_NUM_CHIPS 3
@@ -69,6 +83,8 @@ extern mem_section_t pay_sci_mem_section;
 #define MEM_AAI     6
 #define MEM_BPL     7
 
+// Number of sections in memory layout
+#define MEM_NUM_SECTIONS 3
 // Number of bytes in a header
 #define MEM_BYTES_PER_HEADER 8
 // Number of bytes in one field (one measurement)
@@ -86,10 +102,10 @@ void read_all_mem_sections_eeprom(void);
 void inc_mem_section_curr_block(mem_section_t* section);
 
 // High-level operations - headers and fields
-void write_mem_header(mem_section_t* section, uint8_t block_num, uint8_t error,
-    date_t date, time_t time);
-void read_mem_header(mem_section_t* section, uint8_t expected_block_num,
-    uint8_t* block_num, uint8_t* error, date_t* date, time_t* time);
+void write_mem_header(mem_section_t* section, uint8_t block_num,
+    mem_header_t* header);
+void read_mem_header(mem_section_t* section, uint8_t block_num,
+    mem_header_t* header);
 void write_mem_field(mem_section_t* section, uint32_t block_num,
     uint8_t field_num, uint32_t data);
 uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
