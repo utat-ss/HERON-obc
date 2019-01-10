@@ -47,6 +47,10 @@ uint8_t disable_rtc_alarm(rtc_alarm_t alarm_number);
 uint8_t rtc_read(uint8_t reg_address);
 void rtc_write(uint8_t reg_address, uint8_t data);
 
+// SPI
+void start_rtc_spi(void);
+void end_rtc_spi(void);
+
 // Helper functions
 uint8_t rtc_bcd_to_dec(uint8_t bcd);
 uint8_t rtc_dec_to_bcd(uint8_t dec);

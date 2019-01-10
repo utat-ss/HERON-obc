@@ -4,6 +4,7 @@ DS3234
 Datasheet: https://www.sparkfun.com/datasheets/BreakoutBoards/DS3234.pdf
 
 - 24-hour clock
+- Can use SPI mode 1 or 3 (choose 1)
 
 TODO - test alarm interrupt functionality
 */
@@ -103,32 +104,39 @@ uint8_t disable_rtc_alarm(rtc_alarm_t alarm_number){
 }
 
 uint8_t rtc_read(uint8_t reg_address){
-    // adjust the phase
-    // the DS3234 requires this phase setting, which is not our default
-    SPCR |= _BV(CPHA);
-
     // transmit address, get data back
-    set_cs_low(RTC_CS, &RTC_PORT);
+    start_rtc_spi();
     send_spi(RTC_R | reg_address);
     uint8_t return_data = send_spi(0xFF);
-    set_cs_high(RTC_CS, &RTC_PORT);
-
-    SPCR &= ~(_BV(CPHA));
+    end_rtc_spi();
 
     return return_data;
 }
 
 void rtc_write(uint8_t reg_address, uint8_t data){
     //writes data to reg_address on the RTC chip
-
-    SPCR |= _BV(CPHA);
-
-    set_cs_low(RTC_CS, &RTC_PORT);
+    start_rtc_spi();
     send_spi(RTC_W | reg_address);
     send_spi(data);
-    set_cs_high(RTC_CS, &RTC_PORT);
+    end_rtc_spi();
+}
 
-    SPCR &= ~(_BV(CPHA));
+/*
+Starts a SPI transmission for the RTC (using SPI mode 1).
+*/
+void start_rtc_spi(void) {
+    // adjust the phase
+    // the DS3234 requires this phase setting, which is not our default
+    set_spi_mode(1);
+    set_cs_low(RTC_CS, &RTC_PORT);
+}
+
+/*
+Ends a SPI transmission for the RTC (resets SPI mode to 0).
+*/
+void end_rtc_spi(void) {
+    set_cs_high(RTC_CS, &RTC_PORT);
+    reset_spi_mode();
 }
 
 uint8_t rtc_bcd_to_dec(uint8_t bcd){
