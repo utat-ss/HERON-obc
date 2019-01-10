@@ -11,13 +11,13 @@ int main(void){
     t.ss = 30;
     t.mm = 59;
     t.hh = 23;
-    set_time(t);
+    set_rtc_time(t);
 
     rtc_date_t d;
     d.dd = 31;
     d.mm = 12;
     d.yy = 17;
-    set_date(d);
+    set_rtc_date(d);
 
     rtc_time_t t_alarm;
     t_alarm.ss = 00;
@@ -29,14 +29,14 @@ int main(void){
     d_alarm.mm = 01;
     d_alarm.yy = 18;
 
-    set_alarm(t_alarm, d_alarm, 1);
+    set_rtc_alarm(t_alarm, d_alarm, 1);
     //disable_alarm(1); //comment out this line to test the functionality of the set_alarm function
 
     for (;;){
         _delay_ms(10000);
 
-        t = read_time();
-        d = read_date();
+        t = read_rtc_time();
+        d = read_rtc_date();
         print("\r\nTIME: %02d:%02d:%02d", t.hh, t.mm, t.ss);
         print("\r\nDATE: %02d:%02d:20%02d", d.dd, d.mm, d.yy);
         print("\r\n");

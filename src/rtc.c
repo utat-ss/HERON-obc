@@ -148,7 +148,6 @@ uint8_t rtc_bcd_to_dec(uint8_t bcd){
 
 uint8_t rtc_dec_to_bcd(uint8_t dec){
     //decimal to binary-coded-decimal converter
-    uint8_t bcd;
-    bcd = dec % 10;
+    uint8_t bcd = dec % 10;
     return ((dec-bcd)/10 << 4) + bcd;
 }
