@@ -40,12 +40,12 @@ void print_header(mem_header_t* header) {
 }
 
 void set_rtc(void) {
-    time_t curr_time;
+    rtc_time_t curr_time;
     curr_time.ss = 00;
     curr_time.mm = 00;
     curr_time.hh = 15;
 
-    date_t curr_date;
+    rtc_date_t curr_date;
     curr_date.dd = 06;
     curr_date.mm = 10;
     curr_date.yy = 18;
