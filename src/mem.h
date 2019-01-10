@@ -105,7 +105,8 @@ void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1,
 // Low-level operations - bytes
 void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
 void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
-void erase_mem(uint8_t chip);
+void erase_mem(void);
+void erase_mem_chip(uint8_t chip);
 void unlock_mem(void);
 
 // Status

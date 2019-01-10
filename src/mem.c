@@ -395,8 +395,17 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
     set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 }
 
+/*
+Erases all memory chips.
+Erasing is defined as setting all bits to 1 (all bytes to 0xFF).
+*/
+void erase_mem(void) {
+    for (uint8_t i = 0; i < MEM_NUM_CHIPS; i++) {
+        erase_mem_chip(i);
+    }
+}
 
-void erase_mem(uint8_t chip){
+void erase_mem_chip(uint8_t chip){
 /*
     erase the specified memory chip (overwrite all data to ones)
 */
