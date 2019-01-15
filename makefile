@@ -134,8 +134,11 @@ debug:
 	@echo "OBJ:" $(OBJ)
 	@echo ------------
 
+# Need to cd into lib-common and refer back up one directory to the harness_tests folder
+# because harness.py has the `include` and `src` paths hardcoded
 harness:
-	$(PYTHON) ./lib-common/bin/harness.py -p $(PORT) -d harness_tests
+	cd lib-common && \
+	$(PYTHON) ./bin/harness.py -p $(PORT) -d ../harness_tests
 
 # Help shows available commands
 help:
