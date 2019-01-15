@@ -8,7 +8,7 @@
 # Includes (header files)
 INCLUDES = -I../../lib-common/include
 # Libraries from lib-common to link
-LIB = -L../../lib-common/lib -ladc -lcan -lconversions -ldac -lheartbeat -lpex -lqueue -lspi -ltimer -luart -lutilities -lprintf_flt -lm
+LIB = -L../../lib-common/lib -ladc -lcan -lconversions -ldac -lheartbeat -lpex -lqueue -lspi -ltimer -luart -lutilities -lwatchdog -lprintf_flt -lm
 #-------------------------------------------------------------------------------
 
 
@@ -94,9 +94,15 @@ clean:
 # Print debug information
 debug:
 	@echo ------------
-	@echo $(SRC)
+	@echo "WINDOWS:" $(WINDOWS)
 	@echo ------------
-	@echo $(OBJ)
+	@echo "MAC_OS:" $(MAC_OS)
+	@echo ------------
+	@echo "LINUX:" $(LINUX)
+	@echo ------------
+	@echo "SRC:" $(SRC)
+	@echo ------------
+	@echo "OBJ:" $(OBJ)
 	@echo ------------
 
 help:
