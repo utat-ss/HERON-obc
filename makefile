@@ -6,7 +6,7 @@
 # Parameters that might need to be changed, depending on the repository
 #-------------------------------------------------------------------------------
 # Libraries from lib-common to link
-LIB = -L./lib-common/lib -ladc -lcan -ldac -lpex -lqueue -lspi -ltimer -luart -lutilities
+LIB = -L./lib-common/lib -ladc -lcan -lconversions -ldac -lpex -lqueue -lspi -ltimer -luart -lutilities -lwatchdog
 # Program name
 PROG = obc
 #-------------------------------------------------------------------------------
@@ -71,8 +71,22 @@ endif
 # PORT = /dev/ttyS3					# Linux
 
 
+# Set the PYTHON variable - Python interpreter
+# Windows uses `python` for either Python 2 or 3,
+# while macOS/Linux use `python3` to explicitly use Python 3
+ifeq ($(WINDOWS), true)
+	PYTHON := python
+endif
+ifeq ($(MAC_OS), true)
+	PYTHON := python3
+endif
+ifeq ($(LINUX), true)
+	PYTHON := python3
+endif
+
+
 # Special commands
-.PHONY: all clean debug help lib-common manual_tests read-eeprom upload
+.PHONY: all clean debug harness help lib-common manual_tests read-eeprom upload
 
 # Get all .c files in src folder
 SRC = $(wildcard ./src/*.c)
@@ -107,18 +121,30 @@ clean:
 # Print debug information
 debug:
 	@echo ------------
-	@echo $(SRC)
+	@echo "WINDOWS:" $(WINDOWS)
 	@echo ------------
-	@echo $(OBJ)
+	@echo "MAC_OS:" $(MAC_OS)
 	@echo ------------
+	@echo "LINUX:" $(LINUX)
+	@echo ------------
+	@echo "PYTHON:" $(PYTHON)
+	@echo ------------
+	@echo "SRC:" $(SRC)
+	@echo ------------
+	@echo "OBJ:" $(OBJ)
+	@echo ------------
+
+harness:
+	$(PYTHON) ./lib-common/bin/harness.py -p $(PORT) -d harness_tests
 
 # Help shows available commands
 help:
-	@echo "usage: make [all | clean | debug | help | lib-common | manual_tests | read-eeprom | upload]"
+	@echo "usage: make [all | clean | debug | harness | help | lib-common | manual_tests | read-eeprom | upload]"
 	@echo "Running make without any arguments is equivalent to running make all."
 	@echo "all            build the main program (src directory)"
 	@echo "clean          clear the build directory and all subdirectories"
 	@echo "debug          display debugging information"
+	@echo "harness        run the test harness"
 	@echo "help           display this help message"
 	@echo "lib-common     fetch and build the latest version of lib-common"
 	@echo "manual_tests   build all manual test programs (manual_tests directory)"
