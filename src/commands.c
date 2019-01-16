@@ -66,9 +66,9 @@ void write_flash_fn(void) {
 // TODO
 void read_flash_fn(void) {
     // TODO
-    // read_from_flash(PAY_HK_TYPE,(uint8_t*)pay_hk_data,CAN_PAY_HK_FIELD_COUNT*0X04);
+    // read_from_flash(PAY_HK_TYPE,(uint8_t*)pay_hk_data,CAN_PAY_HK_GET_COUNT*0X04);
     // TODO
-    // read_from_flash(SCI_TYPE, (uint8_t*)pay_sci_data,CAN_PAY_SCI_FIELD_COUNT*0x04);
+    // read_from_flash(SCI_TYPE, (uint8_t*)pay_sci_data,CAN_PAY_SCI_GET_COUNT*0x04);
     // TODO
     // read_from_flash(EPS_HK_TYPE,(uint8_t*)eps_hk_data,EPS_HK_FIELD_COUNT*0x04 + 6); // Add 6 for header (unsure of why it's not 8)
 }
@@ -94,6 +94,8 @@ void enqueue_cmd(queue_t* queue, cmd_t* cmd) {
     // Cast the cmd_fn_t function pointer to a uint16
     uint16_t fn_ptr = (uint16_t) cmd->fn;
 
+    print("enqueue: fn_ptr = %x\n", fn_ptr);
+
     // Enqueue the command as an 8-byte array
     uint8_t data[8] = {0};
     data[0] = (fn_ptr >> 8) & 0xFF;
@@ -111,6 +113,8 @@ void dequeue_cmd(queue_t* queue, cmd_t* cmd) {
     uint8_t data[8] = {0};
     dequeue(queue, data);
     uint16_t fn_ptr = (((uint16_t) data[0]) << 8) | ((uint16_t) data[1]);
+
+    print("dequeue: fn_ptr = %x\n", fn_ptr);
 
     // Cast the uint16 to a cmd_fn_t function pointer
     cmd->fn = (cmd_fn_t) fn_ptr;

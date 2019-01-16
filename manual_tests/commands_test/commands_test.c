@@ -16,6 +16,7 @@ If set to false, it simulate both the EPS and PAY PCBs responding to CAN message
 #include <adc/eps.h>
 #include <can/data_protocol.h>
 #include <conversions/conversions.h>
+#include <queue/queue.h>
 #include <uart/uart.h>
 #include <spi/spi.h>
 
@@ -95,36 +96,39 @@ void print_cmds(void) {
 // TODO - convert and show units
 void print_local_data_fn(void) {
     print("EPS HK:\n");
-    for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
+    for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
         print("%.3lu ", eps_hk_data[i]);
     }
     print("\n");
 
     print("PAY HK:\n");
-    for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
+    for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
         print("%.4lu ", pay_hk_data[i]);
     }
     print("\n");
 
     print("PAY SCI:\n");
-    for (uint8_t i = 0; i < CAN_PAY_SCI_FIELD_COUNT; i++) {
+    for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
         print("%.6lu ", pay_sci_data[i]);
     }
     print("\n");
 }
 
 void clear_local_data_fn(void) {
-    for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
+    for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
         eps_hk_data[i] = 0;
     }
+    print("Cleared local EPS_HK\n");
 
-    for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
+    for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
         pay_hk_data[i] = 0;
     }
+    print("Cleared local PAY_HK\n");
 
-    for (uint8_t i = 0; i < CAN_PAY_SCI_FIELD_COUNT; i++) {
+    for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
         pay_sci_data[i] = 0;
     }
+    print("Cleared local PAY_SCI\n");
 }
 
 
@@ -175,6 +179,10 @@ void populate_msg_data(uint8_t* msg, uint32_t data) {
 
 // Simulates sending an EPS TX message and getting a response back
 void sim_eps_tx_msg(void) {
+    if (queue_empty(&eps_tx_msg_queue)) {
+        return;
+    }
+
     // TX and RX defined from OBC's perspective
     uint8_t tx_msg[8];
     dequeue(&eps_tx_msg_queue, tx_msg);
@@ -188,7 +196,7 @@ void sim_eps_tx_msg(void) {
     // Can return early to not send a message back
     switch (tx_msg[1]) {
         case CAN_EPS_HK:
-            if (0 <= tx_msg[2] && tx_msg[2] < CAN_EPS_HK_FIELD_COUNT) {
+            if (0 <= tx_msg[2] && tx_msg[2] < CAN_EPS_HK_GET_COUNT) {
                 // All fields are 12-bit ADC data
                 populate_msg_data(rx_msg, rand_bits(12));
             } else {
@@ -201,11 +209,16 @@ void sim_eps_tx_msg(void) {
 
     // Simulate waiting to receive the message
     delay_random_ms(100);
+    print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);
 }
 
 // Simulates sending an EPS TX message and getting a response back
 void sim_pay_tx_msg(void) {
+    if (queue_empty(&pay_tx_msg_queue)) {
+        return;
+    }
+
     // TX and RX defined from OBC's perspective
     uint8_t tx_msg[8];
     dequeue(&pay_tx_msg_queue, tx_msg);
@@ -221,7 +234,7 @@ void sim_pay_tx_msg(void) {
         case CAN_PAY_HK:
             if (tx_msg[2] == CAN_PAY_HK_TEMP) {
                 populate_msg_data(rx_msg, rand_bits(16));
-            } else if (tx_msg[2] == CAN_PAY_HK_HUMID) {
+            } else if (tx_msg[2] == CAN_PAY_HK_HUM) {
                 populate_msg_data(rx_msg, rand_bits(14));
             } else if (tx_msg[2] == CAN_PAY_HK_PRES) {
                 populate_msg_data(rx_msg, rand_bits(24));
@@ -229,16 +242,16 @@ void sim_pay_tx_msg(void) {
                 return;
             }
             break;
-        case CAN_PAY_SCI:
-            if (0 <= tx_msg[2] && tx_msg[2] < CAN_PAY_SCI_FIELD_COUNT) {
+        case CAN_PAY_OPT:
+            if (0 <= tx_msg[2] && tx_msg[2] < CAN_PAY_SCI_GET_COUNT) {
                 // All fields are 24-bit ADC data
                 populate_msg_data(rx_msg, rand_bits(24));
             } else {
                 return;
             }
             break;
-        case CAN_PAY_MOTOR:
-            if (tx_msg[2] == CAN_PAY_MOTOR_ACTUATE) {
+        case CAN_PAY_EXP:
+            if (tx_msg[2] == CAN_PAY_EXP_POP) {
                 // Don't need to populate anything
             } else {
                 return;
@@ -250,6 +263,7 @@ void sim_pay_tx_msg(void) {
 
     // Simulate waiting to receive the message
     delay_random_ms(100);
+    print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);
 }
 
@@ -258,7 +272,6 @@ void sim_pay_tx_msg(void) {
 
 uint8_t uart_cb(const uint8_t* data, uint8_t len) {
     if (len == 0) {
-        print("No UART\n");
         return 0;
     }
 
@@ -288,11 +301,12 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
 
 int main(void){
     init_obc_core();
-    print("\n\n\nInitialized OBC core\n");
+    print("\n\n\nStarting commands test\n\n");
+    print("Initialized OBC core\n\n");
 
-    print("At any time, press h to show the command menu\n");
+    print("At any time, press h to show the command menu\n\n");
     print_cmds();
-    register_callback(uart_cb);
+    set_uart_rx_cb(uart_cb);
 
     while (1) {
         // If we are using external CAN, physically send the messages
@@ -306,6 +320,13 @@ int main(void){
             sim_pay_tx_msg();
         }
 
+        // print("data_rx_msg_queue: head = %u, tail = %u\n", data_rx_msg_queue.head, data_rx_msg_queue.tail);
+        // if (!queue_empty(&data_rx_msg_queue)) {
+        //     uint8_t msg[8];
+        //     peek_queue(&data_rx_msg_queue, msg);
+        //     print("data_rx_msg_queue: peek = ");
+        //     print_bytes(msg, 8);
+        // }
         process_next_rx_msg();
 
         execute_next_cmd();
