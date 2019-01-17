@@ -54,20 +54,12 @@ cmd_t clear_local_data_cmd = {
 // All possible commands
 uart_cmd_t all_cmds[] = {
     {
-        .description = "Request EPS HK",
-        .cmd = &req_eps_hk_cmd
+        .description = "Print local data",
+        .cmd = &print_local_data_cmd
     },
     {
-        .description = "Request PAY HK",
-        .cmd = &req_pay_hk_cmd
-    },
-    {
-        .description = "Request PAY SCI",
-        .cmd = &req_pay_sci_cmd
-    },
-    {
-        .description = "Actuate motor",
-        .cmd = &actuate_motor_cmd
+        .description = "Clear local data",
+        .cmd = &clear_local_data_cmd
     },
     {
         .description = "Write local data to flash",
@@ -78,12 +70,20 @@ uart_cmd_t all_cmds[] = {
         .cmd = &read_flash_cmd
     },
     {
-        .description = "Print local data",
-        .cmd = &print_local_data_cmd
+        .description = "Request EPS HK",
+        .cmd = &req_eps_hk_cmd
     },
     {
-        .description = "Clear local data",
-        .cmd = &clear_local_data_cmd
+        .description = "Request PAY HK",
+        .cmd = &req_pay_hk_cmd
+    },
+    {
+        .description = "Request PAY OPT",
+        .cmd = &req_pay_opt_cmd
+    },
+    {
+        .description = "Pop blister packs",
+        .cmd = &pop_blister_packs_cmd
     }
 };
 // Length of array
@@ -199,13 +199,13 @@ void print_local_data_fn(void) {
 
     // print("Raw: ");
     for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
-        print("0x%.6lX ", pay_sci_data[i]);
+        print("0x%.6lX ", pay_opt_data[i]);
     }
     print("\n");
 
     // for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
-    //     print("Well %u: 0x%.6lX = %f %%\n", i, pay_sci_data[i],
-    //         ((double) pay_sci_data[i]) / 0xFFFFFF * 100.0);
+    //     print("Well %u: 0x%.6lX = %f %%\n", i, pay_opt_data[i],
+    //         ((double) pay_opt_data[i]) / 0xFFFFFF * 100.0);
     // }
 
     // TODO - PAY EXP
@@ -219,7 +219,7 @@ void clear_local_data_fn(void) {
         pay_hk_data[i] = 0;
     }
     for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
-        pay_sci_data[i] = 0;
+        pay_opt_data[i] = 0;
     }
 
     print("Cleared local Data\n");

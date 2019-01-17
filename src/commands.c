@@ -2,8 +2,8 @@
 
 void req_eps_hk_fn(void);
 void req_pay_hk_fn(void);
-void req_pay_sci_fn(void);
-void actuate_motor_fn(void);
+void req_pay_opt_fn(void);
+void pop_blister_packs_fn(void);
 void write_flash_fn(void);
 void read_flash_fn(void);
 
@@ -18,11 +18,11 @@ cmd_t req_eps_hk_cmd = {
 cmd_t req_pay_hk_cmd = {
     .fn = req_pay_hk_fn
 };
-cmd_t req_pay_sci_cmd = {
-    .fn = req_pay_sci_fn
+cmd_t req_pay_opt_cmd = {
+    .fn = req_pay_opt_fn
 };
-cmd_t actuate_motor_cmd = {
-    .fn = actuate_motor_fn
+cmd_t pop_blister_packs_cmd = {
+    .fn = pop_blister_packs_fn
 };
 cmd_t write_flash_cmd = {
     .fn = write_flash_fn
@@ -47,19 +47,19 @@ void req_pay_hk_fn(void) {
 }
 
 // Starts requesting PAY SCI data (field 0)
-void req_pay_sci_fn(void) {
-    enqueue_pay_sci_req_can_msg(0);
+void req_pay_opt_fn(void) {
+    enqueue_pay_opt_req_can_msg(0);
 }
 
 // Sends the command to actuate the motors
-void actuate_motor_fn(void) {
-    enqueue_actuate_motor_can_msg();
+void pop_blister_packs_fn(void) {
+    enqueue_pop_blister_packs_can_msg();
 }
 
 // TODO
 void write_flash_fn(void) {
   // write_to_flash(PAY_HK_TYPE,0,(uint8_t*) pay_hk_data);
-  // write_to_flash(SCI_TYPE,0,(uint8_t*) pay_sci_data);
+  // write_to_flash(SCI_TYPE,0,(uint8_t*) pay_opt_data);
   // write_to_flash(EPS_HK_TYPE,0,(uint8_t*) eps_hk_data);
 }
 
@@ -68,7 +68,7 @@ void read_flash_fn(void) {
     // TODO
     // read_from_flash(PAY_HK_TYPE,(uint8_t*)pay_hk_data,CAN_PAY_HK_GET_COUNT*0X04);
     // TODO
-    // read_from_flash(SCI_TYPE, (uint8_t*)pay_sci_data,CAN_PAY_SCI_GET_COUNT*0x04);
+    // read_from_flash(SCI_TYPE, (uint8_t*)pay_opt_data,CAN_PAY_SCI_GET_COUNT*0x04);
     // TODO
     // read_from_flash(EPS_HK_TYPE,(uint8_t*)eps_hk_data,EPS_HK_FIELD_COUNT*0x04 + 6); // Add 6 for header (unsure of why it's not 8)
 }

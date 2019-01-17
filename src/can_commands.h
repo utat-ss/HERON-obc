@@ -16,13 +16,13 @@ extern queue_t data_rx_msg_queue;
 
 extern uint32_t eps_hk_data[];
 extern uint32_t pay_hk_data[];
-extern uint32_t pay_sci_data[];
+extern uint32_t pay_opt_data[];
 
 void handle_rx_msg(void);
 
 void enqueue_eps_hk_req_can_msg(uint8_t field_num);
 void enqueue_pay_hk_req_can_msg(uint8_t field_num);
-void enqueue_pay_sci_req_can_msg(uint8_t field_num);
-void enqueue_actuate_motor_can_msg(void);
+void enqueue_pay_opt_req_can_msg(uint8_t field_num);
+void enqueue_pop_blister_packs_can_msg(void);
 
 #endif
