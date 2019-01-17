@@ -34,7 +34,7 @@ void data_rx_callback(const uint8_t* data, uint8_t len) {
     print_bytes((uint8_t *) data, len);
 
     if (len > 0) {
-        print("Enqueued to data_rx_msg_queue\n");
+        // print("Enqueued to data_rx_msg_queue\n");
         enqueue(&data_rx_msg_queue, data);
     }
 }

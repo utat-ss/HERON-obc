@@ -24,7 +24,7 @@ void handle_rx_msg(void) {
 
     else {
         uint8_t data[8];
-        print("Dequeued from data_rx_msg_queue\n");
+        // print("Dequeued from data_rx_msg_queue\n");
         dequeue(&data_rx_msg_queue, data);
 
         uint8_t message_type = data[1];
@@ -74,7 +74,7 @@ void handle_pay_hk(const uint8_t* data){
 
     // Save the data to the local array
     if (field_num < CAN_PAY_HK_GET_COUNT) {
-        print("modifying pay_hk_data[%u]\n", field_num);
+        // print("modifying pay_hk_data[%u]\n", field_num);
         pay_hk_data[field_num] =
                 (((uint32_t) data[3]) << 16) |
                 (((uint32_t) data[4]) << 8) |
