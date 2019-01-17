@@ -20,9 +20,10 @@ extern uint32_t pay_opt_data[];
 
 void handle_rx_msg(void);
 
-void enqueue_eps_hk_req_can_msg(uint8_t field_num);
-void enqueue_pay_hk_req_can_msg(uint8_t field_num);
-void enqueue_pay_opt_req_can_msg(uint8_t field_num);
-void enqueue_pop_blister_packs_can_msg(void);
+void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num);
+void enqueue_eps_hk_tx_msg(uint8_t field_num);
+void enqueue_pay_hk_tx_msg(uint8_t field_num);
+void enqueue_pay_opt_tx_msg(uint8_t field_num);
+void enqueue_pay_exp_tx_msg(uint8_t field_num);
 
 #endif

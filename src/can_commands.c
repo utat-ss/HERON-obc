@@ -15,7 +15,6 @@ void handle_eps_hk(const uint8_t* data);
 void handle_pay_motor(const uint8_t* data);
 
 
-// TODO
 void handle_rx_msg(void) {
     print("%s\n", __FUNCTION__);
     if (queue_empty(&data_rx_msg_queue)) {
@@ -23,7 +22,7 @@ void handle_rx_msg(void) {
     }
 
     else {
-        uint8_t data[8];
+        uint8_t data[8] = {0x00};
         // print("Dequeued from data_rx_msg_queue\n");
         dequeue(&data_rx_msg_queue, data);
 
@@ -64,7 +63,7 @@ void handle_eps_hk(const uint8_t* data){
     // Request the next field (if not done yet)
     uint8_t next_field_num = field_num + 1;
     if (next_field_num < CAN_EPS_HK_GET_COUNT) {
-        enqueue_eps_hk_req_can_msg(next_field_num);
+        enqueue_eps_hk_tx_msg(next_field_num);
     }
 }
 
@@ -83,7 +82,7 @@ void handle_pay_hk(const uint8_t* data){
 
     uint8_t next_field_num = field_num + 1;
     if (next_field_num < CAN_PAY_HK_GET_COUNT) {
-        enqueue_pay_hk_req_can_msg(next_field_num);
+        enqueue_pay_hk_tx_msg(next_field_num);
     }
 }
 
@@ -101,7 +100,7 @@ void handle_pay_sci(const uint8_t* data){
 
     uint8_t next_field_num = field_num + 1;
     if (next_field_num < CAN_PAY_SCI_GET_COUNT){
-        enqueue_pay_opt_req_can_msg(next_field_num);
+        enqueue_pay_opt_tx_msg(next_field_num);
     }
 }
 
@@ -116,52 +115,31 @@ void handle_pay_motor(const uint8_t* data){
 
 
 /*
-Enqueues a CAN message onto eps_tx_msg_queue to request the specified HK field number.
-field_num - Field number to request
+Enqueues a CAN message onto the specified queue to request the specified message
+    type and field number.
+queue - Queue to enqueue the message to
+msg_type - Message type to request (byte 1)
+field_num - Field number to request (byte 2)
 */
-void enqueue_eps_hk_req_can_msg(uint8_t field_num) {
+void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num) {
     uint8_t msg[8] = { 0 };
     msg[0] = 0;   // TODO
-    msg[1] = CAN_EPS_HK;
+    msg[1] = msg_type;
     msg[2] = field_num;
 
-    enqueue(&eps_tx_msg_queue, msg);
+    enqueue(queue, msg);
 }
 
-/*
-Enqueues a CAN message onto pay_tx_msg_queue to request the specified HK field number.
-field_num - Field number to request
-*/
-void enqueue_pay_hk_req_can_msg(uint8_t field_num) {
-    uint8_t msg[8] = { 0 };
-    msg[0] = 0;   // TODO
-    msg[1] = CAN_PAY_HK;
-    msg[2] = field_num;
-
-    enqueue(&pay_tx_msg_queue, msg);
+// Convenience functions to enqueue each of the message types
+void enqueue_eps_hk_tx_msg(uint8_t field_num) {
+    enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_HK, field_num);
 }
-
-/*
-Enqueues a CAN message onto pay_tx_msg_queue to request the specified SCI field number.
-field_num - Field number to request
-*/
-void enqueue_pay_opt_req_can_msg(uint8_t field_num) {
-    uint8_t msg[8] = { 0 };
-    msg[0] = 0;   // TODO
-    msg[1] = CAN_PAY_OPT;
-    msg[2] = field_num;
-
-    enqueue(&pay_tx_msg_queue, msg);
+void enqueue_pay_hk_tx_msg(uint8_t field_num) {
+    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_HK, field_num);
 }
-
-/*
-Enqueues a CAN message onto pay_tx_msg_queue to command actuating the motors.
-*/
-void enqueue_pop_blister_packs_can_msg(void) {
-    uint8_t msg[8] = { 0 };
-    msg[0] = 0;   // TODO
-    msg[1] = CAN_PAY_EXP;
-    msg[2] = CAN_PAY_EXP_POP;
-
-    enqueue(&pay_tx_msg_queue, msg);
+void enqueue_pay_opt_tx_msg(uint8_t field_num) {
+    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_OPT, field_num);
+}
+void enqueue_pay_exp_tx_msg(uint8_t field_num) {
+    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_EXP, field_num);
 }

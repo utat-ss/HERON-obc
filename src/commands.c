@@ -38,22 +38,22 @@ cmd_t read_flash_cmd = {
 
 // Starts requesting EPS HK data (field 0)
 void req_eps_hk_fn(void) {
-    enqueue_eps_hk_req_can_msg(0);
+    enqueue_eps_hk_tx_msg(0);
 }
 
 // Starts requesting PAY HK data (field 0)
 void req_pay_hk_fn(void) {
-    enqueue_pay_hk_req_can_msg(0);
+    enqueue_pay_hk_tx_msg(0);
 }
 
 // Starts requesting PAY SCI data (field 0)
 void req_pay_opt_fn(void) {
-    enqueue_pay_opt_req_can_msg(0);
+    enqueue_pay_opt_tx_msg(0);
 }
 
 // Sends the command to actuate the motors
 void pop_blister_packs_fn(void) {
-    enqueue_pop_blister_packs_can_msg();
+    enqueue_pay_exp_tx_msg(CAN_PAY_EXP_POP);
 }
 
 // TODO
