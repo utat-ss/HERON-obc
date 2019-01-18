@@ -39,12 +39,16 @@ void init_obc_comms(void) {
 
 // If the command queue is not empty, dequeues the next command and executes it
 void execute_next_cmd(void) {
-    // print("execute_next_cmd\n");
     if (!queue_empty(&cmd_queue) && current_cmd.fn == nop_fn) {
-        print("cmd ready\n");
+        // Fetch the next command
         cmd_t cmd;
         dequeue_cmd(&cmd_queue, &cmd);
+
+        // Set the global current command to prevent other commands from running
         current_cmd = cmd;
+
+        // Run the command's function
+        print("Starting cmd\n");
         (cmd.fn)();
     }
 }

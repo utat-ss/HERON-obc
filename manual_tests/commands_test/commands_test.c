@@ -432,11 +432,11 @@ int main(void){
 
     print("\n\n\nStarting commands test\n\n");
     // print("Initialized OBC core\n\n");
-    print("mem blocks: ");
-    print("eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
-        eps_hk_mem_section.curr_block,
-        pay_hk_mem_section.curr_block,
-        pay_opt_mem_section.curr_block);
+    // print("mem blocks: ");
+    // print("eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
+    //     eps_hk_mem_section.curr_block,
+    //     pay_hk_mem_section.curr_block,
+    //     pay_opt_mem_section.curr_block);
 
     set_uart_rx_cb(uart_cb);
 

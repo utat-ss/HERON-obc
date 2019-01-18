@@ -17,8 +17,8 @@ void nop_fn(void) {}
 // Queue of commands that need to be executed but have not been executed yet
 queue_t cmd_queue;
 
-// TODO - sort out where to put volatile
-// The currently executing command (or NULL for no command executing)
+// The currently executing command (or nop_fn for no command executing)
+// NOTE: need to compare the function pointer, not the command pointer (could have a duplicate of the command struct but the function pointer will always be the same for the same command)
 volatile cmd_t current_cmd = {
     .fn = nop_fn
 };
@@ -122,6 +122,7 @@ void start_aut_data_col_fn(void) {
 void finish_current_cmd(bool succeeded) {
     current_cmd.fn = nop_fn;
     previous_cmd_succeeded = succeeded;
+    print("Finished cmd\n");
 }
 
 
