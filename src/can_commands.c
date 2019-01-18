@@ -1,9 +1,5 @@
 #include "can_commands.h"
 
-// TODO - refactor
-#define DEFAULT_RTC_DATE { .yy = 0, .mm = 0, .dd = 0 }
-#define DEFAULT_RTC_TIME { .hh = 0, .mm = 0, .ss = 0 }
-
 queue_t eps_tx_msg_queue;
 queue_t pay_tx_msg_queue;
 queue_t data_rx_msg_queue;

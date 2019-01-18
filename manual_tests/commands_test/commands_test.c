@@ -115,10 +115,20 @@ void print_imu_data(uint16_t raw_data) {
     print(" 0x%.4X\n", raw_data);
 }
 
+void print_header(mem_header_t header) {
+    print("block_num = %u, error = %u, ", header.block_num, header.error);
+    print("date = %02u:%02u:%02u, time = %02u:%02u:%02u\n",
+        header.date.yy, header.date.mm, header.date.dd,
+        header.time.hh, header.time.mm, header.time.ss);
+}
+
 void print_local_data_fn(void) {
     print("\nEPS HK:\n");
 
-    // print("Raw: ");
+    // print("Header: ");
+    print_header(eps_hk_header);
+
+    // print("Fields: ");
     for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
         print("0x%.6lX ", eps_hk_fields[i]);
     }
@@ -173,7 +183,10 @@ void print_local_data_fn(void) {
 
     print("\nPAY HK:\n");
 
-    // print("Raw: ");
+    // print("Header: ");
+    print_header(pay_hk_header);
+
+    // print("Fields: ");
     for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
         print("0x%.6lX ", pay_hk_fields[i]);
     }
@@ -196,7 +209,10 @@ void print_local_data_fn(void) {
 
     print("\nPAY OPT:\n");
 
-    // print("Raw: ");
+    // print("Header: ");
+    print_header(pay_opt_header);
+
+    // print("Fields: ");
     for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
         print("0x%.6lX ", pay_opt_fields[i]);
     }
@@ -211,17 +227,20 @@ void print_local_data_fn(void) {
 }
 
 void clear_local_data_fn(void) {
+    clear_mem_header(&eps_hk_header);
     for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
         eps_hk_fields[i] = 0;
     }
+    clear_mem_header(&pay_hk_header);
     for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
         pay_hk_fields[i] = 0;
     }
+    clear_mem_header(&pay_opt_header);
     for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
         pay_opt_fields[i] = 0;
     }
 
-    print("Cleared local Data\n");
+    print("Cleared local data\n");
 }
 
 

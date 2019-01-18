@@ -87,6 +87,23 @@ void init_mem(void){
     unlock_mem(); //use global unlock to unlock memory
 }
 
+/*
+Sets all struct fields to 0 in the header.
+*/
+void clear_mem_header(mem_header_t* header) {
+    if (header == NULL) {
+        return;
+    }
+
+    header->block_num = 0;
+    header->error = 0;
+    header->date.yy = 0;
+    header->date.mm = 0;
+    header->date.dd = 0;
+    header->time.hh = 0;
+    header->time.mm = 0;
+    header->time.ss = 0;
+}
 
 void write_mem_section_eeprom(mem_section_t* section) {
     /*
@@ -136,9 +153,9 @@ void inc_mem_section_curr_block(mem_section_t* section) {
 void write_mem_block(mem_section_t* section, uint8_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
-    print("%s: ", __FUNCTION__);
-    print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
-        block_num);
+    // print("%s: ", __FUNCTION__);
+    // print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
+    //     block_num);
 
     // Write header
     write_mem_header(section, block_num, header);
@@ -151,9 +168,9 @@ void write_mem_block(mem_section_t* section, uint8_t block_num,
 void read_mem_block(mem_section_t* section, uint8_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
-    print("%s: ", __FUNCTION__);
-    print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
-        block_num);
+    // print("%s: ", __FUNCTION__);
+    // print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
+    //     block_num);
 
     // Read header
     read_mem_header(section, block_num, header);
@@ -324,8 +341,8 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
         to be modified in the event of changes to the board design
 */
 
-    print("%s: ", __FUNCTION__);
-    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+    // print("%s: ", __FUNCTION__);
+    // print("address = 0x%.8lX, data_len = %u\n", address, data_len);
 
     uint8_t chip_num;
     uint8_t addr1;
@@ -379,7 +396,7 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
     send_short_mem_command(MEM_WR_DISABLE, chip_num);
 
-    print_bytes(data, data_len);
+    // print_bytes(data, data_len);
 }
 
 
@@ -394,8 +411,8 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
         reads continously across chips (ie behaves as a continous address space)
 */
 
-    print("%s: ", __FUNCTION__);
-    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+    // print("%s: ", __FUNCTION__);
+    // print("address = 0x%.8lX, data_len = %u\n", address, data_len);
 
     uint8_t chip_num;
     uint8_t addr1;
@@ -439,7 +456,7 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
     set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 
-    print_bytes(data, data_len);
+    // print_bytes(data, data_len);
 }
 
 /*
@@ -486,9 +503,10 @@ void wait_for_mem_not_busy(uint8_t chip_num) {
     for (timeout = UINT16_MAX; busy && (timeout > 0); timeout--) {
         busy = read_mem_status(chip_num) & 0x01;
     }
-    if (timeout == 0) {
-        print("MEM TIMEOUT\n");
-    }
+
+    // if (timeout == 0) {
+    //     print("MEM TIMEOUT\n");
+    // }
 }
 
 uint8_t read_mem_status(uint8_t chip){

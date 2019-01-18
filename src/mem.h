@@ -93,6 +93,7 @@ extern mem_section_t* all_mem_sections[];
 
 // Initialization
 void init_mem(void);
+void clear_mem_header(mem_header_t* header);
 
 // EEPROM
 void write_mem_section_eeprom(mem_section_t* section);
