@@ -4,8 +4,8 @@ void req_eps_hk_fn(void);
 void req_pay_hk_fn(void);
 void req_pay_opt_fn(void);
 void pop_blister_packs_fn(void);
-void write_flash_fn(void);
-void read_flash_fn(void);
+void write_mem_fn(void);
+void read_mem_fn(void);
 void start_aut_data_col_fn(void);
 
 void aut_data_col_timer_cb(void);
@@ -38,11 +38,11 @@ cmd_t req_pay_opt_cmd = {
 cmd_t pop_blister_packs_cmd = {
     .fn = pop_blister_packs_fn
 };
-cmd_t write_flash_cmd = {
-    .fn = write_flash_fn
+cmd_t write_mem_cmd = {
+    .fn = write_mem_fn
 };
-cmd_t read_flash_cmd = {
-    .fn = read_flash_fn
+cmd_t read_mem_cmd = {
+    .fn = read_mem_fn
 };
 cmd_t start_aut_data_col_cmd = {
     .fn = start_aut_data_col_fn
@@ -67,7 +67,7 @@ void req_pay_hk_fn(void) {
     enqueue_pay_hk_tx_msg(0);
 }
 
-// Starts requesting PAY SCI data (field 0)
+// Starts requesting PAY OPT data (field 0)
 void req_pay_opt_fn(void) {
     print ("Starting PAY_OPT\n");
     populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, 0x00);
@@ -79,7 +79,7 @@ void pop_blister_packs_fn(void) {
     enqueue_pay_exp_tx_msg(CAN_PAY_EXP_POP);
 }
 
-void write_flash_fn(void) {
+void write_mem_fn(void) {
     write_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
         &eps_hk_header, eps_hk_fields);
     write_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
@@ -99,7 +99,7 @@ void write_flash_fn(void) {
 }
 
 // TODO
-void read_flash_fn(void) {
+void read_mem_fn(void) {
     read_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block - 1,
         &eps_hk_header, eps_hk_fields);
     read_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block - 1,
@@ -135,7 +135,7 @@ void aut_data_col_timer_cb(void) {
     enqueue_cmd(&cmd_queue, &req_eps_hk_cmd);
     enqueue_cmd(&cmd_queue, &req_pay_hk_cmd);
     enqueue_cmd(&cmd_queue, &req_pay_opt_cmd);
-    enqueue_cmd(&cmd_queue, &write_flash_cmd);
+    enqueue_cmd(&cmd_queue, &write_mem_cmd);
 }
 
 

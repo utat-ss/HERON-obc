@@ -63,11 +63,11 @@ uart_cmd_t all_cmds[] = {
     },
     {
         .description = "Write local data to mem",
-        .cmd = &write_flash_cmd
+        .cmd = &write_mem_cmd
     },
     {
         .description = "Read mem to local data",
-        .cmd = &read_flash_cmd
+        .cmd = &read_mem_cmd
     },
     {
         .description = "Start timer",

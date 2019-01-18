@@ -34,8 +34,8 @@ extern cmd_t req_eps_hk_cmd;
 extern cmd_t req_pay_hk_cmd;
 extern cmd_t req_pay_opt_cmd;
 extern cmd_t pop_blister_packs_cmd;
-extern cmd_t write_flash_cmd;
-extern cmd_t read_flash_cmd;
+extern cmd_t write_mem_cmd;
+extern cmd_t read_mem_cmd;
 extern cmd_t start_aut_data_col_cmd;
 
 void nop_fn(void);
