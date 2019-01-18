@@ -57,6 +57,7 @@ void handle_eps_hk(const uint8_t* data){
 
     // Save the data to the local array
     if (field_num < CAN_EPS_HK_GET_COUNT) {
+        print("Received EPS_HK #%u\n", field_num);
         eps_hk_fields[field_num] =
                 (((uint32_t) data[3]) << 16) |
                 (((uint32_t) data[4]) << 8) |
@@ -68,6 +69,15 @@ void handle_eps_hk(const uint8_t* data){
     if (next_field_num < CAN_EPS_HK_GET_COUNT) {
         enqueue_eps_hk_tx_msg(next_field_num);
     }
+
+    print("current_cmd = %u\n", current_cmd.fn);
+    print("req_eps_hk_cmd = %u\n", req_eps_hk_cmd.fn);
+    // If we have received all the fields
+    if ((current_cmd.fn == req_eps_hk_cmd.fn) && (field_num == CAN_EPS_HK_GET_COUNT - 1)) {
+        print("Done EPS_HK\n");
+        finish_current_cmd(true);
+    }
+    print("current_cmd = %u\n", current_cmd.fn);
 }
 
 
@@ -87,6 +97,12 @@ void handle_pay_hk(const uint8_t* data){
     if (next_field_num < CAN_PAY_HK_GET_COUNT) {
         enqueue_pay_hk_tx_msg(next_field_num);
     }
+
+    // // If we have received all the fields
+    // if (current_cmd.fn == req_pay_hk_cmd.fn && field_num == CAN_PAY_HK_GET_COUNT - 1) {
+    //     // print("Done PAY_HK\n");
+    //     finish_current_cmd(true);
+    // }
 }
 
 void handle_pay_sci(const uint8_t* data){
@@ -105,14 +121,26 @@ void handle_pay_sci(const uint8_t* data){
     if (next_field_num < CAN_PAY_SCI_GET_COUNT){
         enqueue_pay_opt_tx_msg(next_field_num);
     }
+
+    // // If we have received all the fields
+    // if (current_cmd.fn == req_pay_opt_cmd.fn && field_num == CAN_PAY_SCI_GET_COUNT - 1) {
+    //     // print("Done PAY_SCI\n");
+    //     finish_current_cmd(true);
+    // }
 }
 
 void handle_pay_motor(const uint8_t* data){
     uint8_t field_num = data[2];
 
     if (field_num == CAN_PAY_EXP_POP) {
-        print("Popped blister packs\n");
+        print("Popped BP\n");
     }
+
+    // // If we have received the field
+    // if (current_cmd.fn == pop_blister_packs_cmd.fn && field_num == CAN_PAY_EXP_POP) {
+    //     print("Done PAY_EXP_POP\n");
+    //     finish_current_cmd(true);
+    // }
 }
 
 

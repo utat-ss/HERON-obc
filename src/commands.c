@@ -12,8 +12,18 @@ void aut_data_col_timer_cb(void);
 void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error);
 
 
+void nop_fn(void) {}
+
 // Queue of commands that need to be executed but have not been executed yet
 queue_t cmd_queue;
+
+// TODO - sort out where to put volatile
+// The currently executing command (or NULL for no command executing)
+volatile cmd_t current_cmd = {
+    .fn = nop_fn
+};
+// true if the previous command succeeded or false if it failed
+volatile bool previous_cmd_succeeded = false;
 
 // All possible commands
 cmd_t req_eps_hk_cmd = {
@@ -45,21 +55,21 @@ cmd_t start_aut_data_col_cmd = {
 
 // Starts requesting EPS HK data (field 0)
 void req_eps_hk_fn(void) {
-    print("Requesting EPS_HK\n");
+    print("Starting EPS_HK\n");
     populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, 0x00);
     enqueue_eps_hk_tx_msg(0);
 }
 
 // Starts requesting PAY HK data (field 0)
 void req_pay_hk_fn(void) {
-    print ("Requesting PAY_HK\n");
+    print ("Starting PAY_HK\n");
     populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, 0x00);
     enqueue_pay_hk_tx_msg(0);
 }
 
 // Starts requesting PAY SCI data (field 0)
 void req_pay_opt_fn(void) {
-    print ("Requesting PAY_OPT\n");
+    print ("Starting PAY_OPT\n");
     populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, 0x00);
     enqueue_pay_opt_tx_msg(0);
 }
@@ -84,6 +94,8 @@ void write_flash_fn(void) {
     write_all_mem_sections_eeprom();
 
     print("Wrote memory\n");
+
+    finish_current_cmd(true);
 }
 
 // TODO
@@ -96,12 +108,22 @@ void read_flash_fn(void) {
         &pay_opt_header, pay_opt_fields);
 
     print("Read memory\n");
+
+    finish_current_cmd(true);
 }
 
 void start_aut_data_col_fn(void) {
     init_timer_16bit(AUT_DATA_COL_PERIOD, aut_data_col_timer_cb);
     print("Started timer\n");
+    finish_current_cmd(true);
 }
+
+// Finishes executing the current command and sets the succeeded flag
+void finish_current_cmd(bool succeeded) {
+    current_cmd.fn = nop_fn;
+    previous_cmd_succeeded = succeeded;
+}
+
 
 
 

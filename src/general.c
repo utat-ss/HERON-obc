@@ -13,7 +13,7 @@ void init_obc_core(void) {
     init_spi();
 
     init_mem();
-    
+
     init_rtc();
 
     read_all_mem_sections_eeprom();
@@ -39,9 +39,12 @@ void init_obc_comms(void) {
 
 // If the command queue is not empty, dequeues the next command and executes it
 void execute_next_cmd(void) {
-    if (!queue_empty(&cmd_queue)) {
+    // print("execute_next_cmd\n");
+    if (!queue_empty(&cmd_queue) && current_cmd.fn == nop_fn) {
+        print("cmd ready\n");
         cmd_t cmd;
         dequeue_cmd(&cmd_queue, &cmd);
+        current_cmd = cmd;
         (cmd.fn)();
     }
 }
