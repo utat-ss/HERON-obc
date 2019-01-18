@@ -12,19 +12,22 @@ void init_obc_core(void) {
 
     init_spi();
 
-    init_can();
-    init_rx_mob(&data_rx_mob);
-    init_tx_mob(&pay_cmd_tx_mob);
-    init_tx_mob(&eps_cmd_tx_mob);
-
     init_mem();
+    
     init_rtc();
+
+    read_all_mem_sections_eeprom();
 
     init_queue(&eps_tx_msg_queue);
     init_queue(&pay_tx_msg_queue);
     init_queue(&data_rx_msg_queue);
 
     init_queue(&cmd_queue);
+
+    init_can();
+    init_rx_mob(&data_rx_mob);
+    init_tx_mob(&pay_cmd_tx_mob);
+    init_tx_mob(&eps_cmd_tx_mob);
 
     //init_heartbeat();
 }

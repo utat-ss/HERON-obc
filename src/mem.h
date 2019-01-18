@@ -40,7 +40,7 @@ typedef struct {
 // Make the memory sections visible to other files so they can write data to sections
 extern mem_section_t eps_hk_mem_section;
 extern mem_section_t pay_hk_mem_section;
-extern mem_section_t pay_sci_mem_section;
+extern mem_section_t pay_opt_mem_section;
 extern mem_section_t* all_mem_sections[];
 
 // Chips are numbered 0-2
@@ -93,6 +93,7 @@ extern mem_section_t* all_mem_sections[];
 
 // Initialization
 void init_mem(void);
+void clear_mem_header(mem_header_t* header);
 
 // EEPROM
 void write_mem_section_eeprom(mem_section_t* section);
@@ -100,6 +101,12 @@ void write_all_mem_sections_eeprom(void);
 void read_mem_section_eeprom(mem_section_t* section);
 void read_all_mem_sections_eeprom(void);
 void inc_mem_section_curr_block(mem_section_t* section);
+
+// High-level operations - blocks
+void write_mem_block(mem_section_t* section, uint8_t block_num,
+    mem_header_t* header, uint32_t* fields);
+void read_mem_block(mem_section_t* section, uint8_t block_num,
+    mem_header_t* header, uint32_t* fields);
 
 // High-level operations - headers and fields
 void write_mem_header(mem_section_t* section, uint8_t block_num,

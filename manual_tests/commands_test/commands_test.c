@@ -16,14 +16,19 @@ If set to false, it simulate both the EPS and PAY PCBs responding to CAN message
 #include <adc/eps.h>
 #include <can/data_protocol.h>
 #include <conversions/conversions.h>
+#include <queue/queue.h>
 #include <uart/uart.h>
 #include <spi/spi.h>
 
 #include "../../src/commands.h"
 #include "../../src/general.h"
 
-// Set to true to use an actual CAN connection
-const bool use_ext_can = false;
+// Set to true to simulate communicating with EPS (without EPS actually being
+// connected over CAN)
+const bool sim_eps = true;
+// Set to true to simulate communicating with PAY (without PAY actually being
+// connected over CAN)
+const bool sim_pay = true;
 
 
 // Normal command with a string description to print on UART
@@ -49,20 +54,12 @@ cmd_t clear_local_data_cmd = {
 // All possible commands
 uart_cmd_t all_cmds[] = {
     {
-        .description = "Request EPS HK",
-        .cmd = &req_eps_hk_cmd
+        .description = "Print local data",
+        .cmd = &print_local_data_cmd
     },
     {
-        .description = "Request PAY HK",
-        .cmd = &req_pay_hk_cmd
-    },
-    {
-        .description = "Request PAY SCI",
-        .cmd = &req_pay_sci_cmd
-    },
-    {
-        .description = "Actuate motor",
-        .cmd = &actuate_motor_cmd
+        .description = "Clear local data",
+        .cmd = &clear_local_data_cmd
     },
     {
         .description = "Write local data to flash",
@@ -73,12 +70,20 @@ uart_cmd_t all_cmds[] = {
         .cmd = &read_flash_cmd
     },
     {
-        .description = "Print local data",
-        .cmd = &print_local_data_cmd
+        .description = "Request EPS HK",
+        .cmd = &req_eps_hk_cmd
     },
     {
-        .description = "Clear local data",
-        .cmd = &clear_local_data_cmd
+        .description = "Request PAY HK",
+        .cmd = &req_pay_hk_cmd
+    },
+    {
+        .description = "Request PAY OPT",
+        .cmd = &req_pay_opt_cmd
+    },
+    {
+        .description = "Pop blister packs",
+        .cmd = &pop_blister_packs_cmd
     }
 };
 // Length of array
@@ -91,40 +96,151 @@ void print_cmds(void) {
     }
 }
 
+void print_voltage(uint16_t raw_data) {
+    print(" 0x%.3X = %f V\n", raw_data, adc_eps_raw_data_to_voltage(raw_data));
+}
 
-// TODO - convert and show units
+void print_current(uint16_t raw_data) {
+    print(" 0x%.3X = %f A\n", raw_data, adc_eps_raw_data_to_current(raw_data));
+}
+
+void print_therm_temp(uint16_t raw_data) {
+    print(" 0x%.3X = %f C\n", raw_data,
+        therm_res_to_temp(
+        therm_vol_to_res(
+        adc_raw_data_to_raw_voltage(raw_data))));
+}
+
+void print_imu_data(uint16_t raw_data) {
+    print(" 0x%.4X\n", raw_data);
+}
+
+void print_header(mem_header_t header) {
+    print("block_num = %u, error = %u, ", header.block_num, header.error);
+    print("date = %02u:%02u:%02u, time = %02u:%02u:%02u\n",
+        header.date.yy, header.date.mm, header.date.dd,
+        header.time.hh, header.time.mm, header.time.ss);
+}
+
 void print_local_data_fn(void) {
-    print("EPS HK:\n");
-    for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
-        print("%.3lu ", eps_hk_data[i]);
+    print("\nEPS HK:\n");
+
+    // print("Header: ");
+    print_header(eps_hk_header);
+
+    // print("Fields: ");
+    for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
+        print("0x%.6lX ", eps_hk_fields[i]);
     }
     print("\n");
 
-    print("PAY HK:\n");
-    for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
-        print("%.4lu ", pay_hk_data[i]);
+    // print("BB Vol:");
+    // print_voltage(eps_hk_fields[CAN_EPS_HK_BB_VOL]);
+    // print("BB Cur:");
+    // print_current(eps_hk_fields[CAN_EPS_HK_BB_CUR]);
+    // print("BT Vol:");
+    // print_voltage(eps_hk_fields[CAN_EPS_HK_BT_VOL]);
+    // print("BT Cur:");
+    // print_current(eps_hk_fields[CAN_EPS_HK_BT_CUR]);
+    // print("+X Cur:");
+    // print_current(eps_hk_fields[CAN_EPS_HK_PX_CUR]);
+    // print("-X Cur:");
+    // print_current(eps_hk_fields[CAN_EPS_HK_NX_CUR]);
+    // print("+Y Cur:");
+    // print_current(eps_hk_fields[CAN_EPS_HK_PY_CUR]);
+    // print("-Y Cur:");
+    // print_current(eps_hk_fields[CAN_EPS_HK_NY_CUR]);
+    // print("Bat Vol:");
+    // print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
+    // print("Bat Cur:");
+    // print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
+    // print("Bat Temp 1:");
+    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP1]);
+    // print("Bat Temp 2:");
+    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP2]);
+    // print("Acc X:");
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_X]);
+    // print("Acc Y:");
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_Y]);
+    // print("Acc Z:");
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_Z]);
+    // print("Gyr X:");
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_GYR_X]);
+    // print("Gyr Y:");
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_GYR_Y]);
+    // print("Gyr Z:");
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_GYR_Z]);
+    // print("Mag X:");
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_X]);
+    // print("Mag Y:");
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Y]);
+    // print("Mag Z:");
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Z]);
+    // print("Bat Temp Setpt 1:");
+    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC1]);
+    // print("Bat Temp Setpt 2:");
+    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC2]);
+
+    print("\nPAY HK:\n");
+
+    // print("Header: ");
+    print_header(pay_hk_header);
+
+    // print("Fields: ");
+    for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
+        print("0x%.6lX ", pay_hk_fields[i]);
     }
     print("\n");
 
-    print("PAY SCI:\n");
-    for (uint8_t i = 0; i < CAN_PAY_SCI_FIELD_COUNT; i++) {
-        print("%.6lu ", pay_sci_data[i]);
+    // print("Temp: 0x%.6lX = %f C\n", pay_hk_fields[CAN_PAY_HK_TEMP],
+    //     temp_raw_data_to_temperature(pay_hk_fields[CAN_PAY_HK_TEMP]));
+    // print("Hum: 0x%.6lX = %f %%RH\n", pay_hk_fields[CAN_PAY_HK_HUM],
+    //     hum_raw_data_to_humidity(pay_hk_fields[CAN_PAY_HK_HUM]));
+    // print("Pres: 0x%.6lX = %f kPa\n", pay_hk_fields[CAN_PAY_HK_PRES],
+    //     pres_raw_data_to_pressure(pay_hk_fields[CAN_PAY_HK_PRES]));
+    // for (uint8_t i = 0; i < 10; i++) {
+    //     print("Temp %u:", i);
+    //     print_therm_temp(pay_hk_fields[CAN_PAY_HK_THERM0 + i]);
+    // }
+    // print("Temp Setpt 1:");
+    // print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC1]);
+    // print("Temp Setpt 2:");
+    // print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC2]);
+
+    print("\nPAY OPT:\n");
+
+    // print("Header: ");
+    print_header(pay_opt_header);
+
+    // print("Fields: ");
+    for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
+        print("0x%.6lX ", pay_opt_fields[i]);
     }
     print("\n");
+
+    // for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
+    //     print("Well %u: 0x%.6lX = %f %%\n", i, pay_opt_fields[i],
+    //         ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
+    // }
+
+    // TODO - PAY EXP
 }
 
 void clear_local_data_fn(void) {
-    for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
-        eps_hk_data[i] = 0;
+    clear_mem_header(&eps_hk_header);
+    for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
+        eps_hk_fields[i] = 0;
+    }
+    clear_mem_header(&pay_hk_header);
+    for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
+        pay_hk_fields[i] = 0;
+    }
+    clear_mem_header(&pay_opt_header);
+    for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
+        pay_opt_fields[i] = 0;
     }
 
-    for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
-        pay_hk_data[i] = 0;
-    }
-
-    for (uint8_t i = 0; i < CAN_PAY_SCI_FIELD_COUNT; i++) {
-        pay_sci_data[i] = 0;
-    }
+    print("Cleared local data\n");
 }
 
 
@@ -175,6 +291,10 @@ void populate_msg_data(uint8_t* msg, uint32_t data) {
 
 // Simulates sending an EPS TX message and getting a response back
 void sim_eps_tx_msg(void) {
+    if (queue_empty(&eps_tx_msg_queue)) {
+        return;
+    }
+
     // TX and RX defined from OBC's perspective
     uint8_t tx_msg[8];
     dequeue(&eps_tx_msg_queue, tx_msg);
@@ -188,7 +308,7 @@ void sim_eps_tx_msg(void) {
     // Can return early to not send a message back
     switch (tx_msg[1]) {
         case CAN_EPS_HK:
-            if (0 <= tx_msg[2] && tx_msg[2] < CAN_EPS_HK_FIELD_COUNT) {
+            if (0 <= tx_msg[2] && tx_msg[2] < CAN_EPS_HK_GET_COUNT) {
                 // All fields are 12-bit ADC data
                 populate_msg_data(rx_msg, rand_bits(12));
             } else {
@@ -201,11 +321,16 @@ void sim_eps_tx_msg(void) {
 
     // Simulate waiting to receive the message
     delay_random_ms(100);
+    // print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);
 }
 
 // Simulates sending an EPS TX message and getting a response back
 void sim_pay_tx_msg(void) {
+    if (queue_empty(&pay_tx_msg_queue)) {
+        return;
+    }
+
     // TX and RX defined from OBC's perspective
     uint8_t tx_msg[8];
     dequeue(&pay_tx_msg_queue, tx_msg);
@@ -221,35 +346,45 @@ void sim_pay_tx_msg(void) {
         case CAN_PAY_HK:
             if (tx_msg[2] == CAN_PAY_HK_TEMP) {
                 populate_msg_data(rx_msg, rand_bits(16));
-            } else if (tx_msg[2] == CAN_PAY_HK_HUMID) {
+            } else if (tx_msg[2] == CAN_PAY_HK_HUM) {
                 populate_msg_data(rx_msg, rand_bits(14));
             } else if (tx_msg[2] == CAN_PAY_HK_PRES) {
                 populate_msg_data(rx_msg, rand_bits(24));
+            } else if (CAN_PAY_HK_THERM0 <= tx_msg[2] &&
+                    tx_msg[2] < CAN_PAY_HK_THERM0 + 10) {
+                populate_msg_data(rx_msg, rand_bits(12));
+            } else if (tx_msg[2] == CAN_PAY_HK_GET_DAC1 ||
+                    tx_msg[2] == CAN_PAY_HK_GET_DAC2) {
+                populate_msg_data(rx_msg, rand_bits(12));
             } else {
                 return;
             }
             break;
-        case CAN_PAY_SCI:
-            if (0 <= tx_msg[2] && tx_msg[2] < CAN_PAY_SCI_FIELD_COUNT) {
+
+        case CAN_PAY_OPT:
+            if (0 <= tx_msg[2] && tx_msg[2] < CAN_PAY_SCI_GET_COUNT) {
                 // All fields are 24-bit ADC data
                 populate_msg_data(rx_msg, rand_bits(24));
             } else {
                 return;
             }
             break;
-        case CAN_PAY_MOTOR:
-            if (tx_msg[2] == CAN_PAY_MOTOR_ACTUATE) {
+
+        case CAN_PAY_EXP:
+            if (tx_msg[2] == CAN_PAY_EXP_POP) {
                 // Don't need to populate anything
             } else {
                 return;
             }
             break;
+
         default:
             return;
     }
 
     // Simulate waiting to receive the message
     delay_random_ms(100);
+    // print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);
 }
 
@@ -258,12 +393,12 @@ void sim_pay_tx_msg(void) {
 
 uint8_t uart_cb(const uint8_t* data, uint8_t len) {
     if (len == 0) {
-        print("No UART\n");
         return 0;
     }
 
     // Print the typed character
     print("%c\n", data[0]);
+    print("0x%.2X\n", data[0]);
 
     // Check for printing the help menu
     if (data[0] == 'h') {
@@ -288,23 +423,42 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
 
 int main(void){
     init_obc_core();
-    print("\n\n\nInitialized OBC core\n");
 
-    print("At any time, press h to show the command menu\n");
+    print("\n\n\nStarting commands test\n\n");
+    // print("Initialized OBC core\n\n");
+    print("mem current block numbers: ");
+    print("eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
+        eps_hk_mem_section.curr_block,
+        pay_hk_mem_section.curr_block,
+        pay_opt_mem_section.curr_block);
+
+    set_uart_rx_cb(uart_cb);
+
+    print("At any time, press h to show the command menu\n\n");
     print_cmds();
-    register_callback(uart_cb);
 
     while (1) {
-        // If we are using external CAN, physically send the messages
-        if (use_ext_can) {
+        // Either simulate EPS over CAN or actually send the CAN message
+        if (sim_eps) {
+            sim_eps_tx_msg();
+        }  else {
             send_next_eps_tx_msg();
+        }
+
+        // Either simulate PAY over CAN or actually send the CAN message
+        if (sim_pay) {
+            sim_pay_tx_msg();
+        }  else {
             send_next_pay_tx_msg();
         }
-        // If we are not using external CAN, simulate sending messages
-        else {
-            sim_eps_tx_msg();
-            sim_pay_tx_msg();
-        }
+
+        // print("data_rx_msg_queue: head = %u, tail = %u\n", data_rx_msg_queue.head, data_rx_msg_queue.tail);
+        // if (!queue_empty(&data_rx_msg_queue)) {
+        //     uint8_t msg[8];
+        //     peek_queue(&data_rx_msg_queue, msg);
+        //     print("data_rx_msg_queue: peek = ");
+        //     print_bytes(msg, 8);
+        // }
 
         process_next_rx_msg();
 

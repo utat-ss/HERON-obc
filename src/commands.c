@@ -2,10 +2,12 @@
 
 void req_eps_hk_fn(void);
 void req_pay_hk_fn(void);
-void req_pay_sci_fn(void);
-void actuate_motor_fn(void);
+void req_pay_opt_fn(void);
+void pop_blister_packs_fn(void);
 void write_flash_fn(void);
 void read_flash_fn(void);
+
+void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error);
 
 
 // Queue of commands that need to be executed but have not been executed yet
@@ -18,11 +20,11 @@ cmd_t req_eps_hk_cmd = {
 cmd_t req_pay_hk_cmd = {
     .fn = req_pay_hk_fn
 };
-cmd_t req_pay_sci_cmd = {
-    .fn = req_pay_sci_fn
+cmd_t req_pay_opt_cmd = {
+    .fn = req_pay_opt_fn
 };
-cmd_t actuate_motor_cmd = {
-    .fn = actuate_motor_fn
+cmd_t pop_blister_packs_cmd = {
+    .fn = pop_blister_packs_fn
 };
 cmd_t write_flash_cmd = {
     .fn = write_flash_fn
@@ -38,39 +40,50 @@ cmd_t read_flash_cmd = {
 
 // Starts requesting EPS HK data (field 0)
 void req_eps_hk_fn(void) {
-    enqueue_eps_hk_req_can_msg(0);
+    populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, 0x00);
+    enqueue_eps_hk_tx_msg(0);
 }
 
 // Starts requesting PAY HK data (field 0)
 void req_pay_hk_fn(void) {
-    enqueue_pay_hk_req_can_msg(0);
+    populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, 0x00);
+    enqueue_pay_hk_tx_msg(0);
 }
 
 // Starts requesting PAY SCI data (field 0)
-void req_pay_sci_fn(void) {
-    enqueue_pay_sci_req_can_msg(0);
+void req_pay_opt_fn(void) {
+    populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, 0x00);
+    enqueue_pay_opt_tx_msg(0);
 }
 
 // Sends the command to actuate the motors
-void actuate_motor_fn(void) {
-    enqueue_actuate_motor_can_msg();
+void pop_blister_packs_fn(void) {
+    enqueue_pay_exp_tx_msg(CAN_PAY_EXP_POP);
 }
 
-// TODO
 void write_flash_fn(void) {
-  // write_to_flash(PAY_HK_TYPE,0,(uint8_t*) pay_hk_data);
-  // write_to_flash(SCI_TYPE,0,(uint8_t*) pay_sci_data);
-  // write_to_flash(EPS_HK_TYPE,0,(uint8_t*) eps_hk_data);
+    write_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
+        &eps_hk_header, eps_hk_fields);
+    write_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
+        &pay_hk_header, pay_hk_fields);
+    write_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
+        &pay_opt_header, pay_opt_fields);
+
+    // Increment block numbers
+    inc_mem_section_curr_block(&eps_hk_mem_section);
+    inc_mem_section_curr_block(&pay_hk_mem_section);
+    inc_mem_section_curr_block(&pay_opt_mem_section);
+    write_all_mem_sections_eeprom();
 }
 
 // TODO
 void read_flash_fn(void) {
-    // TODO
-    // read_from_flash(PAY_HK_TYPE,(uint8_t*)pay_hk_data,CAN_PAY_HK_FIELD_COUNT*0X04);
-    // TODO
-    // read_from_flash(SCI_TYPE, (uint8_t*)pay_sci_data,CAN_PAY_SCI_FIELD_COUNT*0x04);
-    // TODO
-    // read_from_flash(EPS_HK_TYPE,(uint8_t*)eps_hk_data,EPS_HK_FIELD_COUNT*0x04 + 6); // Add 6 for header (unsure of why it's not 8)
+    read_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block - 1,
+        &eps_hk_header, eps_hk_fields);
+    read_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block - 1,
+        &pay_hk_header, pay_hk_fields);
+    read_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block - 1,
+        &pay_opt_header, pay_opt_fields);
 }
 
 // TODO
@@ -80,6 +93,15 @@ void read_flash_fn(void) {
 // }
 
 
+/*
+Populates the block number, error, and current live date/time.
+*/
+void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error) {
+    header->block_num = block_num;
+    header->error = error;
+    header->date = read_rtc_date();
+    header->time = read_rtc_time();
+}
 
 
 // We know that the microcontroller uses 16 bit addresses, so store a function
@@ -93,6 +115,8 @@ cmd - Command (with cmd->fn already set before calling this function) to enqueue
 void enqueue_cmd(queue_t* queue, cmd_t* cmd) {
     // Cast the cmd_fn_t function pointer to a uint16
     uint16_t fn_ptr = (uint16_t) cmd->fn;
+
+    // print("enqueue: fn_ptr = %x\n", fn_ptr);
 
     // Enqueue the command as an 8-byte array
     uint8_t data[8] = {0};
@@ -111,6 +135,8 @@ void dequeue_cmd(queue_t* queue, cmd_t* cmd) {
     uint8_t data[8] = {0};
     dequeue(queue, data);
     uint16_t fn_ptr = (((uint16_t) data[0]) << 8) | ((uint16_t) data[1]);
+
+    // print("dequeue: fn_ptr = %x\n", fn_ptr);
 
     // Cast the uint16 to a cmd_fn_t function pointer
     cmd->fn = (cmd_fn_t) fn_ptr;
