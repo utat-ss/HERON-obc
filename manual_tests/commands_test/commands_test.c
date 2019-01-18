@@ -70,6 +70,10 @@ uart_cmd_t all_cmds[] = {
         .cmd = &read_flash_cmd
     },
     {
+        .description = "Start automatic data collection",
+        .cmd = &start_aut_data_col_cmd
+    },
+    {
         .description = "Request EPS HK",
         .cmd = &req_eps_hk_cmd
     },

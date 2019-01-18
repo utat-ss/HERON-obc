@@ -6,7 +6,9 @@ void req_pay_opt_fn(void);
 void pop_blister_packs_fn(void);
 void write_flash_fn(void);
 void read_flash_fn(void);
+void start_aut_data_col_fn(void);
 
+void aut_data_col_timer_cb(void);
 void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error);
 
 
@@ -32,6 +34,9 @@ cmd_t write_flash_cmd = {
 cmd_t read_flash_cmd = {
     .fn = read_flash_fn
 };
+cmd_t start_aut_data_col_cmd = {
+    .fn = start_aut_data_col_fn
+};
 
 
 
@@ -40,18 +45,21 @@ cmd_t read_flash_cmd = {
 
 // Starts requesting EPS HK data (field 0)
 void req_eps_hk_fn(void) {
+    print("Requesting EPS_HK\n");
     populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, 0x00);
     enqueue_eps_hk_tx_msg(0);
 }
 
 // Starts requesting PAY HK data (field 0)
 void req_pay_hk_fn(void) {
+    print ("Requesting PAY_HK\n");
     populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, 0x00);
     enqueue_pay_hk_tx_msg(0);
 }
 
 // Starts requesting PAY SCI data (field 0)
 void req_pay_opt_fn(void) {
+    print ("Requesting PAY_OPT\n");
     populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, 0x00);
     enqueue_pay_opt_tx_msg(0);
 }
@@ -74,6 +82,8 @@ void write_flash_fn(void) {
     inc_mem_section_curr_block(&pay_hk_mem_section);
     inc_mem_section_curr_block(&pay_opt_mem_section);
     write_all_mem_sections_eeprom();
+
+    print("Wrote memory\n");
 }
 
 // TODO
@@ -84,13 +94,26 @@ void read_flash_fn(void) {
         &pay_hk_header, pay_hk_fields);
     read_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block - 1,
         &pay_opt_header, pay_opt_fields);
+
+    print("Read memory\n");
 }
 
-// TODO
-// void update_heartbeat_fn(void) {
-//   *self_status += 1;
-//   heartbeat();
-// }
+void start_aut_data_col_fn(void) {
+    init_timer_16bit(AUT_DATA_COL_PERIOD, aut_data_col_timer_cb);
+    print("Started timer\n");
+}
+
+
+
+
+// Automatic data collection timer callback
+void aut_data_col_timer_cb(void) {
+    print("Timer cb\n");
+    enqueue_cmd(&cmd_queue, &req_eps_hk_cmd);
+    enqueue_cmd(&cmd_queue, &req_pay_hk_cmd);
+    enqueue_cmd(&cmd_queue, &req_pay_opt_cmd);
+    enqueue_cmd(&cmd_queue, &write_flash_cmd);
+}
 
 
 /*
