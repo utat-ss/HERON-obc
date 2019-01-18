@@ -4,14 +4,26 @@ void req_eps_hk_fn(void);
 void req_pay_hk_fn(void);
 void req_pay_opt_fn(void);
 void pop_blister_packs_fn(void);
-void write_flash_fn(void);
-void read_flash_fn(void);
+void write_mem_fn(void);
+void read_mem_fn(void);
+void start_aut_data_col_fn(void);
 
+void aut_data_col_timer_cb(void);
 void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error);
 
 
+void nop_fn(void) {}
+
 // Queue of commands that need to be executed but have not been executed yet
 queue_t cmd_queue;
+
+// The currently executing command (or nop_fn for no command executing)
+// NOTE: need to compare the function pointer, not the command pointer (could have a duplicate of the command struct but the function pointer will always be the same for the same command)
+volatile cmd_t current_cmd = {
+    .fn = nop_fn
+};
+// true if the previous command succeeded or false if it failed
+volatile bool previous_cmd_succeeded = false;
 
 // All possible commands
 cmd_t req_eps_hk_cmd = {
@@ -26,11 +38,14 @@ cmd_t req_pay_opt_cmd = {
 cmd_t pop_blister_packs_cmd = {
     .fn = pop_blister_packs_fn
 };
-cmd_t write_flash_cmd = {
-    .fn = write_flash_fn
+cmd_t write_mem_cmd = {
+    .fn = write_mem_fn
 };
-cmd_t read_flash_cmd = {
-    .fn = read_flash_fn
+cmd_t read_mem_cmd = {
+    .fn = read_mem_fn
+};
+cmd_t start_aut_data_col_cmd = {
+    .fn = start_aut_data_col_fn
 };
 
 
@@ -40,18 +55,21 @@ cmd_t read_flash_cmd = {
 
 // Starts requesting EPS HK data (field 0)
 void req_eps_hk_fn(void) {
+    print("Starting EPS_HK\n");
     populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, 0x00);
     enqueue_eps_hk_tx_msg(0);
 }
 
 // Starts requesting PAY HK data (field 0)
 void req_pay_hk_fn(void) {
+    print ("Starting PAY_HK\n");
     populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, 0x00);
     enqueue_pay_hk_tx_msg(0);
 }
 
-// Starts requesting PAY SCI data (field 0)
+// Starts requesting PAY OPT data (field 0)
 void req_pay_opt_fn(void) {
+    print ("Starting PAY_OPT\n");
     populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, 0x00);
     enqueue_pay_opt_tx_msg(0);
 }
@@ -61,7 +79,7 @@ void pop_blister_packs_fn(void) {
     enqueue_pay_exp_tx_msg(CAN_PAY_EXP_POP);
 }
 
-void write_flash_fn(void) {
+void write_mem_fn(void) {
     write_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
         &eps_hk_header, eps_hk_fields);
     write_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
@@ -74,23 +92,51 @@ void write_flash_fn(void) {
     inc_mem_section_curr_block(&pay_hk_mem_section);
     inc_mem_section_curr_block(&pay_opt_mem_section);
     write_all_mem_sections_eeprom();
+
+    print("Wrote memory\n");
+
+    finish_current_cmd(true);
 }
 
 // TODO
-void read_flash_fn(void) {
+void read_mem_fn(void) {
     read_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block - 1,
         &eps_hk_header, eps_hk_fields);
     read_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block - 1,
         &pay_hk_header, pay_hk_fields);
     read_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block - 1,
         &pay_opt_header, pay_opt_fields);
+
+    print("Read memory\n");
+
+    finish_current_cmd(true);
 }
 
-// TODO
-// void update_heartbeat_fn(void) {
-//   *self_status += 1;
-//   heartbeat();
-// }
+void start_aut_data_col_fn(void) {
+    init_timer_16bit(AUT_DATA_COL_PERIOD, aut_data_col_timer_cb);
+    print("Started timer\n");
+    finish_current_cmd(true);
+}
+
+// Finishes executing the current command and sets the succeeded flag
+void finish_current_cmd(bool succeeded) {
+    current_cmd.fn = nop_fn;
+    previous_cmd_succeeded = succeeded;
+    print("Finished cmd\n");
+}
+
+
+
+
+
+// Automatic data collection timer callback
+void aut_data_col_timer_cb(void) {
+    print("Timer cb\n");
+    enqueue_cmd(&cmd_queue, &req_eps_hk_cmd);
+    enqueue_cmd(&cmd_queue, &req_pay_hk_cmd);
+    enqueue_cmd(&cmd_queue, &req_pay_opt_cmd);
+    enqueue_cmd(&cmd_queue, &write_mem_cmd);
+}
 
 
 /*

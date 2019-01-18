@@ -62,12 +62,16 @@ uart_cmd_t all_cmds[] = {
         .cmd = &clear_local_data_cmd
     },
     {
-        .description = "Write local data to flash",
-        .cmd = &write_flash_cmd
+        .description = "Write local data to mem",
+        .cmd = &write_mem_cmd
     },
     {
-        .description = "Read flash to local data",
-        .cmd = &read_flash_cmd
+        .description = "Read mem to local data",
+        .cmd = &read_mem_cmd
+    },
+    {
+        .description = "Start timer",
+        .cmd = &start_aut_data_col_cmd
     },
     {
         .description = "Request EPS HK",
@@ -223,7 +227,7 @@ void print_local_data_fn(void) {
     //         ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
     // }
 
-    // TODO - PAY EXP
+    finish_current_cmd(true);
 }
 
 void clear_local_data_fn(void) {
@@ -241,6 +245,8 @@ void clear_local_data_fn(void) {
     }
 
     print("Cleared local data\n");
+
+    finish_current_cmd(true);
 }
 
 
@@ -413,7 +419,7 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
     }
 
     else {
-        print("Invalid command\n");
+        print("Invalid cmd\n");
     }
 
     // Processed 1 character
@@ -426,15 +432,15 @@ int main(void){
 
     print("\n\n\nStarting commands test\n\n");
     // print("Initialized OBC core\n\n");
-    print("mem current block numbers: ");
-    print("eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
-        eps_hk_mem_section.curr_block,
-        pay_hk_mem_section.curr_block,
-        pay_opt_mem_section.curr_block);
+    // print("mem blocks: ");
+    // print("eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
+    //     eps_hk_mem_section.curr_block,
+    //     pay_hk_mem_section.curr_block,
+    //     pay_opt_mem_section.curr_block);
 
     set_uart_rx_cb(uart_cb);
 
-    print("At any time, press h to show the command menu\n\n");
+    print("Press h to list commands\n\n");
     print_cmds();
 
     while (1) {
