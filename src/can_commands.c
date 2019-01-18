@@ -1,12 +1,19 @@
 #include "can_commands.h"
 
+// TODO - refactor
+#define DEFAULT_RTC_DATE { .yy = 0, .mm = 0, .dd = 0 }
+#define DEFAULT_RTC_TIME { .hh = 0, .mm = 0, .ss = 0 }
+
 queue_t eps_tx_msg_queue;
 queue_t pay_tx_msg_queue;
 queue_t data_rx_msg_queue;
 
-uint32_t eps_hk_data[CAN_EPS_HK_GET_COUNT] = { 0 };
-uint32_t pay_hk_data[CAN_PAY_HK_GET_COUNT] = { 0 };
-uint32_t pay_opt_data[CAN_PAY_SCI_GET_COUNT] = { 0 };
+mem_header_t eps_hk_header;
+uint32_t eps_hk_fields[CAN_EPS_HK_GET_COUNT] = { 0 };
+mem_header_t pay_hk_header;
+uint32_t pay_hk_fields[CAN_PAY_HK_GET_COUNT] = { 0 };
+mem_header_t pay_opt_header;
+uint32_t pay_opt_fields[CAN_PAY_SCI_GET_COUNT] = { 0 };
 
 
 void handle_pay_hk(const uint8_t* data);
@@ -16,7 +23,7 @@ void handle_pay_motor(const uint8_t* data);
 
 
 void handle_rx_msg(void) {
-    print("%s\n", __FUNCTION__);
+    // print("%s\n", __FUNCTION__);
     if (queue_empty(&data_rx_msg_queue)) {
         return;
     }
@@ -54,7 +61,7 @@ void handle_eps_hk(const uint8_t* data){
 
     // Save the data to the local array
     if (field_num < CAN_EPS_HK_GET_COUNT) {
-        eps_hk_data[field_num] =
+        eps_hk_fields[field_num] =
                 (((uint32_t) data[3]) << 16) |
                 (((uint32_t) data[4]) << 8) |
                 ((uint32_t) data[5]);
@@ -73,8 +80,8 @@ void handle_pay_hk(const uint8_t* data){
 
     // Save the data to the local array
     if (field_num < CAN_PAY_HK_GET_COUNT) {
-        // print("modifying pay_hk_data[%u]\n", field_num);
-        pay_hk_data[field_num] =
+        // print("modifying pay_hk_fields[%u]\n", field_num);
+        pay_hk_fields[field_num] =
                 (((uint32_t) data[3]) << 16) |
                 (((uint32_t) data[4]) << 8) |
                 ((uint32_t) data[5]);
@@ -92,7 +99,7 @@ void handle_pay_sci(const uint8_t* data){
     // Save the data to the local array
     if (field_num < CAN_PAY_SCI_GET_COUNT) {
         // Save data
-        pay_opt_data[field_num] =
+        pay_opt_fields[field_num] =
                 (((uint32_t) data[3]) << 16) |
                 (((uint32_t) data[4]) << 8) |
                 ((uint32_t) data[5]);

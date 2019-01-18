@@ -29,7 +29,7 @@ void print_section(char* name, mem_section_t* section) {
 void print_sections(void) {
     print_section("EPS_HK", &eps_hk_mem_section);
     print_section("PAY_HK", &pay_hk_mem_section);
-    print_section("PAY_SCI", &pay_sci_mem_section);
+    print_section("PAY_SCI", &pay_opt_mem_section);
 }
 
 void print_header(mem_header_t* header) {
@@ -66,7 +66,7 @@ void test_eeprom(void) {
 
     inc_mem_section_curr_block(&eps_hk_mem_section);
     inc_mem_section_curr_block(&pay_hk_mem_section);
-    inc_mem_section_curr_block(&pay_sci_mem_section);
+    inc_mem_section_curr_block(&pay_opt_mem_section);
     write_all_mem_sections_eeprom();
     print("Incremented all current blocks and wrote to EEPROM\n");
 }
@@ -147,11 +147,11 @@ int main(void) {
 
     test_header("EPS_HK", &eps_hk_mem_section);
     test_header("PAY_HK", &pay_hk_mem_section);
-    test_header("PAY_SCI", &pay_sci_mem_section);
+    test_header("PAY_SCI", &pay_opt_mem_section);
 
     test_field("EPS_HK", &eps_hk_mem_section);
     test_field("PAY_HK", &pay_hk_mem_section);
-    test_field("PAY_SCI", &pay_sci_mem_section);
+    test_field("PAY_SCI", &pay_opt_mem_section);
 
     print ("\n*** End of test ***\n");
 }

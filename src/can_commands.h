@@ -9,14 +9,19 @@
 
 #include "can_interface.h"
 #include "commands.h"
+#include "mem.h"
+#include "rtc.h"
 
 extern queue_t eps_tx_msg_queue;
 extern queue_t pay_tx_msg_queue;
 extern queue_t data_rx_msg_queue;
 
-extern uint32_t eps_hk_data[];
-extern uint32_t pay_hk_data[];
-extern uint32_t pay_opt_data[];
+extern mem_header_t eps_hk_header;
+extern uint32_t eps_hk_fields[];
+extern mem_header_t pay_hk_header;
+extern uint32_t pay_hk_fields[];
+extern mem_header_t pay_opt_header;
+extern uint32_t pay_opt_fields[];
 
 void handle_rx_msg(void);
 

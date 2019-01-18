@@ -6,6 +6,7 @@
 #include <can/data_protocol.h>
 
 #include "can_interface.h"
+#include "mem.h"
 
 // Callback function signature to run a command
 typedef void(*cmd_fn_t)(void);

@@ -41,6 +41,19 @@ void compare_write_read(uint8_t* write, uint8_t* read, uint8_t len) {
 }
 
 
+void test_misc(void) {
+    uint32_t addr = 0x2E0000UL;
+    uint8_t write[3] = { 0x2F, 0x37, 0x94 };
+    uint8_t read[3] = { 0x00 };
+
+    erase_mem();
+    write_mem_bytes(addr, write, 3);
+    read_mem_bytes(addr, read, 3);
+    print_write_read(addr, write, read, 3);
+}
+
+
+
 #define SINGLE_ADDR 0x3ABCDE
 #define SINGLE_DATA 0xA7
 
@@ -217,6 +230,8 @@ int main(void) {
     init_mem();
 
     print("\n\n\nStarting memory tests\n");
+
+    // test_misc();
 
     test_single_write_read();
     test_erase();

@@ -54,18 +54,19 @@ mem_section_t pay_hk_mem_section = {
     .fields_per_block = CAN_PAY_HK_GET_COUNT   // Should be 3
 };
 
-mem_section_t pay_sci_mem_section = {
-    .start_addr = 0x200000UL,
+mem_section_t pay_opt_mem_section = {
+    // TODO - should be 0x200000
+    .start_addr = 0x400000UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x28,
-    .fields_per_block = CAN_PAY_SCI_GET_COUNT   // Should be 33
+    .fields_per_block = CAN_PAY_SCI_GET_COUNT   // Should be 36
 };
 
 // All memory sections
 mem_section_t* all_mem_sections[MEM_NUM_SECTIONS] = {
     &eps_hk_mem_section,
     &pay_hk_mem_section,
-    &pay_sci_mem_section
+    &pay_opt_mem_section
 };
 
 
@@ -100,7 +101,7 @@ Writes data for all memory sections to EEPROM.
 void write_all_mem_sections_eeprom(void) {
     write_mem_section_eeprom(&eps_hk_mem_section);
     write_mem_section_eeprom(&pay_hk_mem_section);
-    write_mem_section_eeprom(&pay_sci_mem_section);
+    write_mem_section_eeprom(&pay_opt_mem_section);
 }
 
 
@@ -117,7 +118,7 @@ Reads data for all memory sections from EEPROM.
 void read_all_mem_sections_eeprom(void) {
     read_mem_section_eeprom(&eps_hk_mem_section);
     read_mem_section_eeprom(&pay_hk_mem_section);
-    read_mem_section_eeprom(&pay_sci_mem_section);
+    read_mem_section_eeprom(&pay_opt_mem_section);
 }
 
 
@@ -127,6 +128,39 @@ void inc_mem_section_curr_block(mem_section_t* section) {
     NOTE: this DOES NOT update the value stored in EEPROM
     */
     section->curr_block++;
+}
+
+
+
+
+void write_mem_block(mem_section_t* section, uint8_t block_num,
+    mem_header_t* header, uint32_t* fields) {
+
+    print("%s: ", __FUNCTION__);
+    print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
+        block_num);
+
+    // Write header
+    write_mem_header(section, block_num, header);
+    // Write data fields
+    for (uint8_t i = 0; i < section->fields_per_block; i++) {
+        write_mem_field(section, block_num, i, fields[i]);
+    }
+}
+
+void read_mem_block(mem_section_t* section, uint8_t block_num,
+    mem_header_t* header, uint32_t* fields) {
+
+    print("%s: ", __FUNCTION__);
+    print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
+        block_num);
+
+    // Read header
+    read_mem_header(section, block_num, header);
+    // Read fields
+    for (uint8_t i = 0; i < section->fields_per_block; i++) {
+        fields[i] = read_mem_field(section, block_num, i);
+    }
 }
 
 
@@ -290,6 +324,9 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
         to be modified in the event of changes to the board design
 */
 
+    print("%s: ", __FUNCTION__);
+    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+
     uint8_t chip_num;
     uint8_t addr1;
     uint8_t addr2;
@@ -341,6 +378,8 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
     wait_for_mem_not_busy(chip_num);
 
     send_short_mem_command(MEM_WR_DISABLE, chip_num);
+
+    print_bytes(data, data_len);
 }
 
 
@@ -354,6 +393,9 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
         reads continously across chips (ie behaves as a continous address space)
 */
+
+    print("%s: ", __FUNCTION__);
+    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
 
     uint8_t chip_num;
     uint8_t addr1;
@@ -396,6 +438,8 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
     }
 
     set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
+
+    print_bytes(data, data_len);
 }
 
 /*
@@ -441,6 +485,9 @@ void wait_for_mem_not_busy(uint8_t chip_num) {
     uint16_t timeout;
     for (timeout = UINT16_MAX; busy && (timeout > 0); timeout--) {
         busy = read_mem_status(chip_num) & 0x01;
+    }
+    if (timeout == 0) {
+        print("MEM TIMEOUT\n");
     }
 }
 

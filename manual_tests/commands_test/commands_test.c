@@ -115,97 +115,96 @@ void print_imu_data(uint16_t raw_data) {
     print(" 0x%.4X\n", raw_data);
 }
 
-// TODO - convert and show units
 void print_local_data_fn(void) {
     print("\nEPS HK:\n");
 
     // print("Raw: ");
     for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
-        print("0x%.6lX ", eps_hk_data[i]);
+        print("0x%.6lX ", eps_hk_fields[i]);
     }
     print("\n");
 
     // print("BB Vol:");
-    // print_voltage(eps_hk_data[CAN_EPS_HK_BB_VOL]);
+    // print_voltage(eps_hk_fields[CAN_EPS_HK_BB_VOL]);
     // print("BB Cur:");
-    // print_current(eps_hk_data[CAN_EPS_HK_BB_CUR]);
+    // print_current(eps_hk_fields[CAN_EPS_HK_BB_CUR]);
     // print("BT Vol:");
-    // print_voltage(eps_hk_data[CAN_EPS_HK_BT_VOL]);
+    // print_voltage(eps_hk_fields[CAN_EPS_HK_BT_VOL]);
     // print("BT Cur:");
-    // print_current(eps_hk_data[CAN_EPS_HK_BT_CUR]);
+    // print_current(eps_hk_fields[CAN_EPS_HK_BT_CUR]);
     // print("+X Cur:");
-    // print_current(eps_hk_data[CAN_EPS_HK_PX_CUR]);
+    // print_current(eps_hk_fields[CAN_EPS_HK_PX_CUR]);
     // print("-X Cur:");
-    // print_current(eps_hk_data[CAN_EPS_HK_NX_CUR]);
+    // print_current(eps_hk_fields[CAN_EPS_HK_NX_CUR]);
     // print("+Y Cur:");
-    // print_current(eps_hk_data[CAN_EPS_HK_PY_CUR]);
+    // print_current(eps_hk_fields[CAN_EPS_HK_PY_CUR]);
     // print("-Y Cur:");
-    // print_current(eps_hk_data[CAN_EPS_HK_NY_CUR]);
+    // print_current(eps_hk_fields[CAN_EPS_HK_NY_CUR]);
     // print("Bat Vol:");
-    // print_voltage(eps_hk_data[CAN_EPS_HK_BAT_VOL]);
+    // print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
     // print("Bat Cur:");
-    // print_current(eps_hk_data[CAN_EPS_HK_BAT_CUR]);
+    // print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
     // print("Bat Temp 1:");
-    // print_therm_temp(eps_hk_data[CAN_EPS_HK_BAT_TEMP1]);
+    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP1]);
     // print("Bat Temp 2:");
-    // print_therm_temp(eps_hk_data[CAN_EPS_HK_BAT_TEMP2]);
+    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP2]);
     // print("Acc X:");
-    // print_imu_data(eps_hk_data[CAN_EPS_HK_IMU_ACC_X]);
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_X]);
     // print("Acc Y:");
-    // print_imu_data(eps_hk_data[CAN_EPS_HK_IMU_ACC_Y]);
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_Y]);
     // print("Acc Z:");
-    // print_imu_data(eps_hk_data[CAN_EPS_HK_IMU_ACC_Z]);
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_Z]);
     // print("Gyr X:");
-    // print_imu_data(eps_hk_data[CAN_EPS_HK_IMU_GYR_X]);
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_GYR_X]);
     // print("Gyr Y:");
-    // print_imu_data(eps_hk_data[CAN_EPS_HK_IMU_GYR_Y]);
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_GYR_Y]);
     // print("Gyr Z:");
-    // print_imu_data(eps_hk_data[CAN_EPS_HK_IMU_GYR_Z]);
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_GYR_Z]);
     // print("Mag X:");
-    // print_imu_data(eps_hk_data[CAN_EPS_HK_IMU_MAG_X]);
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_X]);
     // print("Mag Y:");
-    // print_imu_data(eps_hk_data[CAN_EPS_HK_IMU_MAG_Y]);
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Y]);
     // print("Mag Z:");
-    // print_imu_data(eps_hk_data[CAN_EPS_HK_IMU_MAG_Z]);
+    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Z]);
     // print("Bat Temp Setpt 1:");
-    // print_therm_temp(eps_hk_data[CAN_EPS_HK_GET_DAC1]);
+    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC1]);
     // print("Bat Temp Setpt 2:");
-    // print_therm_temp(eps_hk_data[CAN_EPS_HK_GET_DAC2]);
+    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC2]);
 
     print("\nPAY HK:\n");
 
     // print("Raw: ");
     for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
-        print("0x%.6lX ", pay_hk_data[i]);
+        print("0x%.6lX ", pay_hk_fields[i]);
     }
     print("\n");
 
-    // print("Temp: 0x%.6lX = %f C\n", pay_hk_data[CAN_PAY_HK_TEMP],
-    //     temp_raw_data_to_temperature(pay_hk_data[CAN_PAY_HK_TEMP]));
-    // print("Hum: 0x%.6lX = %f %%RH\n", pay_hk_data[CAN_PAY_HK_HUM],
-    //     hum_raw_data_to_humidity(pay_hk_data[CAN_PAY_HK_HUM]));
-    // print("Pres: 0x%.6lX = %f kPa\n", pay_hk_data[CAN_PAY_HK_PRES],
-    //     pres_raw_data_to_pressure(pay_hk_data[CAN_PAY_HK_PRES]));
+    // print("Temp: 0x%.6lX = %f C\n", pay_hk_fields[CAN_PAY_HK_TEMP],
+    //     temp_raw_data_to_temperature(pay_hk_fields[CAN_PAY_HK_TEMP]));
+    // print("Hum: 0x%.6lX = %f %%RH\n", pay_hk_fields[CAN_PAY_HK_HUM],
+    //     hum_raw_data_to_humidity(pay_hk_fields[CAN_PAY_HK_HUM]));
+    // print("Pres: 0x%.6lX = %f kPa\n", pay_hk_fields[CAN_PAY_HK_PRES],
+    //     pres_raw_data_to_pressure(pay_hk_fields[CAN_PAY_HK_PRES]));
     // for (uint8_t i = 0; i < 10; i++) {
     //     print("Temp %u:", i);
-    //     print_therm_temp(pay_hk_data[CAN_PAY_HK_THERM0 + i]);
+    //     print_therm_temp(pay_hk_fields[CAN_PAY_HK_THERM0 + i]);
     // }
     // print("Temp Setpt 1:");
-    // print_therm_temp(pay_hk_data[CAN_PAY_HK_GET_DAC1]);
+    // print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC1]);
     // print("Temp Setpt 2:");
-    // print_therm_temp(pay_hk_data[CAN_PAY_HK_GET_DAC2]);
+    // print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC2]);
 
     print("\nPAY OPT:\n");
 
     // print("Raw: ");
     for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
-        print("0x%.6lX ", pay_opt_data[i]);
+        print("0x%.6lX ", pay_opt_fields[i]);
     }
     print("\n");
 
     // for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
-    //     print("Well %u: 0x%.6lX = %f %%\n", i, pay_opt_data[i],
-    //         ((double) pay_opt_data[i]) / 0xFFFFFF * 100.0);
+    //     print("Well %u: 0x%.6lX = %f %%\n", i, pay_opt_fields[i],
+    //         ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
     // }
 
     // TODO - PAY EXP
@@ -213,13 +212,13 @@ void print_local_data_fn(void) {
 
 void clear_local_data_fn(void) {
     for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
-        eps_hk_data[i] = 0;
+        eps_hk_fields[i] = 0;
     }
     for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
-        pay_hk_data[i] = 0;
+        pay_hk_fields[i] = 0;
     }
     for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
-        pay_opt_data[i] = 0;
+        pay_opt_fields[i] = 0;
     }
 
     print("Cleared local Data\n");
@@ -408,6 +407,11 @@ int main(void){
 
     print("\n\n\nStarting commands test\n\n");
     // print("Initialized OBC core\n\n");
+    print("mem current block numbers: ");
+    print("eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
+        eps_hk_mem_section.curr_block,
+        pay_hk_mem_section.curr_block,
+        pay_opt_mem_section.curr_block);
 
     set_uart_rx_cb(uart_cb);
 

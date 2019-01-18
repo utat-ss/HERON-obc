@@ -56,21 +56,29 @@ void pop_blister_packs_fn(void) {
     enqueue_pay_exp_tx_msg(CAN_PAY_EXP_POP);
 }
 
-// TODO
 void write_flash_fn(void) {
-  // write_to_flash(PAY_HK_TYPE,0,(uint8_t*) pay_hk_data);
-  // write_to_flash(SCI_TYPE,0,(uint8_t*) pay_opt_data);
-  // write_to_flash(EPS_HK_TYPE,0,(uint8_t*) eps_hk_data);
+    write_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
+        &eps_hk_header, eps_hk_fields);
+    write_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
+        &pay_hk_header, pay_hk_fields);
+    write_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
+        &pay_opt_header, pay_opt_fields);
+
+    // Increment block numbers
+    inc_mem_section_curr_block(&eps_hk_mem_section);
+    inc_mem_section_curr_block(&pay_hk_mem_section);
+    inc_mem_section_curr_block(&pay_opt_mem_section);
+    write_all_mem_sections_eeprom();
 }
 
 // TODO
 void read_flash_fn(void) {
-    // TODO
-    // read_from_flash(PAY_HK_TYPE,(uint8_t*)pay_hk_data,CAN_PAY_HK_GET_COUNT*0X04);
-    // TODO
-    // read_from_flash(SCI_TYPE, (uint8_t*)pay_opt_data,CAN_PAY_SCI_GET_COUNT*0x04);
-    // TODO
-    // read_from_flash(EPS_HK_TYPE,(uint8_t*)eps_hk_data,EPS_HK_FIELD_COUNT*0x04 + 6); // Add 6 for header (unsure of why it's not 8)
+    read_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block - 1,
+        &eps_hk_header, eps_hk_fields);
+    read_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block - 1,
+        &pay_hk_header, pay_hk_fields);
+    read_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block - 1,
+        &pay_opt_header, pay_opt_fields);
 }
 
 // TODO
@@ -78,6 +86,7 @@ void read_flash_fn(void) {
 //   *self_status += 1;
 //   heartbeat();
 // }
+
 
 
 
