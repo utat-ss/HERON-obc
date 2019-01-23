@@ -129,7 +129,7 @@ void finish_current_cmd(bool succeeded) {
 
 
 
-// Automatic data collection timer callback
+// Automatic data collection timer callback (for 16-bit timer)
 void aut_data_col_timer_cb(void) {
     print("Timer cb\n");
     enqueue_cmd(&cmd_queue, &req_eps_hk_cmd);
