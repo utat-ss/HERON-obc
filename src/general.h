@@ -12,30 +12,23 @@
 #include "mem.h"
 #include "rtc.h"
 #include "transceiver.h"
-
-// EEPROM address for storing number of resets
-#define RESTART_COUNT_EEPROM_ADDR ((uint32_t*) 0x60)
+#include "uptime.h"
 
 // EEPROM address to store number of seconds - counting to comms init
 #define COMMS_TIME_EEPROM_ADDR ((uint32_t*) 0x34)
 // Threshold for number of seconds to wait before updating the value in EEPROM
-#define COMMS_EEPROM_UPDATE_TIME_THRESH 60
+#define COMMS_TIME_EEPROM_UPDATE_THRESH 60
 // Number of seconds to wait before initializing comms (30 minutes)
 #define COMMS_TIME_DELAY (30 * 60)
 
-// Default double word (4-byte) value in EEPROM
-#define EEPROM_DEF_DWORD 0xFFFFFFFF
 
-extern volatile uint32_t restart_count;
-extern volatile uint32_t uptime_s;
-
-extern volatile bool delaying_comms;
 extern volatile uint32_t comms_time_s;
-extern volatile uint32_t comms_time_threshold_s;
+extern volatile uint32_t comms_thresh_s;
 extern volatile uint32_t comms_eeprom_update_time_s;
 
 void init_obc_core(void);
 void init_obc_comms(void);
+void init_comms_time(void);
 void delay_comms(void);
 
 void execute_next_cmd(void);
