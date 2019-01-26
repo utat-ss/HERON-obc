@@ -13,6 +13,7 @@ Other Notes:
 #include <uart/uart.h>
 #include <utilities/utilities.h>
 #include "../../src/transceiver.h"
+#include "../../src/uptime.h"
 
 void rx_msg_cb(const uint8_t* data, uint8_t len) {
     print("Received RX msg: ");
@@ -30,6 +31,7 @@ int main(void){
 
     init_trans();
     set_trans_rx_msg_cb(rx_msg_cb);
+    start_uptime_timer();
 
     while (1) {}
 }

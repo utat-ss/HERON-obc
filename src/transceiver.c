@@ -82,6 +82,9 @@ void _trans_rx_msb_cb_nop(const uint8_t* msg, uint8_t len) {}
 // it will clear the RX buffer
 trans_rx_msg_cb_t trans_rx_msg_cb = _trans_rx_msb_cb_nop;
 
+// Last time we have received a character
+volatile uint32_t trans_rx_last_uptime_s = 0;
+
 
 
 
@@ -99,6 +102,12 @@ len - number of received characters
 Returns - number of characters processed
 */
 uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
+    // Before adding new characters, check for a timeout in receiving previous characters to possibly clear the buffer
+    if (uptime_s > trans_rx_last_uptime_s && uptime_s - trans_rx_last_uptime_s >= TRANS_RX_BUF_TIMEOUT) {
+        clear_trans_rx_buf();
+        print("Timed out and cleared RX buf\n");
+    }
+
     // Add all received characters to the buffer, make sure not to overflow
     for (uint8_t i = 0;
         (i < len) && (trans_rx_buf_len < TRANS_RX_BUF_MAX_SIZE);
@@ -106,7 +115,8 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
 
         trans_rx_buf[trans_rx_buf_len] = buf[i];
         trans_rx_buf_len++;
-        print("added to buffer: 0x%.2x\n", buf[i]);
+        // print("rcvd: 0x%.2x\n", buf[i]);
+        // print("%.2x\n", buf[i]);
     }
 
     // Scan what we have in the buffer now
@@ -119,6 +129,9 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
         trans_rx_msg_cb((uint8_t*) trans_rx_buf, trans_rx_buf_len);
         clear_trans_rx_buf();
     }
+
+    // Save the new time we have received a character
+    trans_rx_last_uptime_s = uptime_s;
 
     // Processed all characters
     return len;
@@ -134,6 +147,9 @@ void clear_trans_rx_buf(void) {
         trans_rx_buf[i] = 0;
     }
     trans_rx_buf_len = 0;
+
+    trans_cmd_resp_avail = false;
+    trans_rx_msg_avail = false;
 }
 
 
@@ -202,8 +218,6 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
     while ((!trans_cmd_resp_avail) && (timeout > 0)) {
         timeout--;
     }
-    // Set the flag back to false for later use
-    trans_cmd_resp_avail = false;
     // Failed if the timeout went to 0
     if (timeout == 0) {
         return 0;
@@ -253,20 +267,19 @@ void scan_trans_rx_msg_avail(void) {
     // Minimum 3 characters
     // Does not start with "OK"
     // First byte is 0
+    // Second byte is not 0
     // Second byte is the number of bytes remaining in the buffer
     char* ok = "OK";
     if (trans_rx_buf_len >= 3 &&
         string_cmp(trans_rx_buf, ok, 2) == 0 &&
         trans_rx_buf[0] == 0x00 &&
+        trans_rx_buf[0] != 0x00 &&
         trans_rx_buf[1] == trans_rx_buf_len - 2) {
 
         trans_rx_msg_avail = true;
 
         print("Received trans rx msg: %u chars: ", trans_rx_buf_len);
-        for (uint8_t i = 0; i < trans_rx_buf_len; i++) {
-            print("%c", trans_rx_buf[i]);
-        }
-        print("\n");
+        print_bytes((uint8_t*) trans_rx_buf, trans_rx_buf_len);
     }
 }
 
@@ -275,10 +288,12 @@ void scan_trans_rx_msg_avail(void) {
 
 uint8_t set_trans_scw_attempt(uint16_t scw) {
     // Send command
+    clear_trans_rx_buf();
     print("\rES+W%02X00%04X\r", TRANS_ADDR, scw);
 
     // Wait for response
     uint8_t validity = wait_for_trans_cmd_resp(7);
+    clear_trans_rx_buf();
     return validity;
 }
 
@@ -299,6 +314,7 @@ uint8_t set_trans_scw(uint16_t scw) {
 
 uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
     // Send command
+    clear_trans_rx_buf();
     print("\rES+R%02X00\r", TRANS_ADDR);
 
     //Wait for response
@@ -318,6 +334,8 @@ uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw
     if (scw != NULL) {
         *scw = (uint16_t) scan_uint(trans_rx_buf, 9, 4);
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }
@@ -481,11 +499,13 @@ uint8_t turn_on_trans_pipe(void) {
 
 
 uint8_t set_trans_freq_attempt(uint32_t freq) {
+    clear_trans_rx_buf();
     print("\rES+W%02X01%08lX\r", TRANS_ADDR, freq);
 
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
+    clear_trans_rx_buf();
     return validity;
 }
 
@@ -506,6 +526,7 @@ uint8_t set_trans_freq(uint32_t freq) {
 
 
 uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
+    clear_trans_rx_buf();
     print("\rES+R%02X01\r", TRANS_ADDR);
 
     //Wait for response
@@ -521,6 +542,8 @@ uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
     if (freq != NULL) {
         *freq = scan_uint(trans_rx_buf, 5, 8);
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }
@@ -543,11 +566,13 @@ uint8_t get_trans_freq(uint8_t* rssi, uint32_t* freq) {
 
 
 uint8_t set_trans_pipe_timeout_attempt(uint8_t timeout) {
+    clear_trans_rx_buf();
     print("\rES+W%02X06000000%02X\r", TRANS_ADDR, timeout);
 
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
+    clear_trans_rx_buf();
     return validity;
 }
 
@@ -567,6 +592,7 @@ uint8_t set_trans_pipe_timeout(uint8_t timeout) {
 
 
 uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
+    clear_trans_rx_buf();
     print("\rES+R%02X06\r", TRANS_ADDR);
 
     // Wait for response
@@ -583,6 +609,8 @@ uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
     if (timeout != NULL) {
         *timeout = (uint8_t) scan_uint(trans_rx_buf, 11, 2);
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }
@@ -604,11 +632,13 @@ uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout) {
 
 
 uint8_t set_trans_beacon_period_attempt(uint16_t period) {
+    clear_trans_rx_buf();
     print("\rES+W%02X070000%04X\r", TRANS_ADDR, period);
 
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
+    clear_trans_rx_buf();
     return validity;
 }
 
@@ -628,6 +658,7 @@ uint8_t set_trans_beacon_period(uint16_t period) {
 
 
 uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
+    clear_trans_rx_buf();
     print("\rES+R%02X07\r", TRANS_ADDR);
 
     //Wait for response
@@ -643,6 +674,8 @@ uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
     if (period != NULL) {
         *period = (uint16_t) scan_uint(trans_rx_buf, 9, 4);
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }
@@ -666,6 +699,7 @@ uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
 
 
 uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {
+    clear_trans_rx_buf();
     print("\rES+W%02XF5", TRANS_ADDR);
     for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
         print("%c", call_sign[i]);
@@ -675,6 +709,7 @@ uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
+    clear_trans_rx_buf();
     return validity;
 }
 
@@ -693,6 +728,7 @@ uint8_t set_trans_dest_call_sign(char* call_sign) {
 
 
 uint8_t get_trans_dest_call_sign_attempt(char* call_sign) {
+    clear_trans_rx_buf();
     print("\rES+R%02XF5\r", TRANS_ADDR);
 
     //Wait for response
@@ -708,6 +744,8 @@ uint8_t get_trans_dest_call_sign_attempt(char* call_sign) {
         }
         call_sign[TRANS_CALL_SIGN_LEN] = '\0';
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }
@@ -729,6 +767,7 @@ uint8_t get_trans_dest_call_sign(char* call_sign) {
 
 
 uint8_t set_trans_src_call_sign_attempt(char* call_sign) {
+    clear_trans_rx_buf();
     print("\rES+W%02XF6", TRANS_ADDR);
     for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
         print("%c", call_sign[i]);
@@ -738,6 +777,7 @@ uint8_t set_trans_src_call_sign_attempt(char* call_sign) {
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
+    clear_trans_rx_buf();
     return validity;
 }
 
@@ -756,6 +796,7 @@ uint8_t set_trans_src_call_sign(char* call_sign) {
 
 
 uint8_t get_trans_src_call_sign_attempt(char* call_sign) {
+    clear_trans_rx_buf();
     print("\rES+R%02XF6\r", TRANS_ADDR);
 
     //Wait for response
@@ -771,6 +812,8 @@ uint8_t get_trans_src_call_sign_attempt(char* call_sign) {
         }
         call_sign[TRANS_CALL_SIGN_LEN] = '\0';
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }
@@ -792,6 +835,7 @@ uint8_t get_trans_src_call_sign(char* call_sign) {
 
 
 uint8_t get_trans_uptime_attempt(uint8_t* rssi, uint32_t* uptime) {
+    clear_trans_rx_buf();
     print("\rES+R%02X02\r", TRANS_ADDR);
 
     //Wait for response
@@ -807,6 +851,8 @@ uint8_t get_trans_uptime_attempt(uint8_t* rssi, uint32_t* uptime) {
     if (uptime != NULL) {
         *uptime = scan_uint(trans_rx_buf, 5, 8);
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }
@@ -827,6 +873,7 @@ uint8_t get_trans_uptime(uint8_t* rssi, uint32_t* uptime) {
 
 
 uint8_t get_trans_num_tx_packets_attempt(uint8_t* rssi, uint32_t* num_tx_packets) {
+    clear_trans_rx_buf();
     print("\rES+R%02X03\r", TRANS_ADDR);
 
     //Wait for response
@@ -842,6 +889,8 @@ uint8_t get_trans_num_tx_packets_attempt(uint8_t* rssi, uint32_t* num_tx_packets
     if (num_tx_packets != NULL) {
         *num_tx_packets = scan_uint(trans_rx_buf, 5, 8);
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }
@@ -862,6 +911,7 @@ uint8_t get_trans_num_tx_packets(uint8_t* rssi, uint32_t* num_tx_packets) {
 
 
 uint8_t get_trans_num_rx_packets_attempt(uint8_t* rssi, uint32_t* num_rx_packets) {
+    clear_trans_rx_buf();
     print("\rES+R%02X04\r", TRANS_ADDR);
 
     //Wait for response
@@ -877,6 +927,8 @@ uint8_t get_trans_num_rx_packets_attempt(uint8_t* rssi, uint32_t* num_rx_packets
     if (num_rx_packets != NULL) {
         *num_rx_packets = scan_uint(trans_rx_buf, 5, 8);
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }
@@ -897,6 +949,7 @@ uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets) {
 
 
 uint8_t get_trans_num_rx_packets_crc_attempt(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
+    clear_trans_rx_buf();
     print("\rES+R%02X05\r", TRANS_ADDR);
 
     //Wait for response
@@ -912,6 +965,8 @@ uint8_t get_trans_num_rx_packets_crc_attempt(uint8_t* rssi, uint32_t* num_rx_pac
     if (num_rx_packets_crc != NULL) {
         *num_rx_packets_crc = scan_uint(trans_rx_buf, 5, 8);
     }
+
+    clear_trans_rx_buf();
 
     return 1;
 }

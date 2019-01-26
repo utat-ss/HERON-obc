@@ -7,8 +7,13 @@
 #include <uart/uart.h>
 #include <utilities/utilities.h>
 
+#include "uptime.h"
+
 // Number of characters in the buffer of received UART RX characters
 #define TRANS_RX_BUF_MAX_SIZE 20
+
+// Number of seconds to wait (if we are not receiving anymore characters) to clear the buffer
+#define TRANS_RX_BUF_TIMEOUT 10
 
 //Default Address - DO NOT CHANGE
 #define TRANS_ADDR  0x22
