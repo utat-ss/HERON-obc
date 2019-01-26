@@ -24,9 +24,9 @@ int main(void) {
 
     // comms_time_s = 0;
     // print("set comms_time_s = %lu\n", comms_time_s);
-    
-    comms_time_threshold_s = 10 * 60;
-    print("set comms_time_threshold_s = %lu\n", comms_time_threshold_s);
+
+    comms_thresh_s = 4 * 60;
+    print("set comms_thresh_s = %lu\n", comms_thresh_s);
     delay_comms();
 
     print("\nDone delay comms test\n\n\n");

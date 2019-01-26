@@ -17,5 +17,6 @@ int main(void) {
     start_uptime_timer();
     print("Started uptime timer\n");
 
+    // Make sure the program doesn't end here
     while (1) {}
 }

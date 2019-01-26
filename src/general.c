@@ -59,12 +59,13 @@ void delay_comms(void) {
 
     // Use delays as a backup to the timer (upper bound)
     // Use 100ms increments because that it tolerable for delay precision
-    // print("Starting delay loop\n");
     // Use the constant COMMS_TIME_DELAY as a backup,
     // but use the modifiable comms_thresh_s as the intended condition
 
     // Keep a cached (saved) version of the global OBC uptime
     uint32_t cached_uptime_s = uptime_s;
+
+    // print("Starting delay loop\n");
 
     // Multiply by 10 because we are using delays of 1/10 seconds
     for (uint32_t i = 0; (i < COMMS_TIME_DELAY * 10) &&
@@ -77,6 +78,8 @@ void delay_comms(void) {
             uint32_t diff = uptime_s - cached_uptime_s;
             comms_time_s += diff;
             comms_eeprom_update_time_s += diff;
+
+            cached_uptime_s = uptime_s;
 
             print("Updated comms_time_s = %lu\n", comms_time_s);
             print("Updated comms_eeprom_update_time_s = %lu\n",
