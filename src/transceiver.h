@@ -7,6 +7,8 @@
 #include <uart/uart.h>
 #include <utilities/utilities.h>
 
+// Number of characters in the buffer of received UART RX characters
+#define TRANS_RX_BUF_MAX_SIZE 20
 
 //Default Address - DO NOT CHANGE
 #define TRANS_ADDR  0x22
@@ -48,17 +50,25 @@ boot = 0b0 (application mode)
 // TODO - what number?
 #define TRANS_MAX_CMD_ATTEMPTS 3
 
+// Callback function signature for when we receive an RX message
+// buffer, length
+typedef void(*trans_rx_msg_cb_t)(const uint8_t*, uint8_t);
+
+// Initialization
+void init_trans(void);
+uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len);
+
+void set_trans_rx_msg_cb(trans_rx_msg_cb_t cb);
+void clear_trans_rx_buf(void);
 
 // Helper Functions to process responses
 uint8_t char_to_hex(uint8_t c);
 uint32_t scan_uint(volatile uint8_t* string, uint8_t offset, uint8_t count);
 uint8_t string_cmp(volatile uint8_t* first, char* second, uint8_t len);
-uint8_t valid_cmd_response(uint8_t expected_len);
-uint8_t wait_for_cmd_response(uint16_t *timeout_left);
 
-// Initialization
-void init_trans(void);
-uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len);
+uint8_t wait_for_trans_cmd_resp(uint8_t expected_len);
+void scan_trans_cmd_resp_avail(void);
+void scan_trans_rx_msg_avail(void);
 
 // 1
 uint8_t set_trans_scw(uint16_t scw);
