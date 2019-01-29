@@ -2,6 +2,8 @@
 Transceiver library
 EnduroSat UHF Transceiver Type II
 
+See datasheet in Google Drive folder "EnduroSat USB Contents".
+
 Commands are sent through UART (by calling print())
 Transceiver responses are handled in trans_uart_rx_cb
 
@@ -49,15 +51,15 @@ TODO - default status register and frequency?
 TODO - macro for repeating command attempts?
 TODO - if commands to the transceiver fail, change UART baud rate and switch
     the transceiver back to 9600 baud
-TODO - clear trans_rx_buf buffer before sending a command
-TODO - for ground station messages, use the first one or two bytes as the
-    number of bytes in the message?
 
 TODO - sort out possible race condition where we receive UART RX, which triggers
 an action in some function, but before the function finished, the uptime timer
 triggers and clears the buffer that the function was taking data from
     - currently assuming that the function acts quickly enough to use the data
       before it is cleared
+
+TODO - test that the RX buffer is cleared when the uptime timer reaches the
+    timeout
 */
 
 #include "transceiver.h"
@@ -115,15 +117,13 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
 
         trans_rx_buf[trans_rx_buf_len] = buf[i];
         trans_rx_buf_len++;
-        // print("rcvd: 0x%.2x\n", buf[i]);
-        // print("%.2x\n", buf[i]);
+
         put_uart_char(buf[i]);
     }
 
     // Scan what we have in the buffer now
     scan_trans_cmd_resp_avail();
     scan_trans_rx_msg_avail();
-    // print("scanned");
 
     // If we got an RX message, call the callback function (it can do what it
     // wants with the message), then clear the buffer
