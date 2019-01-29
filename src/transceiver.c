@@ -117,11 +117,13 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
         trans_rx_buf_len++;
         // print("rcvd: 0x%.2x\n", buf[i]);
         // print("%.2x\n", buf[i]);
+        put_uart_char(buf[i]);
     }
 
     // Scan what we have in the buffer now
     scan_trans_cmd_resp_avail();
     scan_trans_rx_msg_avail();
+    // print("scanned");
 
     // If we got an RX message, call the callback function (it can do what it
     // wants with the message), then clear the buffer
@@ -137,7 +139,11 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
     return len;
 }
 
-
+/*
+Sets the callback function that will be called when we get an RX message.
+When an RX message is received, the code will call this callback function and
+pass it the message, then will clear the buffer (remove the message).
+*/
 void set_trans_rx_msg_cb(trans_rx_msg_cb_t cb) {
     trans_rx_msg_cb = cb;
 }
@@ -273,13 +279,13 @@ void scan_trans_rx_msg_avail(void) {
     if (trans_rx_buf_len >= 3 &&
         string_cmp(trans_rx_buf, ok, 2) == 0 &&
         trans_rx_buf[0] == 0x00 &&
-        trans_rx_buf[0] != 0x00 &&
+        trans_rx_buf[1] != 0x00 &&
         trans_rx_buf[1] == trans_rx_buf_len - 2) {
 
         trans_rx_msg_avail = true;
 
-        print("Received trans rx msg: %u chars: ", trans_rx_buf_len);
-        print_bytes((uint8_t*) trans_rx_buf, trans_rx_buf_len);
+        // print("Received trans rx msg: %u chars: ", trans_rx_buf_len);
+        // print_bytes((uint8_t*) trans_rx_buf, trans_rx_buf_len);
     }
 }
 

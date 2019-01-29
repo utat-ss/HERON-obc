@@ -16,11 +16,8 @@ Other Notes:
 #include "../../src/uptime.h"
 
 void rx_msg_cb(const uint8_t* data, uint8_t len) {
-    print("Received RX msg: ");
-    for (uint8_t i = 0; i < len; i++) {
-        print("%c");
-    }
-    print("\n");
+    print("Received RX msg: %u chars: ", len);
+    print_bytes((uint8_t*) data, len);
 }
 
 int main(void){
