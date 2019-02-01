@@ -39,7 +39,8 @@ void init_obc_core(void) {
 
 // Initializes the comms/transceiver parts of OBC that must be delayed after initial startup
 void init_obc_comms(void) {
-    init_trans();
+    // TODO
+    // init_trans();
 }
 
 void init_comms_time(void) {
