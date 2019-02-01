@@ -25,10 +25,10 @@ If set to false, it simulate both the EPS and PAY PCBs responding to CAN message
 
 // Set to true to simulate communicating with EPS (without EPS actually being
 // connected over CAN)
-const bool sim_eps = true;
+bool sim_eps = false;
 // Set to true to simulate communicating with PAY (without PAY actually being
 // connected over CAN)
-const bool sim_pay = true;
+bool sim_pay = false;
 
 
 // Normal command with a string description to print on UART
@@ -438,9 +438,16 @@ int main(void){
     //     pay_hk_mem_section.curr_block,
     //     pay_opt_mem_section.curr_block);
 
-    set_uart_rx_cb(uart_cb);
+    sim_local_actions = false;
+    sim_eps = true;
+    sim_pay = true;
 
-    print("Press h to list commands\n\n");
+    print("sim_local_actions = %u\n", sim_local_actions);
+    print("sim_eps = %u\n", sim_eps);
+    print("sim_pay = %u\n", sim_pay);
+
+    set_uart_rx_cb(uart_cb);
+    // print("Press h to list commands\n\n");
     print_cmds();
 
     while (1) {

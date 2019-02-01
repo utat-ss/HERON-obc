@@ -1,3 +1,3 @@
 PROG = uptime_test
-SRC = $(addprefix ../../src/, general.c uptime.c)
+SRC = $(addprefix ../../src/, uptime.c)
 include ../makefile

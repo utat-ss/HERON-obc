@@ -14,6 +14,12 @@ void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error);
 
 void nop_fn(void) {}
 
+// If true, the program will simulate local actions (i.e. simulates any
+// operations with peripherals besides the microcontroller and CAN)
+// This allows the software to be used on any microcontroller just to test
+// the command handling and CAN functionality
+bool sim_local_actions = false;
+
 // Queue of commands that need to be executed but have not been executed yet
 queue_t cmd_queue;
 
@@ -80,12 +86,14 @@ void pop_blister_packs_fn(void) {
 }
 
 void write_mem_fn(void) {
-    write_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
-        &eps_hk_header, eps_hk_fields);
-    write_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
-        &pay_hk_header, pay_hk_fields);
-    write_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
-        &pay_opt_header, pay_opt_fields);
+    if (!sim_local_actions) {
+        write_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
+            &eps_hk_header, eps_hk_fields);
+        write_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
+            &pay_hk_header, pay_hk_fields);
+        write_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
+            &pay_opt_header, pay_opt_fields);
+    }
 
     // Increment block numbers
     inc_mem_section_curr_block(&eps_hk_mem_section);
@@ -100,12 +108,52 @@ void write_mem_fn(void) {
 
 // TODO
 void read_mem_fn(void) {
-    read_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block - 1,
-        &eps_hk_header, eps_hk_fields);
-    read_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block - 1,
-        &pay_hk_header, pay_hk_fields);
-    read_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block - 1,
-        &pay_opt_header, pay_opt_fields);
+    if (sim_local_actions) {
+        // Random values
+        eps_hk_header.block_num = 3;
+        eps_hk_header.error = 0x00;
+        eps_hk_header.date.yy = 14;
+        eps_hk_header.date.mm = 11;
+        eps_hk_header.date.dd = 7;
+        eps_hk_header.time.hh = 18;
+        eps_hk_header.time.mm = 5;
+        eps_hk_header.time.ss = 20;
+        for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
+            eps_hk_fields[i] = i + 4;
+        }
+
+        pay_hk_header.block_num = 15;
+        pay_hk_header.error = 0x00;
+        pay_hk_header.date.yy = 13;
+        pay_hk_header.date.mm = 11;
+        pay_hk_header.date.dd = 7;
+        pay_hk_header.time.hh = 21;
+        pay_hk_header.time.mm = 5;
+        pay_hk_header.time.ss = 20;
+        for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
+            pay_hk_fields[i] = i + 17;
+        }
+
+        pay_opt_header.block_num = 29;
+        pay_opt_header.error = 0x00;
+        pay_opt_header.date.yy = 79;
+        pay_opt_header.date.mm = 11;
+        pay_opt_header.date.dd = 7;
+        pay_opt_header.time.hh = 4;
+        pay_opt_header.time.mm = 5;
+        pay_opt_header.time.ss = 20;
+        for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
+            pay_opt_fields[i] = i + 11;
+        }
+    }
+    else {
+        read_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block - 1,
+            &eps_hk_header, eps_hk_fields);
+        read_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block - 1,
+            &pay_hk_header, pay_hk_fields);
+        read_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block - 1,
+            &pay_opt_header, pay_opt_fields);
+    }
 
     print("Read memory\n");
 
@@ -145,8 +193,17 @@ Populates the block number, error, and current live date/time.
 void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error) {
     header->block_num = block_num;
     header->error = error;
-    header->date = read_rtc_date();
-    header->time = read_rtc_time();
+    if (sim_local_actions) {
+        header->date.yy = 5;
+        header->date.mm = 9;
+        header->date.dd = 4;
+        header->time.hh = 15;
+        header->time.mm = 48;
+        header->time.ss = 58;
+    } else {
+        header->date = read_rtc_date();
+        header->time = read_rtc_time();
+    }
 }
 
 

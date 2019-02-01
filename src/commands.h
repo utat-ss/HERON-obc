@@ -23,7 +23,8 @@ typedef struct {
 // TODO - change to seconds
 #define AUT_DATA_COL_PERIOD  1
 
-// TODO - volatile variable to point to currently executing command?
+
+extern bool sim_local_actions;
 
 extern queue_t cmd_queue;
 
