@@ -9,19 +9,21 @@
 LIB = -L./lib-common/lib -ladc -lcan -lconversions -ldac -lpex -lqueue -lspi -ltimer -luart -lutilities -lwatchdog
 # Program name
 PROG = obc
+# Name of microcontroller ("32m1" or "64m1")
+MCU = 64m1
 #-------------------------------------------------------------------------------
 
 
 # AVR-GCC compiler
 CC = avr-gcc
 # Compiler flags
-CFLAGS = -Wall -std=gnu99 -g -mmcu=atmega32m1 -Os -mcall-prologues
+CFLAGS = -Wall -std=gnu99 -g -mmcu=atmega$(MCU) -Os -mcall-prologues
 # Includes (header files)
 INCLUDES = -I./lib-common/include/
 # Programmer
 PGMR = stk500
-# Microcontroller
-MCU = m32m1
+# avrdude device
+DEVICE = m$(MCU)
 # Build directory
 BUILD = build
 # Manual tests directory
@@ -183,4 +185,4 @@ endif
 
 # Upload program to board
 upload: $(PROG)
-	avrdude -c $(PGMR) -p $(MCU) -P $(PORT) -U flash:w:./build/$^.hex
+	avrdude -c $(PGMR) -p $(DEVICE) -P $(PORT) -U flash:w:./build/$^.hex
