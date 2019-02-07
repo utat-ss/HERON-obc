@@ -1,3 +1,7 @@
+/*
+TODO - get this test working
+*/
+
 #include <uart/uart.h>
 #include <spi/spi.h>
 #include "../../src/rtc.h"
