@@ -21,9 +21,10 @@ in memory for the layout scheme we have defined.
 #include     "../../src/rtc.c"
 
 void print_section(char* name, mem_section_t* section) {
-    print("%s: start_addr = 0x%.8lx, curr_block = %lu, fields_per_block = %u\n",
-        name, section->start_addr, section->curr_block,
-        section->fields_per_block);
+    print("%s: start_addr = 0x%.8lx, ",
+        name, section->start_addr);
+    print("curr_block = %lu, fields_per_block = %u\n",
+        section->curr_block, section->fields_per_block);
 }
 
 void print_sections(void) {
@@ -33,8 +34,9 @@ void print_sections(void) {
 }
 
 void print_header(mem_header_t* header) {
-    print("block_num = %u, error = %u, date = %u %u %u, time = %u %u %u\n",
-        header->block_num, header->error,
+    print("block_num = %u, error = %u, ",
+        header->block_num, header->error);
+    print("date = %u %u %u, time = %u %u %u\n",
         header->date.yy, header->date.mm, header->date.dd,
         header->time.hh, header->time.mm, header->time.ss);
 }
@@ -50,8 +52,8 @@ void set_rtc(void) {
     curr_date.mm = 10;
     curr_date.yy = 18;
 
-    set_time(curr_time);
-    set_date(curr_date);
+    set_rtc_time(curr_time);
+    set_rtc_date(curr_date);
     print("Set RTC date and time\n");
 }
 
@@ -68,7 +70,7 @@ void test_eeprom(void) {
     inc_mem_section_curr_block(&pay_hk_mem_section);
     inc_mem_section_curr_block(&pay_opt_mem_section);
     write_all_mem_sections_eeprom();
-    print("Incremented all current blocks and wrote to EEPROM\n");
+    print("Incremented all current blocks, wrote to EEPROM\n");
 }
 
 
@@ -79,8 +81,8 @@ void test_header(char* name, mem_section_t* section) {
     mem_header_t write = {
         .block_num = section->curr_block,
         .error = 0x00,
-        .date = read_date(),
-        .time = read_time()
+        .date = read_rtc_date(),
+        .time = read_rtc_time()
     };
     mem_header_t read;
 
