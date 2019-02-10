@@ -6,7 +6,7 @@
 # Parameters that might need to be changed, depending on the repository
 #-------------------------------------------------------------------------------
 # Libraries from lib-common to link
-LIB = -L./lib-common/lib -ladc -lcan -lconversions -ldac -lpex -lqueue -lspi -ltimer -luart -lutilities -lwatchdog
+LIB = -L./lib-common/lib -ladc -lcan -lconversions -ldac -lheartbeat -lpex -lqueue -lspi -ltimer -luart -lutilities -lwatchdog
 # Program name
 PROG = obc
 # Name of microcontroller ("32m1" or "64m1")
@@ -175,7 +175,7 @@ manual_tests:
 # View the contents of the binary file in hex
 read-eeprom:
 	@echo "Reading EEPROM to binary file eeprom.bin..."
-	avrdude -p m32m1 -c stk500 -P $(PORT) -U eeprom:r:eeprom.bin:r
+	avrdude -p $(DEVICE) -c stk500 -P $(PORT) -U eeprom:r:eeprom.bin:r
 	@echo "Displaying eeprom.bin in hex..."
 ifeq ($(WINDOWS), true)
 	powershell Format-Hex eeprom.bin

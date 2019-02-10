@@ -2,17 +2,27 @@
  * Harness based test for the OBC flash memory.
  *
  * Tests functionality of writing and reading memory at the byte level, writing to and reading from eeprom,
- * writing and reading headers and fields from memory sections 	
+ * writing and reading headers and fields from memory sections
  */
+
+#include <stdlib.h>
 
 #include <test/test.h>
 #include <uart/uart.h>
 #include <spi/spi.h>
 #include "../../src/mem.h"
 
-void basic_test(void) {
-    ASSERT_EQ(1 + 1, 2);
-}
+// Macros to compare structs without having to do it for each of the fields every time
+#define ASSERT_EQ_DATE(date1, date2) \
+    ASSERT_EQ(date1.yy, date2.yy); \
+    ASSERT_EQ(date1.mm, date2.mm); \
+    ASSERT_EQ(date1.dd, date2.dd);
+
+#define ASSERT_EQ_TIME(time1, time2) \
+    ASSERT_EQ(time1.hh, time2.hh); \
+    ASSERT_EQ(time1.mm, time2.mm); \
+    ASSERT_EQ(time1.ss, time2.ss);
+
 
 //Test single write/read for consistency
 void single_write_read_test(void) {
@@ -23,7 +33,7 @@ void single_write_read_test(void) {
 
 	write_mem_bytes(address, write, 1);
 	read_mem_bytes(address, read, 1);
-	ASSERT_EQ(data, read[1]);
+	ASSERT_EQ(write[0], read[0]);
 }
 
 //Test multiple write/read for consistency
@@ -33,7 +43,7 @@ void multiple_write_read_test(void) {
 	uint8_t read[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
 
 	write_mem_bytes(address, data, 5);
-	read_mem_bytes(address, read, 5)
+	read_mem_bytes(address, read, 5);
 
 	for(uint8_t i=0; i<5; i++){
 		ASSERT_EQ(data[i], read[i]);
@@ -81,7 +91,7 @@ void erase_mem_test(void) {
 		uint32_t addr = random() % num_addrs;
 		uint8_t read[1] = { 0x00 };
 		read_mem_bytes(addr, read, 1);
-		ASSERT_EQ(read[0], 0xFF);	
+		ASSERT_EQ(read[0], 0xFF);
 	}
 }
 
@@ -94,7 +104,9 @@ void random_read_write_test(void) {
 	uint32_t num_addrs = MEM_NUM_CHIPS * (1UL << MEM_CHIP_ADDR_WIDTH);
 	uint32_t addr = random() % num_addrs;
 
-	uint8_t len = random() % RANDOM_ADDR_COUNT;
+    // Use a random number of bytes
+	uint8_t len = (random() % RANDOM_MAX_LEN) + 1;
+    // Array needs to be big enough to hold the maximum number of bytes
 	uint8_t write[RANDOM_MAX_LEN];
 	for(uint8_t i = 0; i<len ; i++) {
 		write[i] = random() % 0XFF;
@@ -110,16 +122,16 @@ void random_read_write_test(void) {
 	}
 }
 
-// Test memory roll over capabilities. Board has three memory chips, so three roll overs
+// Test memory roll over capabilities. Board has three memory chips, so two roll overs
+// TODO - test what happens at the end of chip 3
 #define ROLLOVER_ADDR_1 0x1FFFFC
 #define ROLLOVER_ADDR_2 0x3FFFFB
-#define ROLLOVER_ADDR_3 0x5FFFFA
-#define NUM_ROLLOVER 3
+#define NUM_ROLLOVER 2
 #define ROLLOVER_DATA {0xDE, 0xAD, 0xBE, 0xEF, 0xBA, 0xF0, 0x0D, 0x12}
 #define ROLLOVER_DATA_LEN 8
 
 void roll_over_test(void) {
-	uint32_t addr[NUM_ROLLOVER] = {ROLLOVER_ADDR_1, ROLLOVER_ADDR_2, ROLLOVER_ADDR_3};
+	uint32_t addr[NUM_ROLLOVER] = {ROLLOVER_ADDR_1, ROLLOVER_ADDR_2};
 	uint8_t write[ROLLOVER_DATA_LEN] = ROLLOVER_DATA;
 	uint8_t read[ROLLOVER_DATA_LEN];
 
@@ -137,9 +149,9 @@ void eeprom_test(void) {
 	// load all section data from eeprom
 	read_all_mem_sections_eeprom();
 
-	uint32_t eps_hk_block_prev = eeprom_read_dword(&eps_hk_mem_section);
-	uint32_t pay_hk_block_prev = eeprom_read_dword(&pay_hk_mem_section);
-	uint32_t pay_opt_block_prev = eeprom_read_dword(&pay_opt_mem_section);
+	uint32_t eps_hk_block_prev = eeprom_read_dword(eps_hk_mem_section.curr_block_eeprom_addr);
+	uint32_t pay_hk_block_prev = eeprom_read_dword(pay_hk_mem_section.curr_block_eeprom_addr);
+	uint32_t pay_opt_block_prev = eeprom_read_dword(pay_opt_mem_section.curr_block_eeprom_addr);
 
 	inc_mem_section_curr_block(&eps_hk_mem_section);
     inc_mem_section_curr_block(&pay_hk_mem_section);
@@ -147,26 +159,20 @@ void eeprom_test(void) {
 
     write_all_mem_sections_eeprom();
 
-    ASSERT_EQ(eps_hk_block_prev + 1, eeprom_read_dword(&eps_hk_mem_section));
-    ASSERT_EQ(pay_hk_block_prev + 1, eeprom_read_dword(&pay_hk_mem_section));
-    ASSERT_EQ(pay_opt_block_prev + 1, eeprom_read_dword(&pay_opt_mem_section));
+    ASSERT_EQ(eps_hk_block_prev + 1, eeprom_read_dword(eps_hk_mem_section.curr_block_eeprom_addr));
+    ASSERT_EQ(pay_hk_block_prev + 1, eeprom_read_dword(pay_hk_mem_section.curr_block_eeprom_addr));
+    ASSERT_EQ(pay_opt_block_prev + 1, eeprom_read_dword(pay_opt_mem_section.curr_block_eeprom_addr));
 }
 
 
 // Test headers for each of the mem_sections (metadata)
-void mem_header_test(void){
-	mem_header_test_individual(&eps_hk_mem_section);
-	mem_header_test_individual(&pay_hk_mem_section);
-	mem_header_test_individual(&pay_opt_mem_section);
-}
-
 void mem_header_test_individual( mem_section_t* section ) {
 	// eps_hk_mem_section
 	mem_header_t write = {
         .block_num = section->curr_block,
         .error = 0x00,
-        .date = read_date(),
-        .time = read_time()
+        .date = read_rtc_date(),
+        .time = read_rtc_time()
     };
     write_mem_header(section, section->curr_block, &write);
 
@@ -175,12 +181,31 @@ void mem_header_test_individual( mem_section_t* section ) {
 
     ASSERT_EQ(write.block_num, read.block_num);
     ASSERT_EQ(write.error, read.error);
-    ASSERT_EQ(write.date, read.date);
-    ASSERT_EQ(write.time, read.time);
+    ASSERT_EQ_DATE(write.date, read.date);
+    ASSERT_EQ_TIME(write.time, read.time);
 }
+
+void mem_header_test(void){
+	mem_header_test_individual(&eps_hk_mem_section);
+	mem_header_test_individual(&pay_hk_mem_section);
+	mem_header_test_individual(&pay_opt_mem_section);
+}
+
 
 //Test field (metadata)
 #define FIELD_TEST_RANDOM_SEED 0x4357D43A
+
+void mem_field_test_individual( mem_section_t* section) {
+	uint8_t field_num = random() % section->fields_per_block;
+    // Random 24-bit number
+	uint32_t write = (random() % 0xFFFFFF) + 1;
+	uint32_t read = 0x00000000;
+
+	write_mem_field(section, section->curr_block, field_num, write);
+	read = read_mem_field(section, section->curr_block, field_num);
+
+	ASSERT_EQ(write, read);
+}
 
 void mem_field_test(void) {
 	srandom(FIELD_TEST_RANDOM_SEED);
@@ -189,29 +214,17 @@ void mem_field_test(void) {
 	mem_field_test_individual(&pay_opt_mem_section);
 }
 
-void mem_field_test_individual( mem_section_t* section) {
-	uint8_t field_num = random() % section->fields_per_block;
-	uint32_t write = (random() % 0xFFFFFFFF) + 1;
-	uint32_t read = 0x00000000;
+test_t t1 = { .name = "single write read test", .fn = single_write_read_test };
+test_t t2 = { .name = "multiple write read test", .fn = multiple_write_read_test };
+test_t t3 = { .name = "multiple write read test 2", .fn = multiple_write_read_test_2 };
+test_t t4 = { .name = "erase mem test", .fn = erase_mem_test };
+test_t t5 = { .name = "random read write test", .fn = random_read_write_test };
+test_t t6 = { .name = "rollover test", .fn = roll_over_test };
+test_t t7 = { .name = "eeprom test", .fn = eeprom_test };
+test_t t8 = { .name = "mem header test", .fn = mem_header_test };
+test_t t9 = { .name = "mem field test", .fn = mem_field_test };
 
-	write_mem_field(section, section->curr_block, field_num, write);
-	read = read_mem_field(section, section->curr_block, field_num);
-
-	ASSERT_EQ(write, read);
-}	
-
-test_t t1 = { .name = "Basic", .fn = basic_test };
-test_t t2 = { .name = "single write read test", .fn = single_write_read_test };
-test_t t3 = { .name = "multiple write read test", .fn = multiple_write_read_test };
-test_t t4 = { .name = "multiple write read test 2", .fn = multiple_write_read_test_2 };
-test_t t5 = { .name = "erase mem test", .fn = erase_mem_test };
-test_t t6 = { .name = "random read write test", .fn = random_read_write_test };
-test_t t7 = { .name = "rollover test", .fn = roll_over_test };
-test_t t8 = { .name = "eeprom test", .fn = eeprom_test };
-test_t t9 = { .name = "mem header test", .fn = mem_header_test };
-test_t t10 = { .name = "mem field test", .fn = mem_field_test };
-
-test_t* suite[10] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10 };
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9 };
 
 int main() {
     init_uart();
