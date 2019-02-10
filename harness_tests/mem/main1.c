@@ -122,16 +122,16 @@ void random_read_write_test(void) {
 	}
 }
 
-// Test memory roll over capabilities. Board has three memory chips, so three roll overs
+// Test memory roll over capabilities. Board has three memory chips, so two roll overs
+// TODO - test what happens at the end of chip 3
 #define ROLLOVER_ADDR_1 0x1FFFFC
 #define ROLLOVER_ADDR_2 0x3FFFFB
-#define ROLLOVER_ADDR_3 0x5FFFFA
-#define NUM_ROLLOVER 3
+#define NUM_ROLLOVER 2
 #define ROLLOVER_DATA {0xDE, 0xAD, 0xBE, 0xEF, 0xBA, 0xF0, 0x0D, 0x12}
 #define ROLLOVER_DATA_LEN 8
 
 void roll_over_test(void) {
-	uint32_t addr[NUM_ROLLOVER] = {ROLLOVER_ADDR_1, ROLLOVER_ADDR_2, ROLLOVER_ADDR_3};
+	uint32_t addr[NUM_ROLLOVER] = {ROLLOVER_ADDR_1, ROLLOVER_ADDR_2};
 	uint8_t write[ROLLOVER_DATA_LEN] = ROLLOVER_DATA;
 	uint8_t read[ROLLOVER_DATA_LEN];
 
@@ -197,7 +197,8 @@ void mem_header_test(void){
 
 void mem_field_test_individual( mem_section_t* section) {
 	uint8_t field_num = random() % section->fields_per_block;
-	uint32_t write = (random() % 0xFFFFFFFF) + 1;
+    // Random 24-bit number
+	uint32_t write = (random() % 0xFFFFFF) + 1;
 	uint32_t read = 0x00000000;
 
 	write_mem_field(section, section->curr_block, field_num, write);
