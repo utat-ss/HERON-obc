@@ -126,8 +126,8 @@ lib-common:
 	@echo "Fetching latest version of lib-common..."
 	git submodule update --remote
 	@echo "Compiling lib-common..."
-	make -C ../../lib-common clean
-	make -C ../../lib-common
+	make -C ../../lib-common clean MCU=$(MCU)
+	make -C ../../lib-common MCU=$(MCU)
 
 # Create a file called eeprom.bin, which contains a raw binary copy of the micro's EEPROM memory.
 # View the contents of the binary file in hex

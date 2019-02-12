@@ -160,8 +160,8 @@ lib-common:
 	@echo "Fetching latest version of lib-common..."
 	git submodule update --remote
 	@echo "Building lib-common..."
-	make -C lib-common clean
-	make -C lib-common
+	make -C lib-common clean MCU=$(MCU)
+	make -C lib-common MCU=$(MCU)
 
 manual_tests:
 	@for dir in $(MANUAL_TESTS) ; do \
