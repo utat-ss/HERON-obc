@@ -30,6 +30,9 @@ bool sim_eps = false;
 // connected over CAN)
 bool sim_pay = false;
 
+// Set to true to print TX and RX CAN messages
+bool print_can_msgs = false;
+
 
 // Normal command with a string description to print on UART
 typedef struct {
@@ -230,6 +233,64 @@ void print_local_data_fn(void) {
     finish_current_cmd(true);
 }
 
+
+
+
+void print_next_eps_tx_msg(void) {
+    if (!print_can_msgs) {
+        return;
+    }
+
+    uint8_t tx_msg[8] = { 0x00 };
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&eps_tx_msg_queue)) {
+            return;
+        }
+        peek_queue(&eps_tx_msg_queue, tx_msg);
+    }
+
+    print("CAN TX (EPS): ");
+    print_bytes(tx_msg, 8);
+}
+
+void print_next_pay_tx_msg(void) {
+    if (!print_can_msgs) {
+        return;
+    }
+
+    uint8_t tx_msg[8] = { 0x00 };
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&pay_tx_msg_queue)) {
+            return;
+        }
+        peek_queue(&pay_tx_msg_queue, tx_msg);
+    }
+
+    print("CAN TX (PAY): ");
+    print_bytes(tx_msg, 8);
+}
+
+void print_next_rx_msg(void) {
+    if (!print_can_msgs) {
+        return;
+    }
+
+    uint8_t rx_msg[8] = { 0x00 };
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&data_rx_msg_queue)) {
+            return;
+        }
+        peek_queue(&data_rx_msg_queue, rx_msg);
+    }
+
+    // Extra spaces to align with CAN TX messages
+    print("CAN RX:       ");
+    print_bytes(rx_msg, 8);
+}
+
+
+
+
 void clear_local_data_fn(void) {
     clear_mem_header(&eps_hk_header);
     for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
@@ -296,7 +357,7 @@ void populate_msg_data(uint8_t* msg, uint32_t data) {
 }
 
 // Simulates sending an EPS TX message and getting a response back
-void sim_eps_tx_msg(void) {
+void sim_send_next_eps_tx_msg(void) {
     if (queue_empty(&eps_tx_msg_queue)) {
         return;
     }
@@ -332,7 +393,7 @@ void sim_eps_tx_msg(void) {
 }
 
 // Simulates sending an EPS TX message and getting a response back
-void sim_pay_tx_msg(void) {
+void sim_send_next_pay_tx_msg(void) {
     if (queue_empty(&pay_tx_msg_queue)) {
         return;
     }
@@ -431,48 +492,43 @@ int main(void){
     init_obc_core();
 
     print("\n\n\nStarting commands test\n\n");
-    // print("Initialized OBC core\n\n");
-    // print("mem blocks: ");
-    // print("eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
-    //     eps_hk_mem_section.curr_block,
-    //     pay_hk_mem_section.curr_block,
-    //     pay_opt_mem_section.curr_block);
+    print("Mem blocks: eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n\n",
+        eps_hk_mem_section.curr_block,
+        pay_hk_mem_section.curr_block,
+        pay_opt_mem_section.curr_block);
 
     sim_local_actions = false;
     sim_eps = true;
-    sim_pay = true;
+    sim_pay = false;
+    print_can_msgs = true;
 
     print("sim_local_actions = %u\n", sim_local_actions);
     print("sim_eps = %u\n", sim_eps);
     print("sim_pay = %u\n", sim_pay);
+    print("print_can_msgs = %u\n", print_can_msgs);
 
     set_uart_rx_cb(uart_cb);
     // print("Press h to list commands\n\n");
     print_cmds();
 
     while (1) {
+        print_next_eps_tx_msg();
         // Either simulate EPS over CAN or actually send the CAN message
         if (sim_eps) {
-            sim_eps_tx_msg();
+            sim_send_next_eps_tx_msg();
         }  else {
             send_next_eps_tx_msg();
         }
 
+        print_next_pay_tx_msg();
         // Either simulate PAY over CAN or actually send the CAN message
         if (sim_pay) {
-            sim_pay_tx_msg();
+            sim_send_next_pay_tx_msg();
         }  else {
             send_next_pay_tx_msg();
         }
 
-        // print("data_rx_msg_queue: head = %u, tail = %u\n", data_rx_msg_queue.head, data_rx_msg_queue.tail);
-        // if (!queue_empty(&data_rx_msg_queue)) {
-        //     uint8_t msg[8];
-        //     peek_queue(&data_rx_msg_queue, msg);
-        //     print("data_rx_msg_queue: peek = ");
-        //     print_bytes(msg, 8);
-        // }
-
+        print_next_rx_msg();
         process_next_rx_msg();
 
         execute_next_cmd();
