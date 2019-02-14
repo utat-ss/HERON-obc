@@ -3,40 +3,42 @@
 #include "can_interface.h"
 
 void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
+    print("PAY TX MOB cb\n");
+
     if (queue_empty(&pay_tx_msg_queue)) {
         *len = 0;
+        return;
     }
 
-    else {
-        dequeue(&pay_tx_msg_queue, data);
-        *len = 8;
-    }
+    dequeue(&pay_tx_msg_queue, data);
+    *len = 8;
 }
 
 void eps_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {
-    if (!queue_empty(&eps_tx_msg_queue)) {
-        dequeue(&eps_tx_msg_queue, data);
-        print("%d\n", eps_tx_msg_queue.tail - eps_tx_msg_queue.head);
-        *len = 8;
+    print("EPS TX MOB cb\n");
 
-        print_bytes(data, *len);
-        print("Sending EPS_HK #%u\n", data[2]);
-    }
-
-    else {
+    if (queue_empty(&eps_tx_msg_queue)) {
         *len = 0;
+        return;
     }
+
+    dequeue(&eps_tx_msg_queue, data);
+    *len = 8;
+
+    // print_bytes(data, *len);
+    // print("Sending EPS_HK #%u\n", data[2]);
 }
 
-
 void data_rx_callback(const uint8_t* data, uint8_t len) {
-    // print("RX Callback\n");
-    print_bytes((uint8_t *) data, len);
+    print("RX MOB cb\n");
+    // print_bytes((uint8_t *) data, len);
 
-    if (len > 0) {
-        // print("Enqueued to data_rx_msg_queue\n");
-        enqueue(&data_rx_msg_queue, data);
+    if (len == 0) {
+        return;
     }
+
+    // print("Enqueued to data_rx_msg_queue\n");
+    enqueue(&data_rx_msg_queue, data);
 }
 
 

@@ -30,6 +30,9 @@ bool sim_eps = false;
 // connected over CAN)
 bool sim_pay = false;
 
+// Set to true to print TX and RX CAN messages
+bool print_can_msgs = false;
+
 
 // Normal command with a string description to print on UART
 typedef struct {
@@ -101,18 +104,18 @@ void print_cmds(void) {
 }
 
 void print_voltage(uint16_t raw_data) {
-    print(" 0x%.3X = %f V\n", raw_data, adc_eps_raw_data_to_voltage(raw_data));
+    print(" 0x%.3X = %f V\n", raw_data, adc_raw_data_to_eps_vol(raw_data));
 }
 
 void print_current(uint16_t raw_data) {
-    print(" 0x%.3X = %f A\n", raw_data, adc_eps_raw_data_to_current(raw_data));
+    print(" 0x%.3X = %f A\n", raw_data, adc_raw_data_to_eps_cur(raw_data));
 }
 
 void print_therm_temp(uint16_t raw_data) {
     print(" 0x%.3X = %f C\n", raw_data,
         therm_res_to_temp(
         therm_vol_to_res(
-        adc_raw_data_to_raw_voltage(raw_data))));
+        adc_raw_data_to_raw_vol(raw_data))));
 }
 
 void print_imu_data(uint16_t raw_data) {
@@ -138,30 +141,30 @@ void print_local_data_fn(void) {
     }
     print("\n");
 
-    // print("BB Vol:");
-    // print_voltage(eps_hk_fields[CAN_EPS_HK_BB_VOL]);
-    // print("BB Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_BB_CUR]);
-    // print("BT Vol:");
-    // print_voltage(eps_hk_fields[CAN_EPS_HK_BT_VOL]);
-    // print("BT Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_BT_CUR]);
-    // print("+X Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_PX_CUR]);
-    // print("-X Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_NX_CUR]);
-    // print("+Y Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_PY_CUR]);
-    // print("-Y Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_NY_CUR]);
-    // print("Bat Vol:");
-    // print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
-    // print("Bat Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
-    // print("Bat Temp 1:");
-    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP1]);
-    // print("Bat Temp 2:");
-    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP2]);
+    print("BB Vol:");
+    print_voltage(eps_hk_fields[CAN_EPS_HK_BB_VOL]);
+    print("BB Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_BB_CUR]);
+    print("BT Vol:");
+    print_voltage(eps_hk_fields[CAN_EPS_HK_BT_VOL]);
+    print("BT Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_BT_CUR]);
+    print("+X Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_PX_CUR]);
+    print("-X Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_NX_CUR]);
+    print("+Y Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_PY_CUR]);
+    print("-Y Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_NY_CUR]);
+    print("Bat Vol:");
+    print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
+    print("Bat Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
+    print("Bat Temp 1:");
+    print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP1]);
+    print("Bat Temp 2:");
+    print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP2]);
     // print("Acc X:");
     // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_X]);
     // print("Acc Y:");
@@ -180,10 +183,10 @@ void print_local_data_fn(void) {
     // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Y]);
     // print("Mag Z:");
     // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Z]);
-    // print("Bat Temp Setpt 1:");
-    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC1]);
-    // print("Bat Temp Setpt 2:");
-    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC2]);
+    print("Bat Temp Setpt 1:");
+    print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC1]);
+    print("Bat Temp Setpt 2:");
+    print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC2]);
 
     print("\nPAY HK:\n");
 
@@ -196,20 +199,20 @@ void print_local_data_fn(void) {
     }
     print("\n");
 
-    // print("Temp: 0x%.6lX = %f C\n", pay_hk_fields[CAN_PAY_HK_TEMP],
-    //     temp_raw_data_to_temperature(pay_hk_fields[CAN_PAY_HK_TEMP]));
-    // print("Hum: 0x%.6lX = %f %%RH\n", pay_hk_fields[CAN_PAY_HK_HUM],
-    //     hum_raw_data_to_humidity(pay_hk_fields[CAN_PAY_HK_HUM]));
-    // print("Pres: 0x%.6lX = %f kPa\n", pay_hk_fields[CAN_PAY_HK_PRES],
-    //     pres_raw_data_to_pressure(pay_hk_fields[CAN_PAY_HK_PRES]));
-    // for (uint8_t i = 0; i < 10; i++) {
-    //     print("Temp %u:", i);
-    //     print_therm_temp(pay_hk_fields[CAN_PAY_HK_THERM0 + i]);
-    // }
-    // print("Temp Setpt 1:");
-    // print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC1]);
-    // print("Temp Setpt 2:");
-    // print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC2]);
+    print("Temp: 0x%.6lX = %.3f C\n", pay_hk_fields[CAN_PAY_HK_TEMP],
+        temp_raw_data_to_temperature(pay_hk_fields[CAN_PAY_HK_TEMP]));
+    print("Hum: 0x%.6lX = %.3f %%RH\n", pay_hk_fields[CAN_PAY_HK_HUM],
+        hum_raw_data_to_humidity(pay_hk_fields[CAN_PAY_HK_HUM]));
+    print("Pres: 0x%.6lX = %.3f kPa\n", pay_hk_fields[CAN_PAY_HK_PRES],
+        pres_raw_data_to_pressure(pay_hk_fields[CAN_PAY_HK_PRES]));
+    for (uint8_t i = 0; i < 10; i++) {
+        print("Temp %u:", i);
+        print_therm_temp(pay_hk_fields[CAN_PAY_HK_THERM0 + i]);
+    }
+    print("Temp Setpt 1:");
+    print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC1]);
+    print("Temp Setpt 2:");
+    print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC2]);
 
     print("\nPAY OPT:\n");
 
@@ -222,13 +225,71 @@ void print_local_data_fn(void) {
     }
     print("\n");
 
-    // for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
-    //     print("Well %u: 0x%.6lX = %f %%\n", i, pay_opt_fields[i],
-    //         ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
-    // }
+    for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
+        print("Well %u: 0x%.6lX = %.6f %%\n", i, pay_opt_fields[i],
+            ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
+    }
 
     finish_current_cmd(true);
 }
+
+
+
+
+void print_next_eps_tx_msg(void) {
+    if (!print_can_msgs) {
+        return;
+    }
+
+    uint8_t tx_msg[8] = { 0x00 };
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&eps_tx_msg_queue)) {
+            return;
+        }
+        peek_queue(&eps_tx_msg_queue, tx_msg);
+    }
+
+    print("CAN TX (EPS): ");
+    print_bytes(tx_msg, 8);
+}
+
+void print_next_pay_tx_msg(void) {
+    if (!print_can_msgs) {
+        return;
+    }
+
+    uint8_t tx_msg[8] = { 0x00 };
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&pay_tx_msg_queue)) {
+            return;
+        }
+        peek_queue(&pay_tx_msg_queue, tx_msg);
+    }
+
+    print("CAN TX (PAY): ");
+    print_bytes(tx_msg, 8);
+}
+
+void print_next_rx_msg(void) {
+    if (!print_can_msgs) {
+        return;
+    }
+
+    uint8_t rx_msg[8] = { 0x00 };
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&data_rx_msg_queue)) {
+            return;
+        }
+        peek_queue(&data_rx_msg_queue, rx_msg);
+    }
+
+    // Extra spaces to align with CAN TX messages
+    print("CAN RX:       ");
+    print_bytes(rx_msg, 8);
+}
+
+
+
 
 void clear_local_data_fn(void) {
     clear_mem_header(&eps_hk_header);
@@ -296,7 +357,7 @@ void populate_msg_data(uint8_t* msg, uint32_t data) {
 }
 
 // Simulates sending an EPS TX message and getting a response back
-void sim_eps_tx_msg(void) {
+void sim_send_next_eps_tx_msg(void) {
     if (queue_empty(&eps_tx_msg_queue)) {
         return;
     }
@@ -332,7 +393,7 @@ void sim_eps_tx_msg(void) {
 }
 
 // Simulates sending an EPS TX message and getting a response back
-void sim_pay_tx_msg(void) {
+void sim_send_next_pay_tx_msg(void) {
     if (queue_empty(&pay_tx_msg_queue)) {
         return;
     }
@@ -431,48 +492,43 @@ int main(void){
     init_obc_core();
 
     print("\n\n\nStarting commands test\n\n");
-    // print("Initialized OBC core\n\n");
-    // print("mem blocks: ");
-    // print("eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
-    //     eps_hk_mem_section.curr_block,
-    //     pay_hk_mem_section.curr_block,
-    //     pay_opt_mem_section.curr_block);
+    print("Mem blocks: eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n\n",
+        eps_hk_mem_section.curr_block,
+        pay_hk_mem_section.curr_block,
+        pay_opt_mem_section.curr_block);
 
     sim_local_actions = false;
     sim_eps = true;
-    sim_pay = true;
+    sim_pay = false;
+    print_can_msgs = true;
 
     print("sim_local_actions = %u\n", sim_local_actions);
     print("sim_eps = %u\n", sim_eps);
     print("sim_pay = %u\n", sim_pay);
+    print("print_can_msgs = %u\n", print_can_msgs);
 
     set_uart_rx_cb(uart_cb);
     // print("Press h to list commands\n\n");
     print_cmds();
 
     while (1) {
+        print_next_eps_tx_msg();
         // Either simulate EPS over CAN or actually send the CAN message
         if (sim_eps) {
-            sim_eps_tx_msg();
+            sim_send_next_eps_tx_msg();
         }  else {
             send_next_eps_tx_msg();
         }
 
+        print_next_pay_tx_msg();
         // Either simulate PAY over CAN or actually send the CAN message
         if (sim_pay) {
-            sim_pay_tx_msg();
+            sim_send_next_pay_tx_msg();
         }  else {
             send_next_pay_tx_msg();
         }
 
-        // print("data_rx_msg_queue: head = %u, tail = %u\n", data_rx_msg_queue.head, data_rx_msg_queue.tail);
-        // if (!queue_empty(&data_rx_msg_queue)) {
-        //     uint8_t msg[8];
-        //     peek_queue(&data_rx_msg_queue, msg);
-        //     print("data_rx_msg_queue: peek = ");
-        //     print_bytes(msg, 8);
-        // }
-
+        print_next_rx_msg();
         process_next_rx_msg();
 
         execute_next_cmd();
