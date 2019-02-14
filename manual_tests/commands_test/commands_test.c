@@ -141,30 +141,30 @@ void print_local_data_fn(void) {
     }
     print("\n");
 
-    // print("BB Vol:");
-    // print_voltage(eps_hk_fields[CAN_EPS_HK_BB_VOL]);
-    // print("BB Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_BB_CUR]);
-    // print("BT Vol:");
-    // print_voltage(eps_hk_fields[CAN_EPS_HK_BT_VOL]);
-    // print("BT Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_BT_CUR]);
-    // print("+X Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_PX_CUR]);
-    // print("-X Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_NX_CUR]);
-    // print("+Y Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_PY_CUR]);
-    // print("-Y Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_NY_CUR]);
-    // print("Bat Vol:");
-    // print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
-    // print("Bat Cur:");
-    // print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
-    // print("Bat Temp 1:");
-    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP1]);
-    // print("Bat Temp 2:");
-    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP2]);
+    print("BB Vol:");
+    print_voltage(eps_hk_fields[CAN_EPS_HK_BB_VOL]);
+    print("BB Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_BB_CUR]);
+    print("BT Vol:");
+    print_voltage(eps_hk_fields[CAN_EPS_HK_BT_VOL]);
+    print("BT Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_BT_CUR]);
+    print("+X Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_PX_CUR]);
+    print("-X Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_NX_CUR]);
+    print("+Y Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_PY_CUR]);
+    print("-Y Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_NY_CUR]);
+    print("Bat Vol:");
+    print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
+    print("Bat Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
+    print("Bat Temp 1:");
+    print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP1]);
+    print("Bat Temp 2:");
+    print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP2]);
     // print("Acc X:");
     // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_X]);
     // print("Acc Y:");
@@ -183,10 +183,10 @@ void print_local_data_fn(void) {
     // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Y]);
     // print("Mag Z:");
     // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Z]);
-    // print("Bat Temp Setpt 1:");
-    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC1]);
-    // print("Bat Temp Setpt 2:");
-    // print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC2]);
+    print("Bat Temp Setpt 1:");
+    print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC1]);
+    print("Bat Temp Setpt 2:");
+    print_therm_temp(eps_hk_fields[CAN_EPS_HK_GET_DAC2]);
 
     print("\nPAY HK:\n");
 
@@ -199,20 +199,20 @@ void print_local_data_fn(void) {
     }
     print("\n");
 
-    // print("Temp: 0x%.6lX = %f C\n", pay_hk_fields[CAN_PAY_HK_TEMP],
-    //     temp_raw_data_to_temperature(pay_hk_fields[CAN_PAY_HK_TEMP]));
-    // print("Hum: 0x%.6lX = %f %%RH\n", pay_hk_fields[CAN_PAY_HK_HUM],
-    //     hum_raw_data_to_humidity(pay_hk_fields[CAN_PAY_HK_HUM]));
-    // print("Pres: 0x%.6lX = %f kPa\n", pay_hk_fields[CAN_PAY_HK_PRES],
-    //     pres_raw_data_to_pressure(pay_hk_fields[CAN_PAY_HK_PRES]));
-    // for (uint8_t i = 0; i < 10; i++) {
-    //     print("Temp %u:", i);
-    //     print_therm_temp(pay_hk_fields[CAN_PAY_HK_THERM0 + i]);
-    // }
-    // print("Temp Setpt 1:");
-    // print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC1]);
-    // print("Temp Setpt 2:");
-    // print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC2]);
+    print("Temp: 0x%.6lX = %.3f C\n", pay_hk_fields[CAN_PAY_HK_TEMP],
+        temp_raw_data_to_temperature(pay_hk_fields[CAN_PAY_HK_TEMP]));
+    print("Hum: 0x%.6lX = %.3f %%RH\n", pay_hk_fields[CAN_PAY_HK_HUM],
+        hum_raw_data_to_humidity(pay_hk_fields[CAN_PAY_HK_HUM]));
+    print("Pres: 0x%.6lX = %.3f kPa\n", pay_hk_fields[CAN_PAY_HK_PRES],
+        pres_raw_data_to_pressure(pay_hk_fields[CAN_PAY_HK_PRES]));
+    for (uint8_t i = 0; i < 10; i++) {
+        print("Temp %u:", i);
+        print_therm_temp(pay_hk_fields[CAN_PAY_HK_THERM0 + i]);
+    }
+    print("Temp Setpt 1:");
+    print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC1]);
+    print("Temp Setpt 2:");
+    print_therm_temp(pay_hk_fields[CAN_PAY_HK_GET_DAC2]);
 
     print("\nPAY OPT:\n");
 
@@ -225,10 +225,10 @@ void print_local_data_fn(void) {
     }
     print("\n");
 
-    // for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
-    //     print("Well %u: 0x%.6lX = %f %%\n", i, pay_opt_fields[i],
-    //         ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
-    // }
+    for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
+        print("Well %u: 0x%.6lX = %.6f %%\n", i, pay_opt_fields[i],
+            ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
+    }
 
     finish_current_cmd(true);
 }
