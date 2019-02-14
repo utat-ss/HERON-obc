@@ -30,17 +30,14 @@ void init_restart_count(void) {
 }
 
 void start_uptime_timer(void) {
-    // TODO - use 1 second
-    // Initialize timer to go off every minute
-    init_timer_8bit(1, uptime_timer_cb);
+    // Initialize timer to go off every 1 second
+    start_timer_8bit(1, uptime_timer_cb);
 }
 
-// This timer should be called repeatedly (every minute) to keep track of uptime
-// TODO - should be every second
+// This timer should be called repeatedly (every 1 second) to keep track of uptime
 void uptime_timer_cb(void) {
-    print("uptime timer cb\n");
+    // print("uptime timer cb\n");
 
-    // TODO - 1s
-    uptime_s += 60;
-    print("uptime_s = %lu\n", uptime_s);
+    uptime_s += 1;
+    // print("uptime_s = %lu\n", uptime_s);
 }

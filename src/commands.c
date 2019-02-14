@@ -161,7 +161,7 @@ void read_mem_fn(void) {
 }
 
 void start_aut_data_col_fn(void) {
-    init_timer_16bit(AUT_DATA_COL_PERIOD, aut_data_col_timer_cb);
+    start_timer_16bit(AUT_DATA_COL_PERIOD, aut_data_col_timer_cb);
     print("Started timer\n");
     finish_current_cmd(true);
 }
@@ -179,7 +179,7 @@ void finish_current_cmd(bool succeeded) {
 
 // Automatic data collection timer callback (for 16-bit timer)
 void aut_data_col_timer_cb(void) {
-    print("Timer cb\n");
+    print("Aut data col timer cb\n");
     enqueue_cmd(&cmd_queue, &req_eps_hk_cmd);
     enqueue_cmd(&cmd_queue, &req_pay_hk_cmd);
     enqueue_cmd(&cmd_queue, &req_pay_opt_cmd);

@@ -19,9 +19,8 @@ typedef struct {
 } cmd_t;
 
 // Period (time between timer callbacks) for automatic data collection (in
-// minutes)
-// TODO - change to seconds
-#define AUT_DATA_COL_PERIOD  1
+// seconds)
+#define AUT_DATA_COL_PERIOD  60
 
 
 extern bool sim_local_actions;
