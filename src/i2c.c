@@ -16,9 +16,10 @@ component(s).
 Each device on the I2C bus has a 7-bit address.
 Each operation is either a read or a write operation.
 
-TODO - should we implement read after write or write after write?
-TODO - look at power-down mode and WAKEUP pin (p.5)
-TODO - look at timeout and clock rate
+For interrupts (e.g. when read and write operations complete), we can just poll because we are blocking in a loop until the operation is finished anyways.
+
+- Not implementing read after write or write after write
+- Default I2CClk register is 0x19 (p. 5) -> 73.728 kHz (p. 9)
 */
 
 #include "i2c.h"
@@ -44,11 +45,11 @@ pin_info_t i2c_int = {
     .pin = I2C_INT_PIN
 };
 
-// Gets set to true by the interrupt handler when the I2C bridge activates the
-// INTn interrupt pin (p.4)
-// i.e. active low is true, high is false
-// Must be volatile because the interrupt handler changes its value
-volatile bool i2c_int_active = false;
+pin_info_t i2c_wakeup = {
+    .port = &I2C_WAKEUP_PORT,
+    .ddr = &I2C_WAKEUP_DDR,
+    .pin = I2C_WAKEUP_PIN
+};
 
 
 /*
@@ -57,19 +58,18 @@ Initializes the microcontroller's output pin for the I2C bridge.
 void init_i2c(void) {
     // Initialize the CS output pin
     init_cs(i2c_cs.pin, i2c_cs.ddr);
-
     // Initialize reset pin (default high - not active)
     init_output_pin(i2c_reset.pin, i2c_reset.ddr, 1);
-
     // Initialize interrupt pin
     init_input_pin(i2c_int.pin, i2c_int.ddr);
+    // Initialize wakeup pin
+    init_output_pin(i2c_wakeup.pin, i2c_wakeup.ddr, 1);
 
+    // TODO - remove interrupt
     // Enable PCIE3 bit (pin change interrupt 3, pins 31-24) (p. 88)
     PCICR |= _BV(PCIE2);
-
     // Enable PCINT22 -  pin change interrupts for pin 22 (p. 90)
     PCMSK2 |= _BV(PCINT22);
-
     // Enable all (global) interrupts
     sei();
 
@@ -89,8 +89,29 @@ void reset_i2c(void) {
 }
 
 /*
+Puts the I2C bridge in the power-down state (p. 16)
+*/
+void power_down_i2c(void) {
+    // Must set WAKEUPn high before power-down mode
+    set_pin_high(i2c_wakeup.pin, i2c_wakeup.port);
+
+    start_i2c_spi();
+    send_spi(I2C_POWER_DOWN);
+    send_spi(I2C_POWER_DOWN_1);
+    send_spi(I2C_POWER_DOWN_2);
+    end_i2c_spi();
+}
+
+/*
+Takes the I2C bridge out of power-down state (p. 16)
+*/
+void power_up_i2c(void) {
+    // Set WAKEUPn low
+    set_pin_low(i2c_wakeup.pin, i2c_wakeup.port);
+}
+
+/*
 Sets SPI to mode 3 (p. 1,5) and sets chip select low.
-TODO - 1.2Mbit SPI? (p. 5)
 */
 void start_i2c_spi(void) {
     set_spi_mode(3);
@@ -122,7 +143,6 @@ void write_i2c_reg(uint8_t addr, uint8_t data) {
 Reads a byte of data from an internal register in the I2C bridge (p. 15).
 addr - register address
 Returns - byte of data read
-TODO - should it have error checking and pass the return value by pointer?
 */
 uint8_t read_i2c_reg(uint8_t addr) {
     start_i2c_spi();
@@ -150,14 +170,33 @@ void read_i2c_buf(uint8_t* data, uint8_t len) {
 }
 
 /*
+Waits until the INT pin goes low.
+Returns - 1 for success, 0 for failure (timed out)
+*/
+uint8_t wait_for_i2c_int(void) {
+    uint16_t timeout = UINT16_MAX;
+    while (get_pin_val(i2c_int.pin, i2c_int.port) && (timeout > 0)) {
+        timeout--;
+    }
+
+    // Check for timeout
+    if (timeout == 0) {
+        print("Timed out\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+/*
 Executes a write I2C command (write data to device, p. 12).
 addr - slave address
 data - array of data bytes to write (`len` bytes long)
 len - number of data bytes to send
+status - will be set by this function to the status register value
 Returns - 1 for success, 0 for failure
-TODO - error codes? (p. 10)
 */
-uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len) {
+uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
     start_i2c_spi();
     send_spi(I2C_WRITE);
     send_spi(len);
@@ -167,12 +206,22 @@ uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len) {
     }
     end_i2c_spi();
 
-    // Wait for INT pin interrupt
-    // TODO timeout
-    while (!i2c_int_active) {}
-    i2c_int_active = false;
+    // Wait for interrupt
+    uint8_t ret = wait_for_i2c_int();
+    if (ret == 0) {
+        return 0;
+    }
 
-    // TODO check if successful
+    // Check status register (could be successful)
+    uint8_t read_status = read_i2c_reg(I2C_STAT);
+    if (status != NULL) {
+        status = read_status;
+    }
+    if (read_status != I2C_SUCCESS) {
+        return 0;
+    }
+
+    // Successful otherwise
     return 1;
 }
 
@@ -182,36 +231,42 @@ addr - slave address
 data - array of data bytes read (`len` bytes long, must be already allocated,
        will be populated by this function)
 len - number of data bytes to read
+status - will be set by this function to the status register value
 Returns - 1 for success, 0 for failure
-TODO - error codes? (p. 10)
 */
-uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len) {
+uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
     start_i2c_spi();
     send_spi(I2C_READ);
     send_spi(len);
     send_spi(addr);
     end_i2c_spi();
 
-    // Wait for INT pin interrupt
-    // TODO timeout
-    while (!i2c_int_active) {}
-    i2c_int_active = false;
+    // Wait for interrupt
+    uint8_t ret = wait_for_i2c_int();
+    if (ret == 0) {
+        return 0;
+    }
 
+    // Check status register (could be successful)
+    uint8_t read_status = read_i2c_reg(I2C_STAT);
+    if (status != NULL) {
+        status = read_status;
+    }
+    if (read_status != I2C_SUCCESS) {
+        return 0;
+    }
+
+    // Copy read buffer contents
     read_i2c_buf(data, len);
 
-    // TODO check if successful
+    // Successful otherwise
     return 1;
 }
 
 // Interrupt service routine for pin change interrupt (INT pin)
+// Can just use for testing, but don't need in the final version
+// since we block until the interrupt is asserted
 ISR(PCINT2_vect) {
-    print("PCINT2 ISR\n");
-
-    // Check the value of the I2C INT pin
-    if (get_pin_val(i2c_int.pin, i2c_int.port) == 0) {
-        i2c_int_active = true;
-        print("I2C int active\n");
-    } else {
-        i2c_int_active = false;
-    }
+    print("PCINT2 ISR: I2C INT pin = %u\n",
+        get_pin_val(i2c_int.pin, i2c_int.port));
 }
