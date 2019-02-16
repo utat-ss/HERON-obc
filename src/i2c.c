@@ -197,6 +197,16 @@ status - will be set by this function to the status register value
 Returns - 1 for success, 0 for failure
 */
 uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
+
+    print("before write Waiting until not busy\n");
+    while (1) {
+        uint8_t test_status = read_i2c_reg(I2C_STAT);
+        print("test_status = %02x\n", test_status);
+        if (test_status != I2C_BUSY) {
+            break;
+        }
+    }
+
     start_i2c_spi();
     send_spi(I2C_WRITE);
     send_spi(len);
@@ -212,10 +222,19 @@ uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
         return 0;
     }
 
+    print("Waiting until not busy\n");
+    while (1) {
+        uint8_t test_status = read_i2c_reg(I2C_STAT);
+        print("test_status = %02x\n", test_status);
+        if (test_status != I2C_BUSY) {
+            break;
+        }
+    }
+
     // Check status register (could be successful)
     uint8_t read_status = read_i2c_reg(I2C_STAT);
     if (status != NULL) {
-        status = read_status;
+        *status = read_status;
     }
     if (read_status != I2C_SUCCESS) {
         return 0;
@@ -235,6 +254,16 @@ status - will be set by this function to the status register value
 Returns - 1 for success, 0 for failure
 */
 uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
+
+    print("before read Waiting until not busy\n");
+    while (1) {
+        uint8_t test_status = read_i2c_reg(I2C_STAT);
+        print("test_status = %02x\n", test_status);
+        if (test_status != I2C_BUSY) {
+            break;
+        }
+    }
+
     start_i2c_spi();
     send_spi(I2C_READ);
     send_spi(len);
@@ -250,7 +279,7 @@ uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
     // Check status register (could be successful)
     uint8_t read_status = read_i2c_reg(I2C_STAT);
     if (status != NULL) {
-        status = read_status;
+        *status = read_status;
     }
     if (read_status != I2C_SUCCESS) {
         return 0;
@@ -267,6 +296,6 @@ uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
 // Can just use for testing, but don't need in the final version
 // since we block until the interrupt is asserted
 ISR(PCINT2_vect) {
-    print("PCINT2 ISR: I2C INT pin = %u\n",
-        get_pin_val(i2c_int.pin, i2c_int.port));
+    // print("PCINT2 ISR: I2C INT pin = %u\n",
+    //     get_pin_val(i2c_int.pin, i2c_int.port));
 }

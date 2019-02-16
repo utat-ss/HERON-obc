@@ -70,7 +70,7 @@ uint8_t read_i2c_reg(uint8_t addr);
 void read_i2c_buf(uint8_t* data, uint8_t len);
 uint8_t wait_for_i2c_int(void);
 
-uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len);
-uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len);
+uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status);
+uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status);
 
 #endif
