@@ -18,7 +18,7 @@ void init_rtc(void){
 
     // Write defaults to the control and status registers
     rtc_write(RTC_CTRL_R, RTC_CTRL_DEF);
-    rtc_write(RTC_STATUS_R, RTC_STATUS_DEF);
+    rtc_write(RTC_STATUS_R, RTC_STATUS_DEF); 
 }
 
 void set_rtc_time(rtc_time_t time){
@@ -67,7 +67,13 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
     */
     uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
     if (alarm_number == RTC_ALARM_1){
-        //enable interrupts from alarm 1
+        // select mask register 0
+        PCICR |= (1 << PCIE0);
+        // tell mcu to look for pin changes on PCINT6 (pin PB6)
+        PCMSK0 |= (1 << PCINT6);
+        // enable global interrupts
+        sie();
+
         rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(RTC_A1IE)));
         rtc_write(RTC_ALARM_1_SEC_R, rtc_dec_to_bcd(time.ss));
         rtc_write(RTC_ALARM_1_MIN_R, rtc_dec_to_bcd(time.mm));
@@ -76,7 +82,13 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
         return 1;
     }
     else if(alarm_number == RTC_ALARM_2){
-        //enable interrupts from alarm 2
+        // select mask register 0
+        PCICR |= (1 << PCIE0);
+        // tell mcu to look for pin changes on PCINT6 (pin PB6)
+        PCMSK0 |= (1 << PCINT6);
+        // enable global interrupts
+        sie();
+
         rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(RTC_A2IE)));
         rtc_write(RTC_ALARM_2_MIN_R, rtc_dec_to_bcd(time.mm));
         rtc_write(RTC_ALARM_2_HOUR_R, rtc_dec_to_bcd(time.hh));
@@ -150,4 +162,16 @@ uint8_t rtc_dec_to_bcd(uint8_t dec){
     //decimal to binary-coded-decimal converter
     uint8_t bcd = dec % 10;
     return ((dec-bcd)/10 << 4) + bcd;
+}
+
+/* 
+ * Interrupt servce routine. Check the pin values manually to ensure the response is correct. 
+ * For this interrupt to be valid, the logic needs to be going from HIGH -> LOW. This is determined according to the RTC datasheet 
+ */
+ISR(PCINT0_vect) {
+    // Only act if PINB6 is driven low, otherwise do nothing
+    if(!PINB6) {
+        // Do something...
+
+    }
 }
