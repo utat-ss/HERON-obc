@@ -6,6 +6,7 @@ Datasheet: https://www.nxp.com/docs/en/data-sheet/SC18IS600.pdf
 MCU datasheet: https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-8209-8-bit%20AVR%20ATmega16M1-32M1-64M1_Datasheet.pdf
 
 I2C Info:
+http://www.ti.com/lit/an/slva704/slva704.pdf
 http://i2c.info
 https://learn.sparkfun.com/tutorials/i2c/all
 
@@ -30,6 +31,8 @@ For interrupts (e.g. when read and write operations complete), we can just poll
 
 - Not implementing read after write or write after write
 - Default I2CClk register is 0x19 (p. 5) -> 73.728 kHz (p. 9)
+
+TODO - test I2C at 5V with level translator
 */
 
 #include "i2c.h"
@@ -77,6 +80,17 @@ void init_i2c(void) {
 
     // Reset the I2C bridge
     reset_i2c();
+
+    // Need to delay before writing any registers or else it doesn't work
+    // 1ms just from experimentation
+    _delay_ms(1);
+
+    // Use the lowest clock frequency by default (7.2 kHz, p. 9)
+    write_i2c_reg(I2C_CLOCK, 255);
+    // Set the timeout value and enable the timeout function
+    // (0xFF would be 65,535 cycles of a 57.6 kHz clock, so about 1 second, p. 9)
+    // 0x3F register -> 0x3FFF counter -> 2^14 / 57,600 = about 278 ms
+    write_i2c_reg(I2C_TO, 0x3F);
 }
 
 /*

@@ -2,6 +2,8 @@
 This program tests OBC functioning as an I2C master, using an Arduino Due as the slave device (running the code in test-software/i2c_slave_arduino).
 
 Connect SCL to Arduino pin 21, SDA to Arduino pin 20, and you might need to connect the grounds together.
+
+Debugging help: https://www.avrfreaks.net/forum/i2c-problem-no-ack-slave-device
 */
 
 #include "../../src/i2c.h"
