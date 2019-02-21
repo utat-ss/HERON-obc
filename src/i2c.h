@@ -57,8 +57,10 @@
 #define I2C_TIME_OUT        0xF8
 #define I2C_INVALID_COUNT   0xF9
 
+
 void init_i2c(void);
 void reset_i2c(void);
+
 void power_down_i2c(void);
 void power_up_i2c(void);
 
@@ -68,7 +70,9 @@ void end_i2c_spi(void);
 void write_i2c_reg(uint8_t addr, uint8_t data);
 uint8_t read_i2c_reg(uint8_t addr);
 void read_i2c_buf(uint8_t* data, uint8_t len);
+
 uint8_t wait_for_i2c_int(void);
+uint8_t wait_for_i2c_not_busy(void);
 
 uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status);
 uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status);

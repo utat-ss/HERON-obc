@@ -13,8 +13,10 @@ This library controls the SPI-I2C bridge, i.e. uses SPI to communicate with the
 bridge (integrated circuit), which will then use I2C to communicate with another
 component(s).
 
-Each device on the I2C bus has a 7-bit address.
-Each operation is either a read or a write operation.
+Addresses:
+Each device on the I2C bus has a 7-bit address. Each operation is either a read (1) or a write (0) operation. The address byte has the read/write bit as the least significant bit.
+
+NOTE: There are inconsistencies in representing I2C addresses. Some use the 7-bit address, while others use the 8-bit address (ignoring the least significant bit). The address bytes in the datasheet use the 8-bit version - "The SC18IS600 will ignore the least significant bit" (p. 12, 13). All functions in this library take 7-bit addresses as input and shift it left by 1 bit within the function.
 
 For interrupts (e.g. when read and write operations complete), we can just poll because we are blocking in a loop until the operation is finished anyways.
 
@@ -64,14 +66,6 @@ void init_i2c(void) {
     init_input_pin(i2c_int.pin, i2c_int.ddr);
     // Initialize wakeup pin
     init_output_pin(i2c_wakeup.pin, i2c_wakeup.ddr, 1);
-
-    // TODO - remove interrupt
-    // Enable PCIE3 bit (pin change interrupt 3, pins 31-24) (p. 88)
-    PCICR |= _BV(PCIE2);
-    // Enable PCINT22 -  pin change interrupts for pin 22 (p. 90)
-    PCMSK2 |= _BV(PCINT22);
-    // Enable all (global) interrupts
-    sei();
 
     // Reset the I2C bridge
     reset_i2c();
@@ -181,7 +175,22 @@ uint8_t wait_for_i2c_int(void) {
 
     // Check for timeout
     if (timeout == 0) {
-        print("Timed out\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+/*
+Waits until the status register is not busy (0xF3).
+Returns - 1 for success, 0 for failure (still busy)
+*/
+uint8_t wait_for_i2c_not_busy(void) {
+    uint16_t timeout = UINT16_MAX;
+    while ((read_i2c_reg(I2C_STAT) == I2C_BUSY) && (timeout > 0)) {
+        timeout--;
+    }
+    if (timeout == 0) {
         return 0;
     }
 
@@ -190,45 +199,32 @@ uint8_t wait_for_i2c_int(void) {
 
 /*
 Executes a write I2C command (write data to device, p. 12).
-addr - slave address
+addr - 7-bit slave address
 data - array of data bytes to write (`len` bytes long)
 len - number of data bytes to send
 status - will be set by this function to the status register value
 Returns - 1 for success, 0 for failure
 */
 uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
-
-    print("before write Waiting until not busy\n");
-    while (1) {
-        uint8_t test_status = read_i2c_reg(I2C_STAT);
-        print("test_status = %02x\n", test_status);
-        if (test_status != I2C_BUSY) {
-            break;
-        }
+    if (!wait_for_i2c_not_busy()) {
+        return 0;
     }
 
     start_i2c_spi();
     send_spi(I2C_WRITE);
     send_spi(len);
-    send_spi(addr);
+    send_spi(addr << 1);
     for (uint8_t i = 0; i < len; i++) {
         send_spi(data[i]);
     }
     end_i2c_spi();
 
     // Wait for interrupt
-    uint8_t ret = wait_for_i2c_int();
-    if (ret == 0) {
+    if (!wait_for_i2c_int()) {
         return 0;
     }
-
-    print("Waiting until not busy\n");
-    while (1) {
-        uint8_t test_status = read_i2c_reg(I2C_STAT);
-        print("test_status = %02x\n", test_status);
-        if (test_status != I2C_BUSY) {
-            break;
-        }
+    if (!wait_for_i2c_not_busy()) {
+        return 0;
     }
 
     // Check status register (could be successful)
@@ -246,7 +242,7 @@ uint8_t write_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
 
 /*
 Executes a read I2C command (read data from device, p. 13).
-addr - slave address
+addr - 7-bit slave address
 data - array of data bytes read (`len` bytes long, must be already allocated,
        will be populated by this function)
 len - number of data bytes to read
@@ -254,25 +250,21 @@ status - will be set by this function to the status register value
 Returns - 1 for success, 0 for failure
 */
 uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
-
-    print("before read Waiting until not busy\n");
-    while (1) {
-        uint8_t test_status = read_i2c_reg(I2C_STAT);
-        print("test_status = %02x\n", test_status);
-        if (test_status != I2C_BUSY) {
-            break;
-        }
+    if (!wait_for_i2c_not_busy()) {
+        return 0;
     }
 
     start_i2c_spi();
     send_spi(I2C_READ);
     send_spi(len);
-    send_spi(addr);
+    send_spi(addr << 1);
     end_i2c_spi();
 
     // Wait for interrupt
-    uint8_t ret = wait_for_i2c_int();
-    if (ret == 0) {
+    if (!wait_for_i2c_int()) {
+        return 0;
+    }
+    if (!wait_for_i2c_not_busy()) {
         return 0;
     }
 
@@ -292,10 +284,23 @@ uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
     return 1;
 }
 
-// Interrupt service routine for pin change interrupt (INT pin)
-// Can just use for testing, but don't need in the final version
-// since we block until the interrupt is asserted
-ISR(PCINT2_vect) {
-    // print("PCINT2 ISR: I2C INT pin = %u\n",
-    //     get_pin_val(i2c_int.pin, i2c_int.port));
-}
+
+// Can uncomment and use the following code to test the INT pin with an
+// interrupt vector
+// Can use for testing, but this is not needed in the final version since we
+// just block until the interrupt is asserted (INT goes low)
+
+// void init_i2c_int(void) {
+//     // Enable PCIE3 bit (pin change interrupt 3, pins 31-24) (p. 88)
+//     PCICR |= _BV(PCIE2);
+//     // Enable PCINT22 -  pin change interrupts for pin 22 (p. 90)
+//     PCMSK2 |= _BV(PCINT22);
+//     // Enable all (global) interrupts
+//     sei();
+// }
+//
+// // Interrupt service routine for pin change interrupt (INT pin)
+// ISR(PCINT2_vect) {
+//     print("PCINT2 ISR: I2C INT pin = %u\n",
+//         get_pin_val(i2c_int.pin, i2c_int.port));
+// }
