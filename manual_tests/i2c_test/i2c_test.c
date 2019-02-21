@@ -18,15 +18,29 @@ void print_all_regs(void) {
     print("ADR: %02x\n", read_i2c_reg(I2C_ADR));
 }
 
-int main(void) {
-    init_uart();
-    init_spi();
-    init_i2c();
+void test_power_down(void) {
+    uint8_t write[3] = { 'A', 'B', 'C' };
+    uint8_t ret = 0;
+    uint8_t status = 0;
 
-    print("\n\n\nStarting I2C test\n\n");
+    print("\n");
 
-    print_all_regs();
+    power_down_i2c();
+    print("Powered down I2C\n");
 
+    print("Writing 'ABC'\n");
+    ret = write_i2c(SLAVE_ADDR, write, 3, &status);
+    print("ret = %u, status = %02x\n", ret, status);
+
+    power_up_i2c();
+    print("Powered up I2C\n");
+
+    print("Writing 'ABC'\n");
+    ret = write_i2c(SLAVE_ADDR, write, 3, &status);
+    print("ret = %u, status = %02x\n", ret, status);
+}
+
+void test_write_read(void) {
     uint8_t ret = 0;
     uint8_t status = 0;
 
@@ -46,6 +60,19 @@ int main(void) {
 
         _delay_ms(1000);
     }
+}
+
+int main(void) {
+    init_uart();
+    init_spi();
+    init_i2c();
+
+    print("\n\n\nStarting I2C test\n\n");
+
+    print_all_regs();
+
+    test_power_down();
+    test_write_read();
 
     print("\nDone I2C test\n\n\n");
 }

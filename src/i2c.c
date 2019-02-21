@@ -14,11 +14,19 @@ bridge (integrated circuit), which will then use I2C to communicate with another
 component(s).
 
 Addresses:
-Each device on the I2C bus has a 7-bit address. Each operation is either a read (1) or a write (0) operation. The address byte has the read/write bit as the least significant bit.
+Each device on the I2C bus has a 7-bit address. Each operation is either a read
+    (1) or a write (0) operation. The address byte has the read/write bit as the
+    least significant bit.
 
-NOTE: There are inconsistencies in representing I2C addresses. Some use the 7-bit address, while others use the 8-bit address (ignoring the least significant bit). The address bytes in the datasheet use the 8-bit version - "The SC18IS600 will ignore the least significant bit" (p. 12, 13). All functions in this library take 7-bit addresses as input and shift it left by 1 bit within the function.
+NOTE: There are inconsistencies in representing I2C addresses. Some use the
+    7-bit address, while others use the 8-bit address (ignoring the least
+    significant bit). The address bytes in the datasheet use the 8-bit version
+    - "The SC18IS600 will ignore the least significant bit" (p. 12, 13). All
+    functions in this library take 7-bit addresses as input and shift it left by
+    1 bit within the function.
 
-For interrupts (e.g. when read and write operations complete), we can just poll because we are blocking in a loop until the operation is finished anyways.
+For interrupts (e.g. when read and write operations complete), we can just poll
+    because we are blocking in a loop until the operation is finished anyways.
 
 - Not implementing read after write or write after write
 - Default I2CClk register is 0x19 (p. 5) -> 73.728 kHz (p. 9)
