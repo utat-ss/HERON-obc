@@ -66,7 +66,7 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
      (with more frequent triggers) could be implemented.
     */
     uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
-    if (alarm_number == RTC_ALARM_1){
+    if (alarm_number == RTC_AqLARM_1){
         // select mask register 0
         PCICR |= (1 << PCIE0);
         // tell mcu to look for pin changes on PCINT6 (pin PB6)
@@ -101,7 +101,7 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
 uint8_t disable_rtc_alarm(rtc_alarm_t alarm_number){
     //disabling the alarm and clearing the interrupt are NOT the same thing
     //disabling the alarm simply prevents any interrupts from being sent in the
-    //  future
+    // future
     uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
     if (alarm_number == RTC_ALARM_1){
         //write 0 to the interrupt enable bit
@@ -171,7 +171,14 @@ uint8_t rtc_dec_to_bcd(uint8_t dec){
 ISR(PCINT0_vect) {
     // Only act if PINB6 is driven low, otherwise do nothing
     if(!PINB6) {
-        // Do something...
+        uint8_t RTC_STATUS = rtc_read(RTC_STATUS_R);
+        if(RTC_STATUS & _BV(RTC_A1F)) {
+            // perform actions for alarm 1...
 
+        }
+        else if(RTC_STATUS & _BV(RTC_A2F)) {
+            // perform actions for alarm 2...
+
+        }
     }
 }
