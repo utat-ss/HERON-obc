@@ -12,7 +12,7 @@ int main(void){
     init_rtc();
 
     rtc_time_t t;
-    t.ss = 30;
+    t.ss = 40;
     t.mm = 59;
     t.hh = 23;
     set_rtc_time(t);
@@ -23,20 +23,34 @@ int main(void){
     d.yy = 17;
     set_rtc_date(d);
 
-    rtc_time_t t_alarm;
+    rtc_time_t t_alarm_1;
     t_alarm.ss = 00;
     t_alarm.mm = 00;
     t_alarm.hh = 00;
 
-    rtc_date_t d_alarm;
+    rtc_date_t d_alarm_1;
     d_alarm.dd = 01;
     d_alarm.mm = 01;
     d_alarm.yy = 18;
 
-    set_rtc_alarm(t_alarm, d_alarm, 1);
+    set_rtc_alarm(t_alarm_1, d_alarm_1, 1);
+
+    rtc_time_t t_alarm_2;
+    t_alarm.ss = 10;
+    t_alarm.mm = 00;
+    t_alarm.hh = 00;
+
+    rtc_date_t d_alarm_2;
+    d_alarm.dd = 01;
+    d_alarm.mm = 01;
+    d_alarm.yy = 18;
+
+    set_rtc_alarm(t_alarm_2, d_alarm_2, 2);
+
     //disable_alarm(1); //comment out this line to test the functionality of the set_alarm function
 
-    for (;;){
+    // run for 40 seconds, expect to see ALARM 1 ON followed by ALARM 2 ON
+    for (uint8_t i=0; i<4; i++){
         _delay_ms(10000);
 
         t = read_rtc_time();

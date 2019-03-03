@@ -174,11 +174,11 @@ ISR(PCINT0_vect) {
         uint8_t RTC_STATUS = rtc_read(RTC_STATUS_R);
         if(RTC_STATUS & _BV(RTC_A1F)) {
             // perform actions for alarm 1...
-
+            print("ALARM 1 ON!!!");
         }
         else if(RTC_STATUS & _BV(RTC_A2F)) {
             // perform actions for alarm 2...
-
+            print("ALARM 2 ON!!!");
         }
     }
 }
