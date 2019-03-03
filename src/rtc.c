@@ -11,6 +11,9 @@ TODO - test alarm interrupt functionality
 
 #include "rtc.h"
 
+static cmd_fn_t alarm_1_cmd;
+static cmd_fn_t alarm_2_cmd;
+
 void init_rtc(void){
     // initialize the Chip Select pin
     init_cs(RTC_CS, &RTC_DDR);
@@ -56,7 +59,7 @@ void set_rtc_date(rtc_date_t date){
 }
 
 uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
-    rtc_alarm_t alarm_number) {
+    rtc_alarm_t alarm_number, cmd_fn_t cmd) {
 
     /*
     Enables interrupts from respective alarm (1 or 2),
@@ -79,6 +82,9 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
         rtc_write(RTC_ALARM_1_MIN_R, rtc_dec_to_bcd(time.mm));
         rtc_write(RTC_ALARM_1_HOUR_R, rtc_dec_to_bcd(time.hh));
         rtc_write(RTC_ALARM_1_DAY_R, rtc_dec_to_bcd(date.dd));
+
+        alarm_1_cmd = cmd;
+
         return 1;
     }
     else if(alarm_number == RTC_ALARM_2){
@@ -93,6 +99,9 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
         rtc_write(RTC_ALARM_2_MIN_R, rtc_dec_to_bcd(time.mm));
         rtc_write(RTC_ALARM_2_HOUR_R, rtc_dec_to_bcd(time.hh));
         rtc_write(RTC_ALARM_2_DAY_R, rtc_dec_to_bcd(date.dd));
+
+        alarm_2_cmd = cmd;
+
         return 1;
     }
     return 0; //if the alarm is not set, return 0
@@ -174,11 +183,11 @@ ISR(PCINT0_vect) {
         uint8_t RTC_STATUS = rtc_read(RTC_STATUS_R);
         if(RTC_STATUS & _BV(RTC_A1F)) {
             // perform actions for alarm 1...
-            print("ALARM 1 ON!!!");
+            (alarm_1_cmd)();
         }
         else if(RTC_STATUS & _BV(RTC_A2F)) {
             // perform actions for alarm 2...
-            print("ALARM 2 ON!!!");
+            (alarm_2_cmd)();
         }
     }
 }

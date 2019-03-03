@@ -6,6 +6,14 @@ TODO - get this test working
 #include <spi/spi.h>
 #include "../../src/rtc.h"
 
+void alarm_1_test(){
+    print("ALARM 1 ON");
+}
+
+void alarm_2_test(){
+    print("ALARM 2 ON");
+}
+
 int main(void){
     init_uart();
     init_spi();
@@ -33,7 +41,7 @@ int main(void){
     d_alarm.mm = 01;
     d_alarm.yy = 18;
 
-    set_rtc_alarm(t_alarm_1, d_alarm_1, 1);
+    set_rtc_alarm(t_alarm_1, d_alarm_1, 1, alarm_1_test);
 
     rtc_time_t t_alarm_2;
     t_alarm.ss = 10;
@@ -45,7 +53,7 @@ int main(void){
     d_alarm.mm = 01;
     d_alarm.yy = 18;
 
-    set_rtc_alarm(t_alarm_2, d_alarm_2, 2);
+    set_rtc_alarm(t_alarm_2, d_alarm_2, 2, alarm_2_test);
 
     //disable_alarm(1); //comment out this line to test the functionality of the set_alarm function
 
