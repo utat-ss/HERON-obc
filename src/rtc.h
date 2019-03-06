@@ -30,6 +30,8 @@ typedef enum {
     RTC_ALARM_2
 } rtc_alarm_t;
 
+// Callback function signatures for alarms
+typedef void (*alarm_fn_t)(void);
 
 // Basic Functions
 void init_rtc(void);

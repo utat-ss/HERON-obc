@@ -11,8 +11,12 @@ TODO - test alarm interrupt functionality
 
 #include "rtc.h"
 
-static cmd_fn_t alarm_1_cmd;
-static cmd_fn_t alarm_2_cmd;
+void no_op(void){
+    //default call, do nothing
+}
+
+static alarm_fn_t alarm_1_cmd = no_op;
+static alarm_fn_t alarm_2_cmd = no_op;
 
 void init_rtc(void){
     // initialize the Chip Select pin
@@ -59,7 +63,7 @@ void set_rtc_date(rtc_date_t date){
 }
 
 uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
-    rtc_alarm_t alarm_number, cmd_fn_t cmd) {
+    rtc_alarm_t alarm_number, alarm_fn_t cmd) {
 
     /*
     Enables interrupts from respective alarm (1 or 2),
