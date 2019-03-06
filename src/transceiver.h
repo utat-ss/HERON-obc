@@ -64,9 +64,9 @@ boot = 0b0 (application mode)
 // TODO - put this in the UART library itself
 extern volatile uint8_t uart_rx_buf_count;
 
-extern volatile uint8_t    trans_cmd_resp[];
-extern volatile uint8_t    trans_cmd_resp_len;
-extern volatile bool       trans_cmd_resp_avail;
+extern volatile uint8_t    trans_cmd_resp[]; //buffer
+extern volatile uint8_t    trans_cmd_resp_len; //numebr valid chars
+extern volatile bool       trans_cmd_resp_avail; 
 
 extern volatile uint8_t    trans_encoded_rx_msg[];
 extern volatile uint8_t    trans_encoded_rx_msg_len;
