@@ -10,10 +10,13 @@
 #include "uptime.h"
 
 // Number of characters in the buffer of received UART RX characters
-#define TRANS_RX_BUF_MAX_SIZE 20
+#define TRANS_CMD_RESP_MAX_SIZE         20
+#define TRANS_ENCODED_RX_MSG_MAX_SIZE   20
+#define TRANS_DECODED_RX_MSG_MAX_SIZE   20
+#define TRANS_DECODED_TX_MSG_MAX_SIZE   20
 
 // Number of seconds to wait (if we are not receiving anymore characters) to clear the buffer
-#define TRANS_RX_BUF_TIMEOUT 10
+#define TRANS_RX_BUF_TIMEOUT 5
 
 //Default Address - DO NOT CHANGE
 #define TRANS_ADDR  0x22
@@ -55,25 +58,34 @@ boot = 0b0 (application mode)
 // TODO - what number?
 #define TRANS_MAX_CMD_ATTEMPTS 3
 
-// Callback function signature for when we receive an RX message
-// buffer, length
-typedef void(*trans_rx_msg_cb_t)(const uint8_t*, uint8_t);
+
+// Expose this global variable from the UART library because we need it
+// TODO - put this in the UART library itself
+extern volatile uint8_t uart_rx_buf_count;
+
+extern volatile uint8_t    trans_cmd_resp[];
+extern volatile uint8_t    trans_cmd_resp_len;
+extern volatile bool       trans_cmd_resp_avail;
+
+extern volatile uint8_t    trans_encoded_rx_msg[];
+extern volatile uint8_t    trans_encoded_rx_msg_len;
+extern volatile bool       trans_encoded_rx_msg_avail;
+
 
 // Initialization
 void init_trans(void);
+void init_trans_uart(void);
+void trans_uptime_cb(void);
 uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len);
-
-void set_trans_rx_msg_cb(trans_rx_msg_cb_t cb);
-void clear_trans_rx_buf(void);
+void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len);
+void scan_trans_encoded_rx_msg(const uint8_t* buf, uint8_t len);
 
 // Helper Functions to process responses
 uint8_t char_to_hex(uint8_t c);
 uint32_t scan_uint(volatile uint8_t* string, uint8_t offset, uint8_t count);
-uint8_t string_cmp(volatile uint8_t* first, char* second, uint8_t len);
+uint8_t string_cmp(const uint8_t* first, const char* second, uint8_t len);
 
 uint8_t wait_for_trans_cmd_resp(uint8_t expected_len);
-void scan_trans_cmd_resp_avail(void);
-void scan_trans_rx_msg_avail(void);
 
 // 1
 uint8_t set_trans_scw(uint16_t scw);
