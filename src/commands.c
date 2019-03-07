@@ -82,7 +82,8 @@ void req_pay_opt_fn(void) {
 
 // Sends the command to actuate the motors
 void pop_blister_packs_fn(void) {
-    enqueue_pay_exp_tx_msg(CAN_PAY_EXP_POP);
+    // TODO
+    // enqueue_pay_exp_tx_msg(CAN_PAY_EXP_POP);
 }
 
 void write_mem_fn(void) {
@@ -118,7 +119,7 @@ void read_mem_fn(void) {
         eps_hk_header.time.hh = 18;
         eps_hk_header.time.mm = 5;
         eps_hk_header.time.ss = 20;
-        for (uint8_t i = 0; i < CAN_EPS_HK_GET_COUNT; i++) {
+        for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
             eps_hk_fields[i] = i + 4;
         }
 
@@ -130,7 +131,7 @@ void read_mem_fn(void) {
         pay_hk_header.time.hh = 21;
         pay_hk_header.time.mm = 5;
         pay_hk_header.time.ss = 20;
-        for (uint8_t i = 0; i < CAN_PAY_HK_GET_COUNT; i++) {
+        for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
             pay_hk_fields[i] = i + 17;
         }
 
@@ -142,7 +143,7 @@ void read_mem_fn(void) {
         pay_opt_header.time.hh = 4;
         pay_opt_header.time.mm = 5;
         pay_opt_header.time.ss = 20;
-        for (uint8_t i = 0; i < CAN_PAY_SCI_GET_COUNT; i++) {
+        for (uint8_t i = 0; i < CAN_PAY_OPT_FIELD_COUNT; i++) {
             pay_opt_fields[i] = i + 11;
         }
     }
