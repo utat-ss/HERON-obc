@@ -31,9 +31,9 @@ All bits below this point are read only (no writing)
 Unused features: Beacon contents, packets
 
 UART RX Buffer:
-There is a common buffer of characters received over UART from the transceiver.
+There is a common buffer of characters received over UART from the transceiver in the UART library.
 These could either be a response to a command we send it, or a message from the
-ground station. In either case, we save all received UART characters to the
+ground station. In either case, we leave all received UART characters in the
 buffer. Every time we receive a new character, scan the entire buffer to see if
 the sequence of characters makes sense (i.e. detect it as either a command
 response or a received message and set the appropriate boolean flag, which
@@ -41,51 +41,64 @@ functions in this library can check for and consume the data if desired). We
 set a timeout where if we do not receive any characters for a certain number of
 seconds, the entire buffer contents are discarded.
 
+Formerly, we copied all characters from the standard UART buffer to a separate
+buffer in this library, but that was unnecessary.
+
 TODO - For most of the get commands, OBC misses the first 1 or 2 characters in
     the response for the first attempt, but the second attempt seems to always work
-
 TODO - it was observed that after either sending data in pipe mode, the
     transceiver sent the UART message "+ESTTC<CR>" - figure out what this is
-
-TODO - default status register and frequency?
 TODO - macro for repeating command attempts?
 TODO - if commands to the transceiver fail, change UART baud rate and switch
     the transceiver back to 9600 baud
-
 TODO - sort out possible race condition where we receive UART RX, which triggers
-an action in some function, but before the function finished, the uptime timer
-triggers and clears the buffer that the function was taking data from
+    an action in some function, but before the function finished, the uptime
+    timer triggers and clears the buffer that the function was taking data from
     - currently assuming that the function acts quickly enough to use the data
       before it is cleared
 
-TODO - test that the RX buffer is cleared when the uptime timer reaches the
-    timeout
+TODO - perhaps refactor sending a transceiver command and receiving UART back
+uint8_t send_trans_cmd(uint8_t resp_len, char* fmt, ...) {
+    clear_uart_rx_buf();
+    // var args stuff, vsnprintf...
+    send_uart();
+    // check response
+    // if failed, try again
+    // return 1 for success, 0 for failure
+}
 */
 
 #include "transceiver.h"
 
+/*
+All buffers have the following format:
+[...] - characters in buffer (NO '\0' OR '\r' TERMINATION)
+[...]_len - number of valid characters in buffer (NOT INCLUDING TERMINATION)
+[...]_avail - true if the buffer is valid (received something valid)
+*/
 
-/* Command response received back from transceiver */
-// String - has '\0' termination
-volatile uint8_t trans_rx_buf[TRANS_RX_BUF_MAX_SIZE] = {0x00};
-// Length - number of characters (NOT including '\r' or '\0' termination)
-volatile uint8_t trans_rx_buf_len = 0;
+/* Command response received back from transceiver (detected by \r termination) */
+volatile uint8_t    trans_cmd_resp[TRANS_CMD_RESP_MAX_SIZE] = {0x00};
+volatile uint8_t    trans_cmd_resp_len = 0;
+volatile bool       trans_cmd_resp_avail = false;
 
-// Flag - gets set to true by the UART RX callback when a full command response
-// (detected by \r termination) is available in `trans_rx_buf`
-volatile bool trans_cmd_resp_avail = false;
-// true if we received a message
-volatile bool trans_rx_msg_avail = false;
+// Encoded RX message (from ground station)
+volatile uint8_t    trans_encoded_rx_msg[TRANS_ENCODED_RX_MSG_MAX_SIZE] = {0x00};
+volatile uint8_t    trans_encoded_rx_msg_len = 0;
+volatile bool       trans_encoded_rx_msg_avail = false;
 
-// Default no-operation callback
-void _trans_rx_msb_cb_nop(const uint8_t* msg, uint8_t len) {}
-// RX message callback function
-// It will give the function the message and length - when the callback returns,
-// it will clear the RX buffer
-trans_rx_msg_cb_t trans_rx_msg_cb = _trans_rx_msb_cb_nop;
+// Decoded RX message (from ground station)
+volatile uint8_t    trans_decoded_rx_msg[TRANS_DECODED_RX_MSG_MAX_SIZE] = {0x00};
+volatile uint8_t    trans_decoded_rx_msg_len = 0;
+volatile bool       trans_decoded_rx_msg_avail = false;
 
-// Last time we have received a character
-volatile uint32_t trans_rx_last_uptime_s = 0;
+// Decoded RX message (from ground station)
+volatile uint8_t    trans_decoded_tx_msg[TRANS_DECODED_TX_MSG_MAX_SIZE] = {0x00};
+volatile uint8_t    trans_decoded_tx_msg_len = 0;
+volatile bool       trans_decoded_tx_msg_avail = false;
+
+// Last time we have received a UART character
+volatile uint32_t trans_rx_prev_uptime_s = 0;
 
 
 
@@ -94,7 +107,23 @@ volatile uint32_t trans_rx_last_uptime_s = 0;
 Initializes the transceiver for UART RX callbacks (does not change any settings).
 */
 void init_trans(void) {
+    init_trans_uart();
+}
+
+void init_trans_uart(void) {
     set_uart_rx_cb(trans_uart_rx_cb);
+    add_uptime_callback(trans_uptime_cb);
+}
+
+void trans_uptime_cb(void) {
+    // Check for a timeout in receiving characters to clear the buffer
+    if (uptime_s > trans_rx_prev_uptime_s &&
+        uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
+        uart_rx_buf_count > 0) {
+
+        clear_uart_rx_buf();
+        print("\nTimed out and cleared RX buf\n");
+    }
 }
 
 /*
@@ -104,59 +133,86 @@ len - number of received characters
 Returns - number of characters processed
 */
 uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
-    // Before adding new characters, check for a timeout in receiving previous characters to possibly clear the buffer
-    if (uptime_s > trans_rx_last_uptime_s && uptime_s - trans_rx_last_uptime_s >= TRANS_RX_BUF_TIMEOUT) {
-        clear_trans_rx_buf();
-        print("Timed out and cleared RX buf\n");
-    }
+    // Save the new time we have received a character
+    trans_rx_prev_uptime_s = uptime_s;
 
-    // Add all received characters to the buffer, make sure not to overflow
-    for (uint8_t i = 0;
-        (i < len) && (trans_rx_buf_len < TRANS_RX_BUF_MAX_SIZE);
-        i++) {
-
-        trans_rx_buf[trans_rx_buf_len] = buf[i];
-        trans_rx_buf_len++;
-
-        put_uart_char(buf[i]);
-    }
+    // Output new character?
+    put_uart_char(buf[len - 1]);
 
     // Scan what we have in the buffer now
-    scan_trans_cmd_resp_avail();
-    scan_trans_rx_msg_avail();
-
-    // If we got an RX message, call the callback function (it can do what it
-    // wants with the message), then clear the buffer
-    if (trans_rx_msg_avail) {
-        trans_rx_msg_cb((uint8_t*) trans_rx_buf, trans_rx_buf_len);
-        clear_trans_rx_buf();
+    // If we found something, clear it from the main UART buffer because the
+    // other function has already copied it to a dedicated buffer
+    scan_trans_cmd_resp(buf, len);
+    if (trans_cmd_resp_avail) {
+        return len;
+    }
+    scan_trans_encoded_rx_msg(buf, len);
+    if (trans_encoded_rx_msg_avail) {
+        return len;
     }
 
-    // Save the new time we have received a character
-    trans_rx_last_uptime_s = uptime_s;
-
-    // Processed all characters
-    return len;
+    // By default, we haven't processed any characters
+    return 0;
 }
 
-/*
-Sets the callback function that will be called when we get an RX message.
-When an RX message is received, the code will call this callback function and
-pass it the message, then will clear the buffer (remove the message).
-*/
-void set_trans_rx_msg_cb(trans_rx_msg_cb_t cb) {
-    trans_rx_msg_cb = cb;
-}
 
-void clear_trans_rx_buf(void) {
-    for (uint8_t i = 0; i < TRANS_RX_BUF_MAX_SIZE; i++) {
-        trans_rx_buf[i] = 0;
+// Scans the contents of trans_cmd_resp for a command response, sets
+// trans_cmd_resp_avail if appropriate
+void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len) {
+    // TODO - is this really robust? what if an RX message has "OK" or "\r"?
+
+    // Check conditions:
+    // - Minimum 3 characters
+    // - Not too many characters to overflow the buffer
+    //   (ignoring the '\r' termination)
+    // - Starts with "OK"
+    // - Ends with "\r"
+
+    // "ERR" (command was not sucessful) is considered invalid, but we don't
+    // need to check for it explicitly if it is not equal to "OK"
+
+    if (len >= 3 &&
+        len - 1 <= TRANS_CMD_RESP_MAX_SIZE &&
+        string_cmp(buf, "OK", 2) == 1 &&
+        buf[len - 1] == '\r') {
+
+        // Copy all characters except '\r'
+        for (uint8_t i = 0; i < len - 1; i++) {
+            trans_cmd_resp[i] = buf[i];
+        }
+        trans_cmd_resp_len = len - 1;
+        trans_cmd_resp_avail = true;
     }
-    trans_rx_buf_len = 0;
-
-    trans_cmd_resp_avail = false;
-    trans_rx_msg_avail = false;
 }
+
+// Scans the contents of trans_cmd_resp for a received message, sets
+// trans_rx_msg_avail if appropriate
+void scan_trans_encoded_rx_msg(const uint8_t* buf, uint8_t len) {
+    // TODO - is this really robust? what if an RX message has "OK" or "\r"?
+
+    // Check conditions:
+    // - Minimum 3 characters
+    // - Fits in buffer
+    // - Does not start with "OK"
+    // - First byte is 0
+    // - Second byte is not 0
+    // - Second byte is the number of bytes remaining in the buffer
+    if (len >= 3 &&
+        len <= TRANS_ENCODED_RX_MSG_MAX_SIZE &&
+        string_cmp(buf, "OK", 2) == 0 &&
+        buf[0] == 0x00 &&
+        buf[1] != 0x00 &&
+        buf[1] == len - 2) {
+
+        // Copy all characters except '\r'
+        for (uint8_t i = 0; i < len; i++) {
+            trans_encoded_rx_msg[i] = buf[i];
+        }
+        trans_encoded_rx_msg_len = len;
+        trans_encoded_rx_msg_avail = true;
+    }
+}
+
 
 
 /*
@@ -179,7 +235,7 @@ uint8_t char_to_hex(uint8_t c) {
 /*
 Extracts ASCII characters representing a hex number and returns the corresponding integer.
 string - string containing ASCII characters of the number to process (volatile
-         to prevent compiler warnings with the `trans_rx_buf` buffer)
+         to prevent compiler warnings with the `trans_cmd_resp` buffer)
 offset - starting index in the string
 count - number of characters (between 1 and 8)
 Returns - 32-bit unsigned integer processed
@@ -196,12 +252,12 @@ uint32_t scan_uint(volatile uint8_t* string, uint8_t offset, uint8_t count) {
 /*
 Compares strings to see if they are equal
 first - first string to compare (volatile to prevent compiler warnings with the
-        `trans_rx_buf` buffer)
+        `trans_cmd_resp` buffer)
 second - second string to compare
 len - number of characters to compare
 Returns - 1 if strings are the same, returns 0 otherwise
 */
-uint8_t string_cmp(volatile uint8_t* first, char* second, uint8_t len) {
+uint8_t string_cmp(const uint8_t* first, const char* second, uint8_t len) {
     for (uint8_t i = 0; i < len; i++) {
         if (first[i] != second[i]) {
             return 0;
@@ -231,7 +287,7 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
 
     // Check if the string's length matched the expected number of characters
     // Add 1 to account for the '\r' character
-    if (trans_rx_buf_len != expected_len + 1) {
+    if (trans_cmd_resp_len != expected_len) {
         return 0;
     }
 
@@ -241,65 +297,16 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
 }
 
 
-// Scans the contents of trans_rx_buf for a command response, sets
-// trans_cmd_resp_avail if appropriate
-void scan_trans_cmd_resp_avail(void) {
-    // TODO - is this really robust? what if an RX message has "OK" or "\r"?
-    // Check if the string starts with "OK"
-    // Minimum 3 characters
-    // Starts with "OK"
-    // Ends with "\r"
-    // "ERR" (command was not sucessful) is considered invalid, but we don't
-    // need to check for it explicitly if it is not equal to "OK"
-    char* valid = "OK";
-    if (trans_rx_buf_len >= 3 &&
-        string_cmp(trans_rx_buf, valid, 2) == 1 &&
-        trans_rx_buf[trans_rx_buf_len - 1] == '\r') {
-
-        trans_cmd_resp_avail = true;
-
-        print("Received trans cmd resp: %u chars: ", trans_rx_buf_len);
-        for (uint8_t i = 0; i < trans_rx_buf_len; i++) {
-            print("%c", trans_rx_buf[i]);
-        }
-        print("\n");
-    }
-}
-
-// Scans the contents of trans_rx_buf for a received message, sets
-// trans_rx_msg_avail if appropriate
-void scan_trans_rx_msg_avail(void) {
-    // TODO - is this really robust? what if an RX message has "OK" or "\r"?
-    // Minimum 3 characters
-    // Does not start with "OK"
-    // First byte is 0
-    // Second byte is not 0
-    // Second byte is the number of bytes remaining in the buffer
-    char* ok = "OK";
-    if (trans_rx_buf_len >= 3 &&
-        string_cmp(trans_rx_buf, ok, 2) == 0 &&
-        trans_rx_buf[0] == 0x00 &&
-        trans_rx_buf[1] != 0x00 &&
-        trans_rx_buf[1] == trans_rx_buf_len - 2) {
-
-        trans_rx_msg_avail = true;
-
-        // print("Received trans rx msg: %u chars: ", trans_rx_buf_len);
-        // print_bytes((uint8_t*) trans_rx_buf, trans_rx_buf_len);
-    }
-}
-
-
 
 
 uint8_t set_trans_scw_attempt(uint16_t scw) {
     // Send command
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+W%02X00%04X\r", TRANS_ADDR, scw);
 
     // Wait for response
     uint8_t validity = wait_for_trans_cmd_resp(7);
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     return validity;
 }
 
@@ -320,7 +327,7 @@ uint8_t set_trans_scw(uint16_t scw) {
 
 uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
     // Send command
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02X00\r", TRANS_ADDR);
 
     //Wait for response
@@ -332,16 +339,16 @@ uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw
 
     // Extract values
     if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_rx_buf, 3, 2);
+        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
     }
     if (reset_count != NULL) {
-        *reset_count = (uint8_t) scan_uint(trans_rx_buf, 7, 2);
+        *reset_count = (uint8_t) scan_uint(trans_cmd_resp, 7, 2);
     }
     if (scw != NULL) {
-        *scw = (uint16_t) scan_uint(trans_rx_buf, 9, 4);
+        *scw = (uint16_t) scan_uint(trans_cmd_resp, 9, 4);
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }
@@ -505,13 +512,13 @@ uint8_t turn_on_trans_pipe(void) {
 
 
 uint8_t set_trans_freq_attempt(uint32_t freq) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+W%02X01%08lX\r", TRANS_ADDR, freq);
 
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     return validity;
 }
 
@@ -532,7 +539,7 @@ uint8_t set_trans_freq(uint32_t freq) {
 
 
 uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02X01\r", TRANS_ADDR);
 
     //Wait for response
@@ -543,13 +550,13 @@ uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
     }
 
     if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_rx_buf, 3, 2);
+        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
     }
     if (freq != NULL) {
-        *freq = scan_uint(trans_rx_buf, 5, 8);
+        *freq = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }
@@ -572,13 +579,13 @@ uint8_t get_trans_freq(uint8_t* rssi, uint32_t* freq) {
 
 
 uint8_t set_trans_pipe_timeout_attempt(uint8_t timeout) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+W%02X06000000%02X\r", TRANS_ADDR, timeout);
 
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     return validity;
 }
 
@@ -598,7 +605,7 @@ uint8_t set_trans_pipe_timeout(uint8_t timeout) {
 
 
 uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02X06\r", TRANS_ADDR);
 
     // Wait for response
@@ -610,13 +617,13 @@ uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
 
     // Extract values
     if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_rx_buf, 3, 2);
+        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
     }
     if (timeout != NULL) {
-        *timeout = (uint8_t) scan_uint(trans_rx_buf, 11, 2);
+        *timeout = (uint8_t) scan_uint(trans_cmd_resp, 11, 2);
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }
@@ -638,13 +645,13 @@ uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout) {
 
 
 uint8_t set_trans_beacon_period_attempt(uint16_t period) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+W%02X070000%04X\r", TRANS_ADDR, period);
 
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     return validity;
 }
 
@@ -664,7 +671,7 @@ uint8_t set_trans_beacon_period(uint16_t period) {
 
 
 uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02X07\r", TRANS_ADDR);
 
     //Wait for response
@@ -675,13 +682,13 @@ uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
     }
 
     if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_rx_buf, 3, 2);
+        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
     }
     if (period != NULL) {
-        *period = (uint16_t) scan_uint(trans_rx_buf, 9, 4);
+        *period = (uint16_t) scan_uint(trans_cmd_resp, 9, 4);
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }
@@ -705,7 +712,7 @@ uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
 
 
 uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+W%02XF5", TRANS_ADDR);
     for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
         print("%c", call_sign[i]);
@@ -715,7 +722,7 @@ uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     return validity;
 }
 
@@ -734,7 +741,7 @@ uint8_t set_trans_dest_call_sign(char* call_sign) {
 
 
 uint8_t get_trans_dest_call_sign_attempt(char* call_sign) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02XF5\r", TRANS_ADDR);
 
     //Wait for response
@@ -746,12 +753,12 @@ uint8_t get_trans_dest_call_sign_attempt(char* call_sign) {
 
     if (call_sign != NULL) {
         for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
-            call_sign[i] = trans_rx_buf[3 + i];
+            call_sign[i] = trans_cmd_resp[3 + i];
         }
         call_sign[TRANS_CALL_SIGN_LEN] = '\0';
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }
@@ -773,7 +780,7 @@ uint8_t get_trans_dest_call_sign(char* call_sign) {
 
 
 uint8_t set_trans_src_call_sign_attempt(char* call_sign) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+W%02XF6", TRANS_ADDR);
     for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
         print("%c", call_sign[i]);
@@ -783,7 +790,7 @@ uint8_t set_trans_src_call_sign_attempt(char* call_sign) {
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     return validity;
 }
 
@@ -802,7 +809,7 @@ uint8_t set_trans_src_call_sign(char* call_sign) {
 
 
 uint8_t get_trans_src_call_sign_attempt(char* call_sign) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02XF6\r", TRANS_ADDR);
 
     //Wait for response
@@ -814,12 +821,12 @@ uint8_t get_trans_src_call_sign_attempt(char* call_sign) {
 
     if (call_sign != NULL) {
         for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
-            call_sign[i] = trans_rx_buf[3 + i];
+            call_sign[i] = trans_cmd_resp[3 + i];
         }
         call_sign[TRANS_CALL_SIGN_LEN] = '\0';
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }
@@ -841,7 +848,7 @@ uint8_t get_trans_src_call_sign(char* call_sign) {
 
 
 uint8_t get_trans_uptime_attempt(uint8_t* rssi, uint32_t* uptime) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02X02\r", TRANS_ADDR);
 
     //Wait for response
@@ -852,13 +859,13 @@ uint8_t get_trans_uptime_attempt(uint8_t* rssi, uint32_t* uptime) {
     }
 
     if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_rx_buf, 3, 2);
+        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
     }
     if (uptime != NULL) {
-        *uptime = scan_uint(trans_rx_buf, 5, 8);
+        *uptime = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }
@@ -879,7 +886,7 @@ uint8_t get_trans_uptime(uint8_t* rssi, uint32_t* uptime) {
 
 
 uint8_t get_trans_num_tx_packets_attempt(uint8_t* rssi, uint32_t* num_tx_packets) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02X03\r", TRANS_ADDR);
 
     //Wait for response
@@ -890,13 +897,13 @@ uint8_t get_trans_num_tx_packets_attempt(uint8_t* rssi, uint32_t* num_tx_packets
     }
 
     if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_rx_buf, 3, 2);
+        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
     }
     if (num_tx_packets != NULL) {
-        *num_tx_packets = scan_uint(trans_rx_buf, 5, 8);
+        *num_tx_packets = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }
@@ -917,7 +924,7 @@ uint8_t get_trans_num_tx_packets(uint8_t* rssi, uint32_t* num_tx_packets) {
 
 
 uint8_t get_trans_num_rx_packets_attempt(uint8_t* rssi, uint32_t* num_rx_packets) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02X04\r", TRANS_ADDR);
 
     //Wait for response
@@ -928,13 +935,13 @@ uint8_t get_trans_num_rx_packets_attempt(uint8_t* rssi, uint32_t* num_rx_packets
     }
 
     if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_rx_buf, 3, 2);
+        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
     }
     if (num_rx_packets != NULL) {
-        *num_rx_packets = scan_uint(trans_rx_buf, 5, 8);
+        *num_rx_packets = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }
@@ -955,7 +962,7 @@ uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets) {
 
 
 uint8_t get_trans_num_rx_packets_crc_attempt(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
     print("\rES+R%02X05\r", TRANS_ADDR);
 
     //Wait for response
@@ -966,13 +973,13 @@ uint8_t get_trans_num_rx_packets_crc_attempt(uint8_t* rssi, uint32_t* num_rx_pac
     }
 
     if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_rx_buf, 3, 2);
+        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
     }
     if (num_rx_packets_crc != NULL) {
-        *num_rx_packets_crc = scan_uint(trans_rx_buf, 5, 8);
+        *num_rx_packets_crc = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_trans_rx_buf();
+    clear_uart_rx_buf();
 
     return 1;
 }

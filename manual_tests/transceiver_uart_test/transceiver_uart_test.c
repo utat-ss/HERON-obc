@@ -15,20 +15,34 @@ Other Notes:
 #include "../../src/transceiver.h"
 #include "../../src/uptime.h"
 
-void rx_msg_cb(const uint8_t* data, uint8_t len) {
-    print("Received RX msg: %u chars: ", len);
-    print_bytes((uint8_t*) data, len);
-}
-
 int main(void){
     init_uart();
     print("\n\n");
 
+    rtc_date_t date;
+    rtc_time_t time;
+    init_uptime(date, time);
+
     print("Starting test\n");
 
-    init_trans();
-    set_trans_rx_msg_cb(rx_msg_cb);
-    start_uptime_timer();
+    init_trans_uart();
 
-    while (1) {}
+    while (1) {
+        if (trans_cmd_resp_avail) {
+            print("Received trans cmd resp: %u chars: ", trans_cmd_resp_len);
+            for (uint8_t i = 0; i < trans_cmd_resp_len; i++) {
+                put_uart_char(trans_cmd_resp[i]);
+            }
+            print("\n");
+
+            trans_cmd_resp_avail = false;
+        }
+
+        if (trans_encoded_rx_msg_avail) {
+            print("Received trans encoded RX msg: %u bytes: ", trans_encoded_rx_msg_len);
+            print_bytes((uint8_t*) trans_encoded_rx_msg, trans_encoded_rx_msg_len);
+
+            trans_encoded_rx_msg_avail = false;
+        }
+    }
 }
