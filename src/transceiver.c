@@ -215,21 +215,23 @@ void scan_trans_encoded_rx_msg(const uint8_t* buf, uint8_t len) {
 
 // trans_encoded_rx_msg -> trans_decoded_rx_msg
 void decode_trans_rx_msg(void) {
-    if (!trans_encoded_rx_msg_avail) {
-        return;
-    }
-    if (trans_encoded_rx_msg_len < 3) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (!trans_encoded_rx_msg_avail) {
+            return;
+        }
+        if (trans_encoded_rx_msg_len < 3) {
+            trans_encoded_rx_msg_avail = false;
+            return;
+        }
+
+        for (uint8_t i = 0; i < trans_encoded_rx_msg_len - 2; i++) {
+            trans_decoded_rx_msg[i] = trans_encoded_rx_msg[2 + i];
+        }
+        trans_decoded_rx_msg_len = trans_encoded_rx_msg_len - 2;
+        trans_decoded_rx_msg_avail = true;
+
         trans_encoded_rx_msg_avail = false;
-        return;
     }
-
-    for (uint8_t i = 0; i < trans_encoded_rx_msg_len - 2; i++) {
-        trans_decoded_rx_msg[i] = trans_encoded_rx_msg[2 + i];
-    }
-    trans_decoded_rx_msg_len = trans_encoded_rx_msg_len - 2;
-    trans_decoded_rx_msg_avail = true;
-
-    trans_encoded_rx_msg_avail = false;
 }
 
 
