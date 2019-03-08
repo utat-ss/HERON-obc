@@ -41,8 +41,14 @@ int main(void){
         if (trans_encoded_rx_msg_avail) {
             print("Received trans encoded RX msg: %u bytes: ", trans_encoded_rx_msg_len);
             print_bytes((uint8_t*) trans_encoded_rx_msg, trans_encoded_rx_msg_len);
+            // Don't clear the encoded message (the decode function should do it)
+        }
 
-            trans_encoded_rx_msg_avail = false;
+        decode_trans_rx_msg();
+        if (trans_decoded_rx_msg_avail) {
+            print("Received trans decoded RX msg: %u bytes: ", trans_decoded_rx_msg_len);
+            print_bytes((uint8_t*) trans_decoded_rx_msg, trans_decoded_rx_msg_len);
+            trans_decoded_rx_msg_avail = false;
         }
     }
 }

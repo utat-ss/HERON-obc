@@ -71,6 +71,9 @@ extern volatile uint8_t    trans_encoded_rx_msg[];
 extern volatile uint8_t    trans_encoded_rx_msg_len;
 extern volatile bool       trans_encoded_rx_msg_avail;
 
+extern volatile uint8_t    trans_decoded_rx_msg[];
+extern volatile uint8_t    trans_decoded_rx_msg_len;
+extern volatile bool       trans_decoded_rx_msg_avail;
 
 // Initialization
 void init_trans(void);
@@ -79,6 +82,7 @@ void trans_uptime_cb(void);
 uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len);
 void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len);
 void scan_trans_encoded_rx_msg(const uint8_t* buf, uint8_t len);
+void decode_trans_rx_msg(void);
 
 // Helper Functions to process responses
 uint8_t char_to_hex(uint8_t c);
