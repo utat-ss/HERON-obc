@@ -13,7 +13,8 @@
 #define TRANS_CMD_RESP_MAX_SIZE         20
 #define TRANS_ENCODED_RX_MSG_MAX_SIZE   20
 #define TRANS_DECODED_RX_MSG_MAX_SIZE   20
-#define TRANS_DECODED_TX_MSG_MAX_SIZE   20
+#define TRANS_DECODED_TX_MSG_MAX_SIZE   128
+#define TRANS_ENCODED_TX_MSG_MAX_SIZE   128
 
 // Number of seconds to wait (if we are not receiving anymore characters) to clear the buffer
 #define TRANS_RX_BUF_TIMEOUT 5
@@ -75,6 +76,14 @@ extern volatile uint8_t    trans_decoded_rx_msg[];
 extern volatile uint8_t    trans_decoded_rx_msg_len;
 extern volatile bool       trans_decoded_rx_msg_avail;
 
+extern volatile uint8_t    trans_decoded_tx_msg[];
+extern volatile uint8_t    trans_decoded_tx_msg_len;
+extern volatile bool       trans_decoded_tx_msg_avail;
+
+extern volatile uint8_t    trans_encoded_tx_msg[];
+extern volatile uint8_t    trans_encoded_tx_msg_len;
+extern volatile bool       trans_encoded_tx_msg_avail;
+
 // Initialization
 void init_trans(void);
 void init_trans_uart(void);
@@ -83,6 +92,8 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len);
 void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len);
 void scan_trans_encoded_rx_msg(const uint8_t* buf, uint8_t len);
 void decode_trans_rx_msg(void);
+void encode_trans_tx_msg(void);
+void send_trans_encoded_tx_msg(void);
 
 // Helper Functions to process responses
 uint8_t char_to_hex(uint8_t c);
