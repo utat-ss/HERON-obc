@@ -26,6 +26,22 @@ void add_message(char* string) {
     }
 }
 
+void print_decoded(void) {
+    if (!trans_decoded_tx_msg_avail) {
+        return;
+    }
+    print("Decoded: ");
+    print_bytes(trans_decoded_tx_msg, trans_decoded_tx_msg_len);
+}
+
+void print_encoded(void) {
+    if (!trans_encoded_tx_msg_avail) {
+        return;
+    }
+    print("Encoded: ");
+    print_bytes(trans_encoded_tx_msg, trans_encoded_tx_msg_len);
+}
+
 int main(void) {
     init_uart();
     print("\n\n");
@@ -39,17 +55,23 @@ int main(void) {
     init_trans_uart();
 
     add_message("hello");
+    print_decoded();
     encode_trans_tx_msg();
+    print_encoded();
     send_trans_encoded_tx_msg();
     print("\n\n");
 
-    add_message("world");
+    add_message("world!");
+    print_decoded();
     encode_trans_tx_msg();
+    print_encoded();
     send_trans_encoded_tx_msg();
     print("\n\n");
 
     add_message("UTAT");
+    print_decoded();
     encode_trans_tx_msg();
+    print_encoded();
     send_trans_encoded_tx_msg();
     print("\n\n");
 
