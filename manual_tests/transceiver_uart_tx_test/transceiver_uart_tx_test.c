@@ -28,18 +28,32 @@ void add_message(char* string) {
 
 void print_decoded(void) {
     if (!trans_decoded_tx_msg_avail) {
+        print("No decoded message available\n");
         return;
     }
     print("Decoded: ");
-    print_bytes(trans_decoded_tx_msg, trans_decoded_tx_msg_len);
+    print_bytes((uint8_t*) trans_decoded_tx_msg, trans_decoded_tx_msg_len);
 }
 
 void print_encoded(void) {
     if (!trans_encoded_tx_msg_avail) {
+        print("No encoded message available\n");
         return;
     }
     print("Encoded: ");
-    print_bytes(trans_encoded_tx_msg, trans_encoded_tx_msg_len);
+    print_bytes((uint8_t*) trans_encoded_tx_msg, trans_encoded_tx_msg_len);
+}
+
+void test_message(char* string) {
+    add_message(string);
+    print_decoded();
+    encode_trans_tx_msg();
+    print_encoded();
+    send_trans_encoded_tx_msg();
+    print("\n");
+    print_decoded();
+    print_encoded();
+    print("\n\n");
 }
 
 int main(void) {
@@ -50,30 +64,13 @@ int main(void) {
     rtc_time_t time;
     init_uptime(date, time);
 
-    print("Starting test\n");
+    print("Starting test\n\n");
 
     init_trans_uart();
 
-    add_message("hello");
-    print_decoded();
-    encode_trans_tx_msg();
-    print_encoded();
-    send_trans_encoded_tx_msg();
-    print("\n\n");
-
-    add_message("world!");
-    print_decoded();
-    encode_trans_tx_msg();
-    print_encoded();
-    send_trans_encoded_tx_msg();
-    print("\n\n");
-
-    add_message("UTAT");
-    print_decoded();
-    encode_trans_tx_msg();
-    print_encoded();
-    send_trans_encoded_tx_msg();
-    print("\n\n");
+    test_message("hello");
+    test_message("world!");
+    test_message("UTAT");
 
     print("Done test\n");
 }
