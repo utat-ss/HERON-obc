@@ -43,7 +43,8 @@ write responses are shorter than read responses?
 #include <utilities/utilities.h>
 #include "../../src/transceiver.h"
 
-
+void test_any(void);
+void test_single_get(void);
 void test_all_gets(void);
 void test_all_sets(void);
 void test_scw_bits(void);
@@ -61,10 +62,9 @@ int main(void){
 
     init_trans();
 
-    // Single command test
-    // get_trans_scw(NULL, NULL, NULL);
-
     // Test all functionality
+    test_any();
+    test_single_get();
     test_all_gets();
     test_all_sets();
     test_scw_bits();
@@ -77,6 +77,21 @@ int main(void){
     print("\nDone transceiver test\n\n");
 }
 
+void test_any(void) {
+    // Any command test
+    get_trans_scw(NULL, NULL, NULL);
+}
+
+// Single command test
+void test_single_get(void){
+    uint8_t ret = 0;
+    uint8_t rssi = 0;
+
+    uint8_t reset_count = 0;
+    uint16_t scw = 0;
+    ret = get_trans_scw(&rssi, &reset_count, &scw);
+    print("get_trans_scw: ret = %u, rssi = %02X, reset_count = %02X, scw = %04X\n", ret, rssi, reset_count, scw);
+}
 
 // Calls all get functions
 void test_all_gets(void) {
