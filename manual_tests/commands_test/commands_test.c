@@ -362,19 +362,22 @@ void sim_send_next_eps_tx_msg(void) {
     }
 
     // TX and RX defined from OBC's perspective
-    uint8_t tx_msg[8];
+    uint8_t tx_msg[8] = {0x00};
     dequeue(&eps_tx_msg_queue, tx_msg);
 
     // Construct the message EPS would send back
-    uint8_t rx_msg[8];
+    uint8_t rx_msg[8] = {0x00};
     rx_msg[0] = 0;
     rx_msg[1] = tx_msg[1];
     rx_msg[2] = tx_msg[2];
 
+    uint8_t msg_type = tx_msg[1];
+    uint8_t field_num = tx_msg[2];
+
     // Can return early to not send a message back
-    switch (tx_msg[1]) {
+    switch (msg_type) {
         case CAN_EPS_HK:
-            if (0 <= tx_msg[2] && tx_msg[2] < CAN_EPS_HK_FIELD_COUNT) {
+            if (0 <= field_num && field_num < CAN_EPS_HK_FIELD_COUNT) {
                 // All fields are 12-bit ADC data
                 populate_msg_data(rx_msg, rand_bits(12));
             } else {
@@ -398,29 +401,35 @@ void sim_send_next_pay_tx_msg(void) {
     }
 
     // TX and RX defined from OBC's perspective
-    uint8_t tx_msg[8];
+    uint8_t tx_msg[8] = {0x00};
     dequeue(&pay_tx_msg_queue, tx_msg);
 
     // Construct the message EPS would send back
-    uint8_t rx_msg[8];
+    uint8_t rx_msg[8] = {0x00};
     rx_msg[0] = 0;
     rx_msg[1] = tx_msg[1];
     rx_msg[2] = tx_msg[2];
 
+    uint8_t msg_type = tx_msg[1];
+    uint8_t field_num = tx_msg[2];
+
     // Can return early to not send a message back
-    switch (tx_msg[1]) {
+    switch (msg_type) {
         case CAN_PAY_HK:
-            if (tx_msg[2] == CAN_PAY_HK_TEMP) {
+            if (field_num == CAN_PAY_HK_TEMP) {
                 populate_msg_data(rx_msg, rand_bits(16));
-            } else if (tx_msg[2] == CAN_PAY_HK_HUM) {
+            } else if (field_num == CAN_PAY_HK_HUM) {
                 populate_msg_data(rx_msg, rand_bits(14));
-            } else if (tx_msg[2] == CAN_PAY_HK_PRES) {
+            } else if (field_num == CAN_PAY_HK_PRES) {
                 populate_msg_data(rx_msg, rand_bits(24));
-            } else if (CAN_PAY_HK_THERM0 <= tx_msg[2] &&
-                    tx_msg[2] < CAN_PAY_HK_THERM0 + 10) {
+            } else if (CAN_PAY_HK_THERM0 <= field_num &&
+                    field_num <= CAN_PAY_HK_THERM9) {
                 populate_msg_data(rx_msg, rand_bits(12));
-            } else if (tx_msg[2] == CAN_PAY_HK_HEAT_SP1 ||
-                    tx_msg[2] == CAN_PAY_HK_HEAT_SP2) {
+            } else if (field_num == CAN_PAY_HK_HEAT_SP1 ||
+                    field_num == CAN_PAY_HK_HEAT_SP2) {
+                populate_msg_data(rx_msg, rand_bits(12));
+            } else if (field_num == CAN_PAY_HK_PROX_LEFT ||
+                    field_num == CAN_PAY_HK_PROX_RIGHT) {
                 populate_msg_data(rx_msg, rand_bits(12));
             } else {
                 return;
@@ -428,7 +437,7 @@ void sim_send_next_pay_tx_msg(void) {
             break;
 
         case CAN_PAY_OPT:
-            if (0 <= tx_msg[2] && tx_msg[2] < CAN_PAY_OPT_FIELD_COUNT) {
+            if (0 <= field_num && field_num < CAN_PAY_OPT_FIELD_COUNT) {
                 // All fields are 24-bit ADC data
                 populate_msg_data(rx_msg, rand_bits(24));
             } else {
@@ -438,7 +447,7 @@ void sim_send_next_pay_tx_msg(void) {
 
         // TODO
         case CAN_PAY_CTRL:
-            if (tx_msg[2] == CAN_PAY_CTRL_ACT_UP) {
+            if (field_num == CAN_PAY_CTRL_ACT_UP) {
                 // Don't need to populate anything
             } else {
                 return;
@@ -499,7 +508,7 @@ int main(void){
 
     sim_local_actions = false;
     sim_eps = true;
-    sim_pay = false;
+    sim_pay = true;
     print_can_msgs = true;
 
     print("sim_local_actions = %u\n", sim_local_actions);
