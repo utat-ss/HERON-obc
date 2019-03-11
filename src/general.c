@@ -33,8 +33,9 @@ void init_obc_core(void) {
 
     init_comms_time();
 
-    init_restart_count();
-    start_uptime_timer();
+    rtc_date_t date = read_rtc_date();
+    rtc_time_t time = read_rtc_time();
+    init_uptime(date, time);
 }
 
 // Initializes the comms/transceiver parts of OBC that must be delayed after initial startup

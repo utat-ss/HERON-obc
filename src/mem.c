@@ -44,14 +44,14 @@ mem_section_t eps_hk_mem_section = {
     .start_addr = 0x0DB00UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x20,
-    .fields_per_block = CAN_EPS_HK_GET_COUNT   // Should be 12
+    .fields_per_block = CAN_EPS_HK_FIELD_COUNT   // Should be 12
 };
 
 mem_section_t pay_hk_mem_section = {
     .start_addr = 0x100000UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x24,
-    .fields_per_block = CAN_PAY_HK_GET_COUNT   // Should be 3
+    .fields_per_block = CAN_PAY_HK_FIELD_COUNT   // Should be 3
 };
 
 mem_section_t pay_opt_mem_section = {
@@ -59,7 +59,7 @@ mem_section_t pay_opt_mem_section = {
     .start_addr = 0x400000UL,
     .curr_block = 0,
     .curr_block_eeprom_addr = (uint32_t*) 0x28,
-    .fields_per_block = CAN_PAY_SCI_GET_COUNT   // Should be 36
+    .fields_per_block = CAN_PAY_OPT_FIELD_COUNT   // Should be 36
 };
 
 // All memory sections
