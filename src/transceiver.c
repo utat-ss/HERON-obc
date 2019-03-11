@@ -142,13 +142,18 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
     trans_rx_prev_uptime_s = uptime_s;
 
     // Output new character?
-    put_uart_char(buf[len - 1]);
+    // put_uart_char(buf[len - 1]);
 
     // Scan what we have in the buffer now
     // If we found something, clear it from the main UART buffer because the
     // other function has already copied it to a dedicated buffer
     scan_trans_cmd_resp(buf, len);
     if (trans_cmd_resp_avail) {
+        print("got resp: %u chars: ", trans_cmd_resp_len);
+        for (uint8_t i = 0; i < trans_cmd_resp_len; i++) {
+            put_uart_char(trans_cmd_resp[i]);
+        }
+        put_uart_char('\n');
         return len;
     }
     scan_trans_encoded_rx_msg(buf, len);
@@ -332,6 +337,13 @@ uint8_t string_cmp(const uint8_t* first, const char* second, uint8_t len) {
     return 1;
 }
 
+void clear_trans_cmd_resp(void) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        clear_uart_rx_buf();
+        trans_cmd_resp_len = 0;
+        trans_cmd_resp_avail = false;
+    }
+}
 
 /*
 Waits until `trans_cmd_resp_avail` is set to true by the UART RX callback,
@@ -367,12 +379,12 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
 
 uint8_t set_trans_scw_attempt(uint16_t scw) {
     // Send command
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+W%02X00%04X\r", TRANS_ADDR, scw);
 
     // Wait for response
     uint8_t validity = wait_for_trans_cmd_resp(7);
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     return validity;
 }
 
@@ -393,7 +405,7 @@ uint8_t set_trans_scw(uint16_t scw) {
 
 uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
     // Send command
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02X00\r", TRANS_ADDR);
 
     //Wait for response
@@ -414,7 +426,7 @@ uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw
         *scw = (uint16_t) scan_uint(trans_cmd_resp, 9, 4);
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }
@@ -578,13 +590,13 @@ uint8_t turn_on_trans_pipe(void) {
 
 
 uint8_t set_trans_freq_attempt(uint32_t freq) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+W%02X01%08lX\r", TRANS_ADDR, freq);
 
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     return validity;
 }
 
@@ -605,7 +617,7 @@ uint8_t set_trans_freq(uint32_t freq) {
 
 
 uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02X01\r", TRANS_ADDR);
 
     //Wait for response
@@ -622,7 +634,7 @@ uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
         *freq = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }
@@ -645,13 +657,13 @@ uint8_t get_trans_freq(uint8_t* rssi, uint32_t* freq) {
 
 
 uint8_t set_trans_pipe_timeout_attempt(uint8_t timeout) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+W%02X06000000%02X\r", TRANS_ADDR, timeout);
 
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     return validity;
 }
 
@@ -671,7 +683,7 @@ uint8_t set_trans_pipe_timeout(uint8_t timeout) {
 
 
 uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02X06\r", TRANS_ADDR);
 
     // Wait for response
@@ -689,7 +701,7 @@ uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
         *timeout = (uint8_t) scan_uint(trans_cmd_resp, 11, 2);
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }
@@ -711,13 +723,13 @@ uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout) {
 
 
 uint8_t set_trans_beacon_period_attempt(uint16_t period) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+W%02X070000%04X\r", TRANS_ADDR, period);
 
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     return validity;
 }
 
@@ -737,7 +749,7 @@ uint8_t set_trans_beacon_period(uint16_t period) {
 
 
 uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02X07\r", TRANS_ADDR);
 
     //Wait for response
@@ -754,7 +766,7 @@ uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
         *period = (uint16_t) scan_uint(trans_cmd_resp, 9, 4);
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }
@@ -778,7 +790,7 @@ uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
 
 
 uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+W%02XF5", TRANS_ADDR);
     for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
         print("%c", call_sign[i]);
@@ -788,7 +800,7 @@ uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     return validity;
 }
 
@@ -807,7 +819,7 @@ uint8_t set_trans_dest_call_sign(char* call_sign) {
 
 
 uint8_t get_trans_dest_call_sign_attempt(char* call_sign) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02XF5\r", TRANS_ADDR);
 
     //Wait for response
@@ -824,7 +836,7 @@ uint8_t get_trans_dest_call_sign_attempt(char* call_sign) {
         call_sign[TRANS_CALL_SIGN_LEN] = '\0';
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }
@@ -846,7 +858,7 @@ uint8_t get_trans_dest_call_sign(char* call_sign) {
 
 
 uint8_t set_trans_src_call_sign_attempt(char* call_sign) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+W%02XF6", TRANS_ADDR);
     for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
         print("%c", call_sign[i]);
@@ -856,7 +868,7 @@ uint8_t set_trans_src_call_sign_attempt(char* call_sign) {
     // Wait for response
     //Check validity
     uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     return validity;
 }
 
@@ -875,7 +887,7 @@ uint8_t set_trans_src_call_sign(char* call_sign) {
 
 
 uint8_t get_trans_src_call_sign_attempt(char* call_sign) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02XF6\r", TRANS_ADDR);
 
     //Wait for response
@@ -892,7 +904,7 @@ uint8_t get_trans_src_call_sign_attempt(char* call_sign) {
         call_sign[TRANS_CALL_SIGN_LEN] = '\0';
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }
@@ -914,7 +926,7 @@ uint8_t get_trans_src_call_sign(char* call_sign) {
 
 
 uint8_t get_trans_uptime_attempt(uint8_t* rssi, uint32_t* uptime) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02X02\r", TRANS_ADDR);
 
     //Wait for response
@@ -931,7 +943,7 @@ uint8_t get_trans_uptime_attempt(uint8_t* rssi, uint32_t* uptime) {
         *uptime = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }
@@ -952,7 +964,7 @@ uint8_t get_trans_uptime(uint8_t* rssi, uint32_t* uptime) {
 
 
 uint8_t get_trans_num_tx_packets_attempt(uint8_t* rssi, uint32_t* num_tx_packets) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02X03\r", TRANS_ADDR);
 
     //Wait for response
@@ -969,7 +981,7 @@ uint8_t get_trans_num_tx_packets_attempt(uint8_t* rssi, uint32_t* num_tx_packets
         *num_tx_packets = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }
@@ -990,7 +1002,7 @@ uint8_t get_trans_num_tx_packets(uint8_t* rssi, uint32_t* num_tx_packets) {
 
 
 uint8_t get_trans_num_rx_packets_attempt(uint8_t* rssi, uint32_t* num_rx_packets) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02X04\r", TRANS_ADDR);
 
     //Wait for response
@@ -1007,7 +1019,7 @@ uint8_t get_trans_num_rx_packets_attempt(uint8_t* rssi, uint32_t* num_rx_packets
         *num_rx_packets = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }
@@ -1028,7 +1040,7 @@ uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets) {
 
 
 uint8_t get_trans_num_rx_packets_crc_attempt(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
     print("\rES+R%02X05\r", TRANS_ADDR);
 
     //Wait for response
@@ -1045,7 +1057,7 @@ uint8_t get_trans_num_rx_packets_crc_attempt(uint8_t* rssi, uint32_t* num_rx_pac
         *num_rx_packets_crc = scan_uint(trans_cmd_resp, 5, 8);
     }
 
-    clear_uart_rx_buf();
+    clear_trans_cmd_resp();
 
     return 1;
 }

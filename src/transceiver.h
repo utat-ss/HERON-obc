@@ -100,6 +100,7 @@ uint8_t char_to_hex(uint8_t c);
 uint32_t scan_uint(volatile uint8_t* string, uint8_t offset, uint8_t count);
 uint8_t string_cmp(const uint8_t* first, const char* second, uint8_t len);
 
+void clear_trans_cmd_resp(void);
 uint8_t wait_for_trans_cmd_resp(uint8_t expected_len);
 
 // 1
