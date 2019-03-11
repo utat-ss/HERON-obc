@@ -92,10 +92,15 @@ volatile uint8_t    trans_decoded_rx_msg[TRANS_DECODED_RX_MSG_MAX_SIZE] = {0x00}
 volatile uint8_t    trans_decoded_rx_msg_len = 0;
 volatile bool       trans_decoded_rx_msg_avail = false;
 
-// Decoded RX message (from ground station)
+// Decoded TX message (to ground station)
 volatile uint8_t    trans_decoded_tx_msg[TRANS_DECODED_TX_MSG_MAX_SIZE] = {0x00};
 volatile uint8_t    trans_decoded_tx_msg_len = 0;
 volatile bool       trans_decoded_tx_msg_avail = false;
+
+// Encoded TX message (to ground station)
+volatile uint8_t    trans_encoded_tx_msg[TRANS_ENCODED_TX_MSG_MAX_SIZE] = {0x00};
+volatile uint8_t    trans_encoded_tx_msg_len = 0;
+volatile bool       trans_encoded_tx_msg_avail = false;
 
 // Last time we have received a UART character
 volatile uint32_t trans_rx_prev_uptime_s = 0;
@@ -231,6 +236,46 @@ void decode_trans_rx_msg(void) {
         trans_decoded_rx_msg_avail = true;
 
         trans_encoded_rx_msg_avail = false;
+    }
+}
+
+// trans_decoded_tx_msg -> trans_encoded_tx_msg
+void encode_trans_tx_msg(void) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (!trans_decoded_tx_msg_avail) {
+            return;
+        }
+        if (trans_decoded_tx_msg_len == 0) {
+            trans_decoded_tx_msg_avail = false;
+            return;
+        }
+        // TODO - check length doesn't exceed buffer
+
+        trans_encoded_tx_msg[0] = 0x00;
+        trans_encoded_tx_msg[1] = trans_decoded_tx_msg_len;
+        for (uint8_t i = 0; i < trans_decoded_tx_msg_len; i++) {
+            trans_encoded_tx_msg[2 + i] = trans_decoded_tx_msg[i];
+        }
+        trans_encoded_tx_msg_len = trans_decoded_tx_msg_len + 2;
+        trans_encoded_tx_msg_avail = true;
+
+        trans_decoded_tx_msg_avail = false;
+    }
+}
+
+void send_trans_encoded_tx_msg(void) {
+    // TODO - put into pipe mode or check if it's in pipe mode?
+
+    // Make sure all the bytes are sent atomically over UART
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (!trans_encoded_tx_msg_avail) {
+            return;
+        }
+
+        for (uint8_t i = 0; i < trans_encoded_tx_msg_len; i++) {
+            put_uart_char(trans_encoded_tx_msg[i]);
+        }
+        trans_encoded_tx_msg_avail = false;
     }
 }
 
