@@ -32,26 +32,26 @@ int main(void){
     set_rtc_date(d);
 
     rtc_time_t t_alarm_1;
-    t_alarm.ss = 00;
-    t_alarm.mm = 00;
-    t_alarm.hh = 00;
+    t_alarm_1.ss = 00;
+    t_alarm_1.mm = 00;
+    t_alarm_1.hh = 00;
 
     rtc_date_t d_alarm_1;
-    d_alarm.dd = 01;
-    d_alarm.mm = 01;
-    d_alarm.yy = 18;
+    d_alarm_1.dd = 01;
+    d_alarm_1.mm = 01;
+    d_alarm_1.yy = 18;
 
     set_rtc_alarm(t_alarm_1, d_alarm_1, 1, alarm_1_test);
 
     rtc_time_t t_alarm_2;
-    t_alarm.ss = 10;
-    t_alarm.mm = 00;
-    t_alarm.hh = 00;
+    t_alarm_2.ss = 10;
+    t_alarm_2.mm = 00;
+    t_alarm_2.hh = 00;
 
     rtc_date_t d_alarm_2;
-    d_alarm.dd = 01;
-    d_alarm.mm = 01;
-    d_alarm.yy = 18;
+    d_alarm_2.dd = 01;
+    d_alarm_2.mm = 01;
+    d_alarm_2.yy = 18;
 
     set_rtc_alarm(t_alarm_2, d_alarm_2, 2, alarm_2_test);
 

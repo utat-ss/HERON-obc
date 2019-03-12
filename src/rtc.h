@@ -3,7 +3,6 @@
 
 // AVR Library Includes
 #include <avr/io.h>
-#include <avr/io.h>
 #include <avr/interrupt.h>
 
 // lib-common includes
@@ -44,7 +43,7 @@ void set_rtc_date(rtc_date_t date);
 
 //Alarm functions
 uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
-    rtc_alarm_t alarm_number);
+    rtc_alarm_t alarm_number, alarm_fn_t cmd);
 uint8_t disable_rtc_alarm(rtc_alarm_t alarm_number);
 
 // Read/write registers

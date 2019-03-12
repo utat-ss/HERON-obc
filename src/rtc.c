@@ -73,13 +73,13 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
      (with more frequent triggers) could be implemented.
     */
     uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
-    if (alarm_number == RTC_AqLARM_1){
+    if (alarm_number == RTC_ALARM_1){
         // select mask register 0
         PCICR |= (1 << PCIE0);
         // tell mcu to look for pin changes on PCINT6 (pin PB6)
         PCMSK0 |= (1 << PCINT6);
         // enable global interrupts
-        sie();
+        sei();
 
         rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(RTC_A1IE)));
         rtc_write(RTC_ALARM_1_SEC_R, rtc_dec_to_bcd(time.ss));
@@ -97,7 +97,7 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
         // tell mcu to look for pin changes on PCINT6 (pin PB6)
         PCMSK0 |= (1 << PCINT6);
         // enable global interrupts
-        sie();
+        sei();
 
         rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(RTC_A2IE)));
         rtc_write(RTC_ALARM_2_MIN_R, rtc_dec_to_bcd(time.mm));
