@@ -37,6 +37,8 @@ bool print_can_msgs = false;
 typedef struct {
     char* description;
     cmd_t* cmd;
+    uint32_t arg1;
+    uint32_t arg2;
 } uart_cmd_t;
 
 
@@ -52,44 +54,57 @@ cmd_t clear_local_data_cmd = {
     .fn = clear_local_data_fn
 };
 
+// TODO - fix this
+void read_all_mem_blocks_to_local_fn(void);
+cmd_t read_all_mem_blocks_to_local_cmd = {
+    .fn = read_all_mem_blocks_to_local_fn
+};
+
 
 // All possible commands
 uart_cmd_t all_cmds[] = {
     {
         .description = "Print local data",
-        .cmd = &print_local_data_cmd
+        .cmd = &print_local_data_cmd,
+        .arg1 = 0,
+        .arg2 = 0
     },
     {
         .description = "Clear local data",
-        .cmd = &clear_local_data_cmd
+        .cmd = &clear_local_data_cmd,
+        .arg1 = 0,
+        .arg2 = 0
     },
     {
-        .description = "Write local data to mem",
-        .cmd = &write_mem_cmd
-    },
-    {
-        .description = "Read mem to local data",
-        .cmd = &read_mem_cmd
-    },
-    {
-        .description = "Start timer",
-        .cmd = &start_aut_data_col_cmd
+        // TODO - generate args dynamically and enqueue other command(s)
+        .description = "Read all mem blocks to local data",
+        .cmd = &read_all_mem_blocks_to_local_cmd,
+        .arg1 = 0,
+        .arg2 = 0
     },
     {
         .description = "Request EPS HK",
-        .cmd = &req_eps_hk_cmd
+        .cmd = &col_block_cmd,
+        .arg1 = CMD_BLOCK_EPS_HK,
+        .arg2 = 0
     },
     {
         .description = "Request PAY HK",
-        .cmd = &req_pay_hk_cmd
+        .cmd = &col_block_cmd,
+        .arg1 = CMD_BLOCK_PAY_HK,
+        .arg2 = 0
     },
     {
         .description = "Request PAY OPT",
-        .cmd = &req_pay_opt_cmd
+        .cmd = &col_block_cmd,
+        .arg1 = CMD_BLOCK_PAY_OPT,
+        .arg2 = 0
     },
     {
         .description = "Pop blister packs",
-        .cmd = &pop_blister_packs_cmd
+        .cmd = &pop_blister_packs_cmd,
+        .arg1 = 0,
+        .arg2 = 0
     }
 };
 // Length of array
@@ -309,6 +324,12 @@ void clear_local_data_fn(void) {
     finish_current_cmd(true);
 }
 
+void read_all_mem_blocks_to_local_fn(void) {
+    // TODO
+    print("TODO\n");
+}
+
+
 
 // Generates a random number in the range [0, 2^31)
 // This is because rand() caps at RAND_MAX (0x7FFF)
@@ -485,7 +506,7 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
     else if ('0' <= data[0] && data[0] < '0' + all_cmds_len) {
         // Enqueue the selected command
         uint8_t i = data[0] - '0';
-        enqueue_cmd(&cmd_queue, all_cmds[i].cmd);
+        enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
     }
 
     else {

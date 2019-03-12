@@ -74,7 +74,17 @@ void handle_eps_hk(const uint8_t* data){
     }
 
     // If we have received all the fields
-    if ((current_cmd.fn == req_eps_hk_cmd.fn) && (field_num == CAN_EPS_HK_FIELD_COUNT - 1)) {
+    if ((field_num == CAN_EPS_HK_FIELD_COUNT - 1) &&
+        (current_cmd == &col_block_cmd) &&
+        (current_cmd_arg1 == CMD_BLOCK_EPS_HK)) {
+
+        if (!sim_local_actions) {
+            write_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
+                &eps_hk_header, eps_hk_fields);
+        }
+        inc_mem_section_curr_block(&eps_hk_mem_section);
+        write_mem_section_eeprom(&eps_hk_mem_section);
+
         print("Done EPS_HK\n");
         finish_current_cmd(true);
     }
@@ -109,7 +119,17 @@ void handle_pay_hk(const uint8_t* data){
     }
 
     // If we have received all the fields
-    if ((current_cmd.fn == req_pay_hk_cmd.fn) && (field_num == CAN_PAY_HK_FIELD_COUNT - 1)) {
+    if ((field_num == CAN_PAY_HK_FIELD_COUNT - 1) &&
+        (current_cmd == &col_block_cmd) &&
+        (current_cmd_arg1 == CMD_BLOCK_PAY_HK)) {
+
+        if (!sim_local_actions) {
+            write_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
+                &pay_hk_header, pay_hk_fields);
+        }
+        inc_mem_section_curr_block(&pay_hk_mem_section);
+        write_mem_section_eeprom(&pay_hk_mem_section);
+
         print("Done PAY_HK\n");
         finish_current_cmd(true);
     }
@@ -133,7 +153,17 @@ void handle_pay_opt(const uint8_t* data){
     }
 
     // If we have received all the fields
-    if ((current_cmd.fn == req_pay_opt_cmd.fn) && (field_num == CAN_PAY_OPT_FIELD_COUNT - 1)) {
+    if ((field_num == CAN_PAY_OPT_FIELD_COUNT - 1) &&
+        (current_cmd == &col_block_cmd) &&
+        (current_cmd_arg1 == CMD_BLOCK_PAY_OPT)) {
+
+        if (!sim_local_actions) {
+            write_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
+                &pay_opt_header, pay_opt_fields);
+        }
+        inc_mem_section_curr_block(&pay_opt_mem_section);
+        write_mem_section_eeprom(&pay_opt_mem_section);
+
         print("Done PAY_OPT\n");
         finish_current_cmd(true);
     }

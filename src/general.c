@@ -25,6 +25,7 @@ void init_obc_core(void) {
     init_queue(&data_rx_msg_queue);
 
     init_queue(&cmd_queue);
+    init_queue(&cmd_args_queue);
 
     init_can();
     init_rx_mob(&data_rx_mob);
@@ -36,6 +37,8 @@ void init_obc_core(void) {
     rtc_date_t date = read_rtc_date();
     rtc_time_t time = read_rtc_time();
     init_uptime(date, time);
+
+    add_uptime_callback(aut_data_col_timer_cb);
 }
 
 // Initializes the comms/transceiver parts of OBC that must be delayed after initial startup
@@ -101,17 +104,12 @@ void delay_comms(void) {
 
 // If the command queue is not empty, dequeues the next command and executes it
 void execute_next_cmd(void) {
-    if (!queue_empty(&cmd_queue) && current_cmd.fn == nop_fn) {
-        // Fetch the next command
-        cmd_t cmd;
-        dequeue_cmd(&cmd_queue, &cmd);
-
-        // Set the global current command to prevent other commands from running
-        current_cmd = cmd;
-
-        // Run the command's function
+    if (!queue_empty(&cmd_queue) && current_cmd == &nop_cmd) {
         print("Starting cmd\n");
-        (cmd.fn)();
+        // Fetch the next command
+        dequeue_cmd();
+        // Run the command's function
+        (current_cmd->fn)();
     }
 }
 
