@@ -84,29 +84,38 @@ uart_cmd_t all_cmds[] = {
     },
     {
         .description = "Request EPS HK",
-        .cmd = &col_block_cmd,
+        .cmd = &collect_block_cmd,
         .arg1 = CMD_BLOCK_EPS_HK,
         .arg2 = 0
     },
     {
         .description = "Request PAY HK",
-        .cmd = &col_block_cmd,
+        .cmd = &collect_block_cmd,
         .arg1 = CMD_BLOCK_PAY_HK,
         .arg2 = 0
     },
     {
         .description = "Request PAY OPT",
-        .cmd = &col_block_cmd,
+        .cmd = &collect_block_cmd,
         .arg1 = CMD_BLOCK_PAY_OPT,
         .arg2 = 0
     },
     {
-        .description = "Pop blister packs",
-        .cmd = &pop_blister_packs_cmd,
-        .arg1 = 0,
+        .description = "Actuate motors up",
+        .cmd = &actuate_motors_cmd,
+        // TODO - constants
+        .arg1 = 1,
+        .arg2 = 0
+    },
+    {
+        .description = "Actuate motors down",
+        .cmd = &actuate_motors_cmd,
+        // TODO - constants
+        .arg1 = 2,
         .arg2 = 0
     }
 };
+
 // Length of array
 const uint8_t all_cmds_len = sizeof(all_cmds) / sizeof(all_cmds[0]);
 

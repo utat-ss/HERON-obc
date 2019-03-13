@@ -54,9 +54,23 @@ extern volatile uint32_t current_cmd_arg2;
 extern volatile bool prev_cmd_succeeded;
 
 extern cmd_t nop_cmd;
-extern cmd_t col_block_cmd;
-extern cmd_t pop_blister_packs_cmd;
+extern cmd_t ping_cmd;
+extern cmd_t get_restart_uptime_cmd;
+extern cmd_t get_rtc_cmd;
+extern cmd_t set_rtc_cmd;
+extern cmd_t read_mem_cmd;
+extern cmd_t erase_mem_cmd;
+extern cmd_t collect_block_cmd;
+extern cmd_t read_local_block_cmd;
 extern cmd_t read_mem_block_cmd;
+extern cmd_t set_aut_data_col_enable_cmd;
+extern cmd_t set_aut_data_col_period_cmd;
+extern cmd_t resync_aut_data_col_cmd;
+extern cmd_t set_eps_heater_sp_cmd;
+extern cmd_t set_pay_heater_sp_cmd;
+extern cmd_t actuate_motors_cmd;
+extern cmd_t reset_cmd;
+
 
 void finish_current_cmd(bool succeeded);
 

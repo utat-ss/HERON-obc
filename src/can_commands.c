@@ -75,7 +75,7 @@ void handle_eps_hk(const uint8_t* data){
 
     // If we have received all the fields
     if ((field_num == CAN_EPS_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &col_block_cmd) &&
+        (current_cmd == &collect_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_EPS_HK)) {
 
         if (!sim_local_actions) {
@@ -90,15 +90,16 @@ void handle_eps_hk(const uint8_t* data){
     }
 }
 
-// TODO
 void handle_eps_ctrl(const uint8_t* data){
-    // uint8_t field_num = data[2];
-    //
-    // // If we have received the field
-    // if ((current_cmd.fn == pop_blister_packs_cmd.fn) && (field_num == CAN_PAY_EXP_POP)) {
-    //     print("Done PAY_EXP_POP\n");
-    //     finish_current_cmd(true);
-    // }
+    uint8_t field_num = data[2];
+
+    if ((field_num == CAN_EPS_CTRL_HEAT_SP1 ||
+        field_num == CAN_EPS_CTRL_HEAT_SP2) &&
+        current_cmd == &set_eps_heater_sp_cmd) {
+
+        print("Done setting EPS heaters\n");
+        finish_current_cmd(true);
+    }
 }
 
 void handle_pay_hk(const uint8_t* data){
@@ -120,7 +121,7 @@ void handle_pay_hk(const uint8_t* data){
 
     // If we have received all the fields
     if ((field_num == CAN_PAY_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &col_block_cmd) &&
+        (current_cmd == &collect_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_PAY_HK)) {
 
         if (!sim_local_actions) {
@@ -154,7 +155,7 @@ void handle_pay_opt(const uint8_t* data){
 
     // If we have received all the fields
     if ((field_num == CAN_PAY_OPT_FIELD_COUNT - 1) &&
-        (current_cmd == &col_block_cmd) &&
+        (current_cmd == &collect_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_PAY_OPT)) {
 
         if (!sim_local_actions) {
@@ -170,14 +171,24 @@ void handle_pay_opt(const uint8_t* data){
 }
 
 // TODO - fix actuation
-void handle_pay_ctrl(const uint8_t* data){
-    // uint8_t field_num = data[2];
-    //
-    // // If we have received the field
-    // if ((current_cmd.fn == pop_blister_packs_cmd.fn) && (field_num == CAN_PAY_EXP_POP)) {
-    //     print("Done PAY_EXP_POP\n");
-    //     finish_current_cmd(true);
-    // }
+void handle_pay_ctrl(const uint8_t* data) {
+    uint8_t field_num = data[2];
+
+    if ((field_num == CAN_PAY_CTRL_HEAT_SP1 ||
+        field_num == CAN_PAY_CTRL_HEAT_SP2) &&
+        current_cmd == &set_pay_heater_sp_cmd) {
+
+        print("Done setting PAY heaters\n");
+        finish_current_cmd(true);
+    }
+
+    else if ((field_num == CAN_PAY_CTRL_ACT_UP ||
+        field_num == CAN_PAY_CTRL_ACT_DOWN) &&
+        current_cmd == &actuate_motors_cmd) {
+
+        print("Done actuating PAY motors\n");
+        finish_current_cmd(true);
+    }
 }
 
 
@@ -189,28 +200,31 @@ queue - Queue to enqueue the message to
 msg_type - Message type to request (byte 1)
 field_num - Field number to request (byte 2)
 */
-void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num) {
+void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num, uint32_t data) {
     uint8_t msg[8] = { 0 };
     msg[0] = 0;   // TODO
     msg[1] = msg_type;
     msg[2] = field_num;
+    msg[3] = (data >> 16) & 0xFF;
+    msg[4] = (data >> 8) & 0xFF;
+    msg[5] = data & 0xFF;
 
     enqueue(queue, msg);
 }
 
 // Convenience functions to enqueue each of the message types
 void enqueue_eps_hk_tx_msg(uint8_t field_num) {
-    enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_HK, field_num);
+    enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_HK, field_num, 0);
 }
-void enqueue_eps_ctrl_tx_msg(uint8_t field_num) {
-    enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, field_num);
+void enqueue_eps_ctrl_tx_msg(uint8_t field_num, uint32_t data) {
+    enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, field_num, data);
 }
 void enqueue_pay_hk_tx_msg(uint8_t field_num) {
-    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_HK, field_num);
+    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_HK, field_num, 0);
 }
 void enqueue_pay_opt_tx_msg(uint8_t field_num) {
-    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_OPT, field_num);
+    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_OPT, field_num, 0);
 }
-void enqueue_pay_ctrl_tx_msg(uint8_t field_num) {
-    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, field_num);
+void enqueue_pay_ctrl_tx_msg(uint8_t field_num, uint32_t data) {
+    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, field_num, data);
 }

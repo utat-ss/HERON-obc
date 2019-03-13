@@ -1,9 +1,22 @@
 #include "commands.h"
 
 void nop_fn(void);
-void col_block_fn(void);
-void pop_blister_packs_fn(void);
+void ping_fn(void);
+void get_restart_uptime_fn(void);
+void get_rtc_fn(void);
+void set_rtc_fn(void);
+void read_mem_fn(void);
+void erase_mem_fn(void);
+void collect_block_fn(void);
+void read_local_block_fn(void);
 void read_mem_block_fn(void);
+void set_aut_data_col_enable_fn(void);
+void set_aut_data_col_period_fn(void);
+void resync_aut_data_col_fn(void);
+void set_eps_heater_sp_fn(void);
+void set_pay_heater_sp_fn(void);
+void actuate_motors_fn(void);
+void reset_fn(void);
 
 
 // If true, the program will simulate local actions (i.e. simulates any
@@ -49,15 +62,55 @@ volatile bool prev_cmd_succeeded = false;
 cmd_t nop_cmd = {
     .fn = nop_fn
 };
-cmd_t col_block_cmd = {
-    .fn = col_block_fn
+cmd_t ping_cmd = {
+    .fn = ping_fn
 };
-cmd_t pop_blister_packs_cmd = {
-    .fn = pop_blister_packs_fn
+cmd_t get_restart_uptime_cmd = {
+    .fn = get_restart_uptime_fn
+};
+cmd_t get_rtc_cmd = {
+    .fn = get_rtc_fn
+};
+cmd_t set_rtc_cmd = {
+    .fn = set_rtc_fn
+};
+cmd_t read_mem_cmd = {
+    .fn = read_mem_fn
+};
+cmd_t erase_mem_cmd = {
+    .fn = erase_mem_fn
+};
+cmd_t collect_block_cmd = {
+    .fn = collect_block_fn
+};
+cmd_t read_local_block_cmd = {
+    .fn = read_local_block_fn
 };
 cmd_t read_mem_block_cmd = {
     .fn = read_mem_block_fn
 };
+cmd_t set_aut_data_col_enable_cmd = {
+    .fn = set_aut_data_col_enable_fn
+};
+cmd_t set_aut_data_col_period_cmd = {
+    .fn = set_aut_data_col_period_fn
+};
+cmd_t resync_aut_data_col_cmd = {
+    .fn = resync_aut_data_col_fn
+};
+cmd_t set_eps_heater_sp_cmd = {
+    .fn = set_eps_heater_sp_fn
+};
+cmd_t set_pay_heater_sp_cmd = {
+    .fn = set_pay_heater_sp_fn
+};
+cmd_t actuate_motors_cmd = {
+    .fn = actuate_motors_fn
+};
+cmd_t reset_cmd = {
+    .fn = reset_fn
+};
+
 
 
 
@@ -66,8 +119,38 @@ cmd_t read_mem_block_cmd = {
 
 void nop_fn(void) {}
 
+void ping_fn(void) {
+    print("Ping TODO\n");
+    finish_current_cmd(true);
+}
+
+void get_restart_uptime_fn(void) {
+    print("Get restart uptime TODO\n");
+    finish_current_cmd(true);
+}
+
+void get_rtc_fn(void) {
+    print("Get RTC TODO\n");
+    finish_current_cmd(true);
+}
+
+void set_rtc_fn(void) {
+    print("Set RTC TODO\n");
+    finish_current_cmd(true);
+}
+
+void read_mem_fn(void) {
+    print("Read mem TODO\n");
+    finish_current_cmd(true);
+}
+
+void erase_mem_fn(void) {
+    print("Erase mem TODO\n");
+    finish_current_cmd(true);
+}
+
 // Starts requesting block data (field 0)
-void col_block_fn(void) {
+void collect_block_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
             print("Starting EPS_HK\n");
@@ -89,11 +172,8 @@ void col_block_fn(void) {
     }
 }
 
-
-// Sends the command to actuate the motors
-void pop_blister_packs_fn(void) {
-    // TODO
-    // enqueue_pay_exp_tx_msg(CAN_PAY_EXP_POP);
+void read_local_block_fn(void) {
+    print("Read local TODO\n");
     finish_current_cmd(true);
 }
 
@@ -171,6 +251,95 @@ void read_mem_block_fn(void) {
     finish_current_cmd(true);
 }
 
+void set_aut_data_col_enable_fn(void) {
+    switch (current_cmd_arg1) {
+        case CMD_BLOCK_EPS_HK:
+            eps_hk_aut_data_col.enabled = current_cmd_arg2 ? 1 : 0;
+            break;
+        case CMD_BLOCK_PAY_HK:
+            pay_hk_aut_data_col.enabled = current_cmd_arg2 ? 1 : 0;
+            break;
+        case CMD_BLOCK_PAY_OPT:
+            pay_opt_aut_data_col.enabled = current_cmd_arg2 ? 1 : 0;
+            break;
+        default:
+            break;
+    }
+    finish_current_cmd(true);
+}
+
+void set_aut_data_col_period_fn(void) {
+    switch (current_cmd_arg1) {
+        case CMD_BLOCK_EPS_HK:
+            eps_hk_aut_data_col.period = current_cmd_arg2;
+            break;
+        case CMD_BLOCK_PAY_HK:
+            pay_hk_aut_data_col.period = current_cmd_arg2;
+            break;
+        case CMD_BLOCK_PAY_OPT:
+            pay_opt_aut_data_col.period = current_cmd_arg2;
+            break;
+        default:
+            break;
+    }
+    finish_current_cmd(true);
+}
+
+void resync_aut_data_col_fn(void) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        eps_hk_aut_data_col.count = 0;
+        pay_hk_aut_data_col.count = 0;
+        pay_opt_aut_data_col.count = 0;
+    }
+    finish_current_cmd(true);
+}
+
+void set_eps_heater_sp_fn(void) {
+    switch (current_cmd_arg1) {
+        case 0:
+            enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_HEAT_SP1, current_cmd_arg2);
+            break;
+        case 1:
+            enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_HEAT_SP2, current_cmd_arg2);
+            break;
+        default:
+            finish_current_cmd(false);
+            break;
+    }
+}
+
+void set_pay_heater_sp_fn(void) {
+    switch (current_cmd_arg1) {
+        case 0:
+            enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_HEAT_SP1, current_cmd_arg2);
+            break;
+        case 1:
+            enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_HEAT_SP2, current_cmd_arg2);
+            break;
+        default:
+            finish_current_cmd(false);
+            break;
+    }
+}
+
+void actuate_motors_fn(void) {
+    switch (current_cmd_arg1) {
+        case 1:
+            enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_ACT_UP, 0);
+            break;
+        case 2:
+            enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_ACT_DOWN, 0);
+            break;
+        default:
+            finish_current_cmd(false);
+            break;
+    }
+}
+
+void reset_fn(void) {
+    print("Reset TODO\n");
+}
+
 // Finishes executing the current command and sets the succeeded flag
 void finish_current_cmd(bool succeeded) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -195,7 +364,7 @@ void aut_data_col_timer_cb(void) {
 
         if (eps_hk_aut_data_col.count >= eps_hk_aut_data_col.period) {
             eps_hk_aut_data_col.count = 0;
-            enqueue_cmd(&col_block_cmd, CMD_BLOCK_EPS_HK, 0);
+            enqueue_cmd(&collect_block_cmd, CMD_BLOCK_EPS_HK, 0);
         }
     }
 
@@ -204,7 +373,7 @@ void aut_data_col_timer_cb(void) {
 
         if (pay_hk_aut_data_col.count >= pay_hk_aut_data_col.period) {
             pay_hk_aut_data_col.count = 0;
-            enqueue_cmd(&col_block_cmd, CMD_BLOCK_PAY_HK, 0);
+            enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_HK, 0);
         }
     }
 
@@ -213,7 +382,7 @@ void aut_data_col_timer_cb(void) {
 
         if (pay_opt_aut_data_col.count >= pay_opt_aut_data_col.period) {
             pay_opt_aut_data_col.count = 0;
-            enqueue_cmd(&col_block_cmd, CMD_BLOCK_PAY_OPT, 0);
+            enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_OPT, 0);
         }
     }
 }
