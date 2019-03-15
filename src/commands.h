@@ -26,11 +26,13 @@ typedef struct {
     uint32_t period;
     // Number of seconds counted (start at 0, go to `period`)
     uint32_t count;
-} aut_data_col_t;
+} auto_data_col_t;
 
-// Period (time between timer callbacks) for automatic data collection (in
-// seconds)
-#define AUT_DATA_COL_PERIOD  60
+// Default period for automatic data collection for each block type
+// (time between timer callbacks, in seconds)
+#define EPS_HK_AUTO_DATA_COL_PERIOD     60
+#define PAY_HK_AUTO_DATA_COL_PERIOD     120
+#define PAY_OPT_AUTO_DATA_COL_PERIOD    300
 
 // Subsystems
 #define CMD_SUBSYS_OBC  0
@@ -63,9 +65,9 @@ extern cmd_t erase_mem_cmd;
 extern cmd_t collect_block_cmd;
 extern cmd_t read_local_block_cmd;
 extern cmd_t read_mem_block_cmd;
-extern cmd_t set_aut_data_col_enable_cmd;
-extern cmd_t set_aut_data_col_period_cmd;
-extern cmd_t resync_aut_data_col_cmd;
+extern cmd_t set_auto_data_col_enable_cmd;
+extern cmd_t set_auto_data_col_period_cmd;
+extern cmd_t resync_auto_data_col_cmd;
 extern cmd_t set_eps_heater_sp_cmd;
 extern cmd_t set_pay_heater_sp_cmd;
 extern cmd_t actuate_motors_cmd;
@@ -74,7 +76,7 @@ extern cmd_t reset_cmd;
 
 void finish_current_cmd(bool succeeded);
 
-void aut_data_col_timer_cb(void);
+void auto_data_col_timer_cb(void);
 void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error);
 
 void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2);

@@ -54,7 +54,6 @@ cmd_t clear_local_data_cmd = {
     .fn = clear_local_data_fn
 };
 
-// TODO - fix this
 void read_all_mem_blocks_to_local_fn(void);
 cmd_t read_all_mem_blocks_to_local_cmd = {
     .fn = read_all_mem_blocks_to_local_fn
@@ -64,7 +63,7 @@ cmd_t read_all_mem_blocks_to_local_cmd = {
 // All possible commands
 uart_cmd_t all_cmds[] = {
     {
-        .description = "Print local data",
+        .description = "Print all local data blocks",
         .cmd = &print_local_data_cmd,
         .arg1 = 0,
         .arg2 = 0
@@ -76,7 +75,6 @@ uart_cmd_t all_cmds[] = {
         .arg2 = 0
     },
     {
-        // TODO - generate args dynamically and enqueue other command(s)
         .description = "Read all mem blocks to local data",
         .cmd = &read_all_mem_blocks_to_local_cmd,
         .arg1 = 0,
@@ -335,7 +333,12 @@ void clear_local_data_fn(void) {
 
 void read_all_mem_blocks_to_local_fn(void) {
     // TODO
-    print("TODO\n");
+    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_EPS_HK,
+        eps_hk_mem_section.curr_block - 1);
+    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_PAY_HK,
+        pay_hk_mem_section.curr_block - 1);
+    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_PAY_OPT,
+        pay_opt_mem_section.curr_block - 1);
 }
 
 
@@ -424,7 +427,7 @@ void sim_send_next_eps_tx_msg(void) {
     enqueue(&data_rx_msg_queue, rx_msg);
 }
 
-// Simulates sending an EPS TX message and getting a response back
+// Simulates sending a PAY TX message and getting a response back
 void sim_send_next_pay_tx_msg(void) {
     if (queue_empty(&pay_tx_msg_queue)) {
         return;
@@ -475,9 +478,11 @@ void sim_send_next_pay_tx_msg(void) {
             }
             break;
 
-        // TODO
         case CAN_PAY_CTRL:
-            if (field_num == CAN_PAY_CTRL_ACT_UP) {
+            if ((field_num == CAN_PAY_CTRL_HEAT_SP1) ||
+                (field_num == CAN_PAY_CTRL_HEAT_SP2) ||
+                (field_num == CAN_PAY_CTRL_ACT_UP) ||
+                (field_num == CAN_PAY_CTRL_ACT_DOWN)) {
                 // Don't need to populate anything
             } else {
                 return;

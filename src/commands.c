@@ -10,9 +10,9 @@ void erase_mem_fn(void);
 void collect_block_fn(void);
 void read_local_block_fn(void);
 void read_mem_block_fn(void);
-void set_aut_data_col_enable_fn(void);
-void set_aut_data_col_period_fn(void);
-void resync_aut_data_col_fn(void);
+void set_auto_data_col_enable_fn(void);
+void set_auto_data_col_period_fn(void);
+void resync_auto_data_col_fn(void);
 void set_eps_heater_sp_fn(void);
 void set_pay_heater_sp_fn(void);
 void actuate_motors_fn(void);
@@ -25,20 +25,19 @@ void reset_fn(void);
 // the command handling and CAN functionality
 bool sim_local_actions = false;
 
-// TODO - define default period constants
-volatile aut_data_col_t eps_hk_aut_data_col = {
+volatile auto_data_col_t eps_hk_auto_data_col = {
     .enabled = false,
-    .period = 60,
+    .period = EPS_HK_AUTO_DATA_COL_PERIOD,
     .count = 0
 };
-volatile aut_data_col_t pay_hk_aut_data_col = {
+volatile auto_data_col_t pay_hk_auto_data_col = {
     .enabled = false,
-    .period = 60,
+    .period = PAY_HK_AUTO_DATA_COL_PERIOD,
     .count = 0
 };
-volatile aut_data_col_t pay_opt_aut_data_col = {
+volatile auto_data_col_t pay_opt_auto_data_col = {
     .enabled = false,
-    .period = 60,
+    .period = PAY_OPT_AUTO_DATA_COL_PERIOD,
     .count = 0
 };
 
@@ -89,14 +88,14 @@ cmd_t read_local_block_cmd = {
 cmd_t read_mem_block_cmd = {
     .fn = read_mem_block_fn
 };
-cmd_t set_aut_data_col_enable_cmd = {
-    .fn = set_aut_data_col_enable_fn
+cmd_t set_auto_data_col_enable_cmd = {
+    .fn = set_auto_data_col_enable_fn
 };
-cmd_t set_aut_data_col_period_cmd = {
-    .fn = set_aut_data_col_period_fn
+cmd_t set_auto_data_col_period_cmd = {
+    .fn = set_auto_data_col_period_fn
 };
-cmd_t resync_aut_data_col_cmd = {
-    .fn = resync_aut_data_col_fn
+cmd_t resync_auto_data_col_cmd = {
+    .fn = resync_auto_data_col_fn
 };
 cmd_t set_eps_heater_sp_cmd = {
     .fn = set_eps_heater_sp_fn
@@ -251,16 +250,16 @@ void read_mem_block_fn(void) {
     finish_current_cmd(true);
 }
 
-void set_aut_data_col_enable_fn(void) {
+void set_auto_data_col_enable_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
-            eps_hk_aut_data_col.enabled = current_cmd_arg2 ? 1 : 0;
+            eps_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
             break;
         case CMD_BLOCK_PAY_HK:
-            pay_hk_aut_data_col.enabled = current_cmd_arg2 ? 1 : 0;
+            pay_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
             break;
         case CMD_BLOCK_PAY_OPT:
-            pay_opt_aut_data_col.enabled = current_cmd_arg2 ? 1 : 0;
+            pay_opt_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
             break;
         default:
             break;
@@ -268,16 +267,16 @@ void set_aut_data_col_enable_fn(void) {
     finish_current_cmd(true);
 }
 
-void set_aut_data_col_period_fn(void) {
+void set_auto_data_col_period_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
-            eps_hk_aut_data_col.period = current_cmd_arg2;
+            eps_hk_auto_data_col.period = current_cmd_arg2;
             break;
         case CMD_BLOCK_PAY_HK:
-            pay_hk_aut_data_col.period = current_cmd_arg2;
+            pay_hk_auto_data_col.period = current_cmd_arg2;
             break;
         case CMD_BLOCK_PAY_OPT:
-            pay_opt_aut_data_col.period = current_cmd_arg2;
+            pay_opt_auto_data_col.period = current_cmd_arg2;
             break;
         default:
             break;
@@ -285,11 +284,11 @@ void set_aut_data_col_period_fn(void) {
     finish_current_cmd(true);
 }
 
-void resync_aut_data_col_fn(void) {
+void resync_auto_data_col_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        eps_hk_aut_data_col.count = 0;
-        pay_hk_aut_data_col.count = 0;
-        pay_opt_aut_data_col.count = 0;
+        eps_hk_auto_data_col.count = 0;
+        pay_hk_auto_data_col.count = 0;
+        pay_opt_auto_data_col.count = 0;
     }
     finish_current_cmd(true);
 }
@@ -356,32 +355,32 @@ void finish_current_cmd(bool succeeded) {
 
 
 // Automatic data collection timer callback (for 16-bit timer)
-void aut_data_col_timer_cb(void) {
+void auto_data_col_timer_cb(void) {
     print("Aut data col timer cb\n");
 
-    if (eps_hk_aut_data_col.enabled) {
-        eps_hk_aut_data_col.count += 1;
+    if (eps_hk_auto_data_col.enabled) {
+        eps_hk_auto_data_col.count += 1;
 
-        if (eps_hk_aut_data_col.count >= eps_hk_aut_data_col.period) {
-            eps_hk_aut_data_col.count = 0;
+        if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
+            eps_hk_auto_data_col.count = 0;
             enqueue_cmd(&collect_block_cmd, CMD_BLOCK_EPS_HK, 0);
         }
     }
 
-    if (pay_hk_aut_data_col.enabled) {
-        pay_hk_aut_data_col.count += 1;
+    if (pay_hk_auto_data_col.enabled) {
+        pay_hk_auto_data_col.count += 1;
 
-        if (pay_hk_aut_data_col.count >= pay_hk_aut_data_col.period) {
-            pay_hk_aut_data_col.count = 0;
+        if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
+            pay_hk_auto_data_col.count = 0;
             enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_HK, 0);
         }
     }
 
-    if (pay_opt_aut_data_col.enabled) {
-        pay_opt_aut_data_col.count += 1;
+    if (pay_opt_auto_data_col.enabled) {
+        pay_opt_auto_data_col.count += 1;
 
-        if (pay_opt_aut_data_col.count >= pay_opt_aut_data_col.period) {
-            pay_opt_aut_data_col.count = 0;
+        if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
+            pay_opt_auto_data_col.count = 0;
             enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_OPT, 0);
         }
     }
