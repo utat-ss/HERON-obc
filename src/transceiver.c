@@ -1094,14 +1094,17 @@ uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous) {
 
     uint8_t baud_rate = UART_BAUD_1200;
     // Iterate through the baud rates and see which one works
-    for ( ;baud_rate <= UART_BAUD_115200 && received != 1; baud_rate++) {
+    for ( ; baud_rate <= UART_BAUD_115200 && received != 1; baud_rate++) {
         // Set the MCU baud rate
         set_uart_baud_rate(baud_rate);
         received = get_trans_scw(&rssi, &reset_count, &scw);
+        // Debugging stuff
+        set_uart_baud_rate(UART_BAUD_9600);
+        print("Received: %u\n", received);
     }
 
     // set bits 12 and 13 of the scw to 00 which sets baud rate to 9600
-    uint16_t scw_new = scw & ~_BV(12) & ~_BV(13);
+    uint16_t scw_new = (scw & ~_BV(12)) & ~_BV(13);
 
     set_trans_scw(scw_new);
     // Set the UART baud rate back to 9600
@@ -1110,7 +1113,8 @@ uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous) {
     // Make sure it got set
     received = get_trans_scw(&rssi, &reset_count, &scw);
     if (received == 1 && scw == scw_new) {
-        *previous = baud_rate;
+        *previous = baud_rate-1;
+        // -1 because baud rate gets incrememnted while loop
         return 1;
     }
     else {
