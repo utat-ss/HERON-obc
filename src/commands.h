@@ -70,7 +70,7 @@ extern cmd_t set_auto_data_col_period_cmd;
 extern cmd_t resync_auto_data_col_cmd;
 extern cmd_t set_eps_heater_sp_cmd;
 extern cmd_t set_pay_heater_sp_cmd;
-extern cmd_t actuate_motors_cmd;
+extern cmd_t actuate_pay_motors_cmd;
 extern cmd_t reset_cmd;
 
 

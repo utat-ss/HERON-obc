@@ -103,7 +103,7 @@ cmd_t set_eps_heater_sp_cmd = {
 cmd_t set_pay_heater_sp_cmd = {
     .fn = set_pay_heater_sp_fn
 };
-cmd_t actuate_motors_cmd = {
+cmd_t actuate_pay_motors_cmd = {
     .fn = actuate_motors_fn
 };
 cmd_t reset_cmd = {

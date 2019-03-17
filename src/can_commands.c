@@ -184,7 +184,7 @@ void handle_pay_ctrl(const uint8_t* data) {
 
     else if ((field_num == CAN_PAY_CTRL_ACT_UP ||
         field_num == CAN_PAY_CTRL_ACT_DOWN) &&
-        current_cmd == &actuate_motors_cmd) {
+        current_cmd == &actuate_pay_motors_cmd) {
 
         print("Done actuating PAY motors\n");
         finish_current_cmd(true);

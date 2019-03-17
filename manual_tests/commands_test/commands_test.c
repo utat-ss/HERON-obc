@@ -102,14 +102,14 @@ uart_cmd_t all_cmds[] = {
     },
     {
         .description = "Actuate motors up",
-        .cmd = &actuate_motors_cmd,
+        .cmd = &actuate_pay_motors_cmd,
         // TODO - constants
         .arg1 = 1,
         .arg2 = 0
     },
     {
         .description = "Actuate motors down",
-        .cmd = &actuate_motors_cmd,
+        .cmd = &actuate_pay_motors_cmd,
         // TODO - constants
         .arg1 = 2,
         .arg2 = 0
