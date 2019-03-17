@@ -9,14 +9,9 @@
 
 #include "can_interface.h"
 #include "mem.h"
+#include "trans_commands.h"
+#include "uptime.h"
 
-// Callback function signature to run a command
-typedef void(*cmd_fn_t)(void);
-
-// Command
-typedef struct {
-    cmd_fn_t fn;
-} cmd_t;
 
 // Automatic data collection for one block type
 typedef struct {
@@ -27,6 +22,15 @@ typedef struct {
     // Number of seconds counted (start at 0, go to `period`)
     uint32_t count;
 } auto_data_col_t;
+
+// Callback function signature to run a command
+typedef void(*cmd_fn_t)(void);
+
+// Command
+typedef struct {
+    cmd_fn_t fn;
+} cmd_t;
+
 
 // Default period for automatic data collection for each block type
 // (time between timer callbacks, in seconds)
@@ -78,6 +82,9 @@ void finish_current_cmd(bool succeeded);
 
 void auto_data_col_timer_cb(void);
 void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error);
+
+void append_header_to_tx_msg(mem_header_t* header);
+void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);
 
 void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2);
 void dequeue_cmd(void);
