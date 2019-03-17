@@ -356,9 +356,10 @@ void finish_current_cmd(bool succeeded) {
 
 // Automatic data collection timer callback (for 16-bit timer)
 void auto_data_col_timer_cb(void) {
-    print("Aut data col timer cb\n");
+    // print("Aut data col timer cb\n");
 
     if (eps_hk_auto_data_col.enabled) {
+        print("Auto collecting EPS_HK\n");
         eps_hk_auto_data_col.count += 1;
 
         if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
@@ -368,6 +369,7 @@ void auto_data_col_timer_cb(void) {
     }
 
     if (pay_hk_auto_data_col.enabled) {
+        print("Auto collecting PAY_HK\n");
         pay_hk_auto_data_col.count += 1;
 
         if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
@@ -377,6 +379,7 @@ void auto_data_col_timer_cb(void) {
     }
 
     if (pay_opt_auto_data_col.enabled) {
+        print("Auto collecting PAY_OPT\n");
         pay_opt_auto_data_col.count += 1;
 
         if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
@@ -415,10 +418,10 @@ void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error) {
 cmd - Command (with cmd->fn already set before calling this function) to enqueue
 */
 void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
+    print("enqueue_cmd: cmd = 0x%x, arg1 = %lu, arg2 = %lu\n", cmd, arg1, arg2);
+
     // Cast the cmd_t command pointer to a uint16
     uint16_t cmd_ptr = (uint16_t) cmd;
-
-    // print("enqueue: fn_ptr = %x\n", fn_ptr);
 
     // Enqueue the command as an 8-byte array
     uint8_t cmd_data[8] = {0};
@@ -446,18 +449,17 @@ cmd - The struct must already exist (be allocated) before calling this function,
       then this function sets the value of cmd->fn
 */
 void dequeue_cmd(void) {
-    if (queue_empty(&cmd_queue)) {
-        return;
-    }
-    if (queue_empty(&cmd_args_queue)) {
-        return;
-    }
-
     // Dequeue the command as an 8-byte array
     uint8_t cmd_data[8] = {0};
     uint8_t args_data[8] = {0};
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&cmd_queue)) {
+            return;
+        }
+        if (queue_empty(&cmd_args_queue)) {
+            return;
+        }
         dequeue(&cmd_queue, cmd_data);
         dequeue(&cmd_args_queue, args_data);
     }
@@ -476,8 +478,6 @@ void dequeue_cmd(void) {
         (((uint32_t) args_data[6]) << 8) |
         (((uint32_t) args_data[7]));
 
-    // print("dequeue: fn_ptr = %x\n", fn_ptr);
-
     // Cast the uint16 to a cmd_t command pointer
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // Set the global current command to prevent other commands from running
@@ -485,4 +485,7 @@ void dequeue_cmd(void) {
         current_cmd_arg1 = arg1;
         current_cmd_arg2 = arg2;
     }
+
+    print("dequeue_cmd: cmd = 0x%x, arg1 = %lu, arg2 = %lu\n", current_cmd,
+        current_cmd_arg1, current_cmd_arg2);
 }

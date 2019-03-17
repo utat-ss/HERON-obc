@@ -31,6 +31,8 @@ bool sim_pay = false;
 
 // Set to true to print TX and RX CAN messages
 bool print_can_msgs = false;
+// Set to true to print commands and arguments
+bool print_cmds = false;
 
 
 // Normal command with a string description to print on UART
@@ -118,7 +120,7 @@ uart_cmd_t all_cmds[] = {
 const uint8_t all_cmds_len = sizeof(all_cmds) / sizeof(all_cmds[0]);
 
 
-void print_cmds(void) {
+void print_uart_cmds(void) {
     for (uint8_t i = 0; i < all_cmds_len; i++) {
         print("%u: %s\n", i, all_cmds[i].description);
     }
@@ -309,6 +311,30 @@ void print_next_rx_msg(void) {
     print_bytes(rx_msg, 8);
 }
 
+void print_next_cmd(void) {
+    if (!print_cmds) {
+        return;
+    }
+
+    uint8_t cmd[8] = { 0x00 };
+    uint8_t args[8] = { 0x00 };
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&cmd_queue)) {
+            return;
+        }
+        if (queue_empty(&cmd_args_queue)) {
+            return;
+        }
+        peek_queue(&cmd_queue, cmd);
+        peek_queue(&cmd_args_queue, args);
+    }
+
+    print("Cmd:  ");
+    print_bytes(cmd, 8);
+    print("Args: ");
+    print_bytes(args, 8);
+}
+
 
 
 
@@ -339,6 +365,8 @@ void read_all_mem_blocks_to_local_fn(void) {
         pay_hk_mem_section.curr_block - 1);
     enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_PAY_OPT,
         pay_opt_mem_section.curr_block - 1);
+
+    finish_current_cmd(true);
 }
 
 
@@ -513,7 +541,7 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
 
     // Check for printing the help menu
     if (data[0] == 'h') {
-        print_cmds();
+        print_uart_cmds();
     }
 
     // Check for a valid command number
@@ -545,37 +573,49 @@ int main(void){
     sim_eps = true;
     sim_pay = true;
     print_can_msgs = true;
+    print_cmds = true;
 
     print("sim_local_actions = %u\n", sim_local_actions);
     print("sim_eps = %u\n", sim_eps);
     print("sim_pay = %u\n", sim_pay);
     print("print_can_msgs = %u\n", print_can_msgs);
+    print("print_cmds = %u\n", print_cmds);
+    print("\n");
 
     set_uart_rx_cb(uart_cb);
     // print("Press h to list commands\n\n");
-    print_cmds();
+    print_uart_cmds();
 
     while (1) {
-        print_next_eps_tx_msg();
-        // Either simulate EPS over CAN or actually send the CAN message
-        if (sim_eps) {
-            sim_send_next_eps_tx_msg();
-        }  else {
-            send_next_eps_tx_msg();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_eps_tx_msg();
+            // Either simulate EPS over CAN or actually send the CAN message
+            if (sim_eps) {
+                sim_send_next_eps_tx_msg();
+            }  else {
+                send_next_eps_tx_msg();
+            }
         }
 
-        print_next_pay_tx_msg();
-        // Either simulate PAY over CAN or actually send the CAN message
-        if (sim_pay) {
-            sim_send_next_pay_tx_msg();
-        }  else {
-            send_next_pay_tx_msg();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_pay_tx_msg();
+            // Either simulate PAY over CAN or actually send the CAN message
+            if (sim_pay) {
+                sim_send_next_pay_tx_msg();
+            }  else {
+                send_next_pay_tx_msg();
+            }
         }
 
-        print_next_rx_msg();
-        process_next_rx_msg();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_rx_msg();
+            process_next_rx_msg();
+        }
 
-        execute_next_cmd();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_cmd();
+            execute_next_cmd();
+        }
     }
 
     return 0;
