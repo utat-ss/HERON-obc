@@ -31,12 +31,16 @@ bool sim_pay = false;
 
 // Set to true to print TX and RX CAN messages
 bool print_can_msgs = false;
+// Set to true to print commands and arguments
+bool print_cmds = false;
 
 
 // Normal command with a string description to print on UART
 typedef struct {
     char* description;
     cmd_t* cmd;
+    uint32_t arg1;
+    uint32_t arg2;
 } uart_cmd_t;
 
 
@@ -52,51 +56,71 @@ cmd_t clear_local_data_cmd = {
     .fn = clear_local_data_fn
 };
 
+void read_all_mem_blocks_to_local_fn(void);
+cmd_t read_all_mem_blocks_to_local_cmd = {
+    .fn = read_all_mem_blocks_to_local_fn
+};
+
 
 // All possible commands
 uart_cmd_t all_cmds[] = {
     {
-        .description = "Print local data",
-        .cmd = &print_local_data_cmd
+        .description = "Print all local data blocks",
+        .cmd = &print_local_data_cmd,
+        .arg1 = 0,
+        .arg2 = 0
     },
     {
         .description = "Clear local data",
-        .cmd = &clear_local_data_cmd
+        .cmd = &clear_local_data_cmd,
+        .arg1 = 0,
+        .arg2 = 0
     },
     {
-        .description = "Write local data to mem",
-        .cmd = &write_mem_cmd
-    },
-    {
-        .description = "Read mem to local data",
-        .cmd = &read_mem_cmd
-    },
-    {
-        .description = "Start timer",
-        .cmd = &start_aut_data_col_cmd
+        .description = "Read all mem blocks to local data",
+        .cmd = &read_all_mem_blocks_to_local_cmd,
+        .arg1 = 0,
+        .arg2 = 0
     },
     {
         .description = "Request EPS HK",
-        .cmd = &req_eps_hk_cmd
+        .cmd = &collect_block_cmd,
+        .arg1 = CMD_BLOCK_EPS_HK,
+        .arg2 = 0
     },
     {
         .description = "Request PAY HK",
-        .cmd = &req_pay_hk_cmd
+        .cmd = &collect_block_cmd,
+        .arg1 = CMD_BLOCK_PAY_HK,
+        .arg2 = 0
     },
     {
         .description = "Request PAY OPT",
-        .cmd = &req_pay_opt_cmd
+        .cmd = &collect_block_cmd,
+        .arg1 = CMD_BLOCK_PAY_OPT,
+        .arg2 = 0
     },
     {
-        .description = "Pop blister packs",
-        .cmd = &pop_blister_packs_cmd
+        .description = "Actuate motors up",
+        .cmd = &actuate_motors_cmd,
+        // TODO - constants
+        .arg1 = 1,
+        .arg2 = 0
+    },
+    {
+        .description = "Actuate motors down",
+        .cmd = &actuate_motors_cmd,
+        // TODO - constants
+        .arg1 = 2,
+        .arg2 = 0
     }
 };
+
 // Length of array
 const uint8_t all_cmds_len = sizeof(all_cmds) / sizeof(all_cmds[0]);
 
 
-void print_cmds(void) {
+void print_uart_cmds(void) {
     for (uint8_t i = 0; i < all_cmds_len; i++) {
         print("%u: %s\n", i, all_cmds[i].description);
     }
@@ -287,6 +311,30 @@ void print_next_rx_msg(void) {
     print_bytes(rx_msg, 8);
 }
 
+void print_next_cmd(void) {
+    if (!print_cmds) {
+        return;
+    }
+
+    uint8_t cmd[8] = { 0x00 };
+    uint8_t args[8] = { 0x00 };
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&cmd_queue)) {
+            return;
+        }
+        if (queue_empty(&cmd_args_queue)) {
+            return;
+        }
+        peek_queue(&cmd_queue, cmd);
+        peek_queue(&cmd_args_queue, args);
+    }
+
+    print("Cmd:  ");
+    print_bytes(cmd, 8);
+    print("Args: ");
+    print_bytes(args, 8);
+}
+
 
 
 
@@ -308,6 +356,19 @@ void clear_local_data_fn(void) {
 
     finish_current_cmd(true);
 }
+
+void read_all_mem_blocks_to_local_fn(void) {
+    // TODO
+    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_EPS_HK,
+        eps_hk_mem_section.curr_block - 1);
+    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_PAY_HK,
+        pay_hk_mem_section.curr_block - 1);
+    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_PAY_OPT,
+        pay_opt_mem_section.curr_block - 1);
+
+    finish_current_cmd(true);
+}
+
 
 
 // Generates a random number in the range [0, 2^31)
@@ -394,7 +455,7 @@ void sim_send_next_eps_tx_msg(void) {
     enqueue(&data_rx_msg_queue, rx_msg);
 }
 
-// Simulates sending an EPS TX message and getting a response back
+// Simulates sending a PAY TX message and getting a response back
 void sim_send_next_pay_tx_msg(void) {
     if (queue_empty(&pay_tx_msg_queue)) {
         return;
@@ -445,9 +506,11 @@ void sim_send_next_pay_tx_msg(void) {
             }
             break;
 
-        // TODO
         case CAN_PAY_CTRL:
-            if (field_num == CAN_PAY_CTRL_ACT_UP) {
+            if ((field_num == CAN_PAY_CTRL_HEAT_SP1) ||
+                (field_num == CAN_PAY_CTRL_HEAT_SP2) ||
+                (field_num == CAN_PAY_CTRL_ACT_UP) ||
+                (field_num == CAN_PAY_CTRL_ACT_DOWN)) {
                 // Don't need to populate anything
             } else {
                 return;
@@ -478,14 +541,14 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
 
     // Check for printing the help menu
     if (data[0] == 'h') {
-        print_cmds();
+        print_uart_cmds();
     }
 
     // Check for a valid command number
     else if ('0' <= data[0] && data[0] < '0' + all_cmds_len) {
         // Enqueue the selected command
         uint8_t i = data[0] - '0';
-        enqueue_cmd(&cmd_queue, all_cmds[i].cmd);
+        enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
     }
 
     else {
@@ -510,37 +573,49 @@ int main(void){
     sim_eps = true;
     sim_pay = true;
     print_can_msgs = true;
+    print_cmds = true;
 
     print("sim_local_actions = %u\n", sim_local_actions);
     print("sim_eps = %u\n", sim_eps);
     print("sim_pay = %u\n", sim_pay);
     print("print_can_msgs = %u\n", print_can_msgs);
+    print("print_cmds = %u\n", print_cmds);
+    print("\n");
 
     set_uart_rx_cb(uart_cb);
     // print("Press h to list commands\n\n");
-    print_cmds();
+    print_uart_cmds();
 
     while (1) {
-        print_next_eps_tx_msg();
-        // Either simulate EPS over CAN or actually send the CAN message
-        if (sim_eps) {
-            sim_send_next_eps_tx_msg();
-        }  else {
-            send_next_eps_tx_msg();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_eps_tx_msg();
+            // Either simulate EPS over CAN or actually send the CAN message
+            if (sim_eps) {
+                sim_send_next_eps_tx_msg();
+            }  else {
+                send_next_eps_tx_msg();
+            }
         }
 
-        print_next_pay_tx_msg();
-        // Either simulate PAY over CAN or actually send the CAN message
-        if (sim_pay) {
-            sim_send_next_pay_tx_msg();
-        }  else {
-            send_next_pay_tx_msg();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_pay_tx_msg();
+            // Either simulate PAY over CAN or actually send the CAN message
+            if (sim_pay) {
+                sim_send_next_pay_tx_msg();
+            }  else {
+                send_next_pay_tx_msg();
+            }
         }
 
-        print_next_rx_msg();
-        process_next_rx_msg();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_rx_msg();
+            process_next_rx_msg();
+        }
 
-        execute_next_cmd();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_cmd();
+            execute_next_cmd();
+        }
     }
 
     return 0;

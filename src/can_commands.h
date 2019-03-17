@@ -25,10 +25,11 @@ extern uint32_t pay_opt_fields[];
 
 void handle_rx_msg(void);
 
-void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num);
+void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num, uint32_t data);
 void enqueue_eps_hk_tx_msg(uint8_t field_num);
+void enqueue_eps_ctrl_tx_msg(uint8_t field_num, uint32_t data);
 void enqueue_pay_hk_tx_msg(uint8_t field_num);
 void enqueue_pay_opt_tx_msg(uint8_t field_num);
-void enqueue_pay_exp_tx_msg(uint8_t field_num);
+void enqueue_pay_ctrl_tx_msg(uint8_t field_num, uint32_t data);
 
 #endif
