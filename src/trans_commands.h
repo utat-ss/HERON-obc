@@ -3,7 +3,9 @@
 
 #include <util/atomic.h>
 
+#include "commands.h"
 #include "transceiver.h"
+
 
 // Subsystem
 #define TRANS_CMD_OBC       0
@@ -39,9 +41,5 @@ void handle_trans_decoded_rx_msg(void);
 void start_trans_decoded_tx_msg(void);
 void append_to_trans_decoded_tx_msg(uint8_t byte);
 void finish_trans_decoded_tx_msg(void);
-
-cmd_t* trans_msg_type_to_cmd(uint8_t msg_type);
-uint8_t trans_cmd_to_msg_type(cmd_t* cmd);
-
 
 #endif

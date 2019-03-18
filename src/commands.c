@@ -645,3 +645,78 @@ void dequeue_cmd(void) {
     print("dequeue_cmd: cmd = 0x%x, arg1 = %lu, arg2 = %lu\n", current_cmd,
         current_cmd_arg1, current_cmd_arg2);
 }
+
+
+cmd_t* trans_msg_type_to_cmd(uint8_t msg_type) {
+    switch (msg_type) {
+        case TRANS_CMD_PING:
+            return &ping_cmd;
+        case TRANS_CMD_GET_RESTART_UPTIME:
+            return &get_restart_uptime_cmd;
+        case TRANS_CMD_GET_RTC:
+            return &get_rtc_cmd;
+        case TRANS_CMD_SET_RTC:
+            return &set_rtc_cmd;
+        case TRANS_CMD_READ_MEM:
+            return &read_mem_cmd;
+        case TRANS_CMD_ERASE_MEM:
+            return &erase_mem_cmd;
+        case TRANS_CMD_COL_BLOCK:
+            return &collect_block_cmd;
+        case TRANS_CMD_READ_LOC_BLOCK:
+            return &read_local_block_cmd;
+        case TRANS_CMD_READ_MEM_BLOCK:
+            return &read_mem_block_cmd;
+        case TRANS_CMD_AUTO_DATA_COL_ENABLE:
+            return &set_auto_data_col_enable_cmd;
+        case TRANS_CMD_AUTO_DATA_COL_PERIOD:
+            return &set_auto_data_col_period_cmd;
+        case TRANS_CMD_AUTO_DATA_COL_RESYNC:
+            return &resync_auto_data_col_cmd;
+        case TRANS_CMD_EPS_HEAT_SP:
+            return &set_eps_heater_sp_cmd;
+        case TRANS_CMD_PAY_HEAT_SP:
+            return &set_pay_heater_sp_cmd;
+        case TRANS_CMD_PAY_ACT_MOTORS:
+            return &actuate_pay_motors_cmd;
+        default:
+            return NULL;
+    }
+}
+
+uint8_t trans_cmd_to_msg_type(cmd_t* cmd) {
+    // Can't use case for pointers
+    if (cmd == &ping_cmd) {
+        return TRANS_CMD_PING;
+    } else if (cmd == &get_restart_uptime_cmd) {
+        return TRANS_CMD_GET_RESTART_UPTIME;
+    } else if (cmd == &get_rtc_cmd) {
+        return TRANS_CMD_GET_RTC;
+    } else if (cmd == &set_rtc_cmd) {
+        return TRANS_CMD_SET_RTC;
+    } else if (cmd == &read_mem_cmd) {
+        return TRANS_CMD_READ_MEM;
+    } else if (cmd == &erase_mem_cmd) {
+        return TRANS_CMD_ERASE_MEM;
+    } else if (cmd == &collect_block_cmd) {
+        return TRANS_CMD_COL_BLOCK;
+    } else if (cmd == &read_local_block_cmd) {
+        return TRANS_CMD_READ_LOC_BLOCK;
+    } else if (cmd == &read_mem_block_cmd) {
+        return TRANS_CMD_READ_MEM_BLOCK;
+    } else if (cmd == &set_auto_data_col_enable_cmd) {
+        return TRANS_CMD_AUTO_DATA_COL_ENABLE;
+    } else if (cmd == &set_auto_data_col_period_cmd) {
+        return TRANS_CMD_AUTO_DATA_COL_PERIOD;
+    } else if (cmd == &resync_auto_data_col_cmd) {
+        return TRANS_CMD_AUTO_DATA_COL_RESYNC;
+    } else if (cmd == &set_eps_heater_sp_cmd) {
+        return TRANS_CMD_EPS_HEAT_SP;
+    } else if (cmd == &set_pay_heater_sp_cmd) {
+        return TRANS_CMD_PAY_HEAT_SP;
+    } else if (cmd == &actuate_pay_motors_cmd) {
+        return TRANS_CMD_PAY_ACT_MOTORS;
+    } else {
+        return 0xFF;
+    }
+}

@@ -89,4 +89,7 @@ void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);
 void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2);
 void dequeue_cmd(void);
 
+cmd_t* trans_msg_type_to_cmd(uint8_t msg_type);
+uint8_t trans_cmd_to_msg_type(cmd_t* cmd);
+
 #endif
