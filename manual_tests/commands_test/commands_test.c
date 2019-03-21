@@ -30,6 +30,8 @@ bool sim_eps = false;
 bool sim_pay = false;
 // Set to true to simulate using the transceiver
 bool sim_trans = false;
+// Set to true to simulate getting UART from the transceiver
+bool sim_trans_uart = false;
 
 // Set to true to print TX and RX CAN messages
 bool print_can_msgs = false;
@@ -667,6 +669,7 @@ int main(void){
     sim_eps = true;
     sim_pay = true;
     sim_trans = true;
+    sim_trans_uart = false;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;
@@ -675,22 +678,33 @@ int main(void){
     print("sim_eps = %u\n", sim_eps);
     print("sim_pay = %u\n", sim_pay);
     print("sim_trans = %u\n", sim_trans);
+    print("sim_trans_uart = %u\n", sim_trans_uart);
     print("print_can_msgs = %u\n", print_can_msgs);
     print("print_cmds = %u\n", print_cmds);
     print("print_trans_msgs = %u\n", print_trans_msgs);
     print("\n");
 
-    print("Mem blocks: eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n\n",
+    print("Mem blocks: eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
         eps_hk_mem_section.curr_block,
         pay_hk_mem_section.curr_block,
         pay_opt_mem_section.curr_block);
+    print("\n");
 
     if (sim_trans) {
-        print("Overwriting UART RX callback\n");
-        set_uart_rx_cb(uart_cb);
-        // print("Press h to list commands\n\n");
-        print_uart_cmds();
+        if (sim_trans_uart) {
+            print("Overwriting UART RX callback\n");
+            set_uart_rx_cb(uart_cb);
+            // print("Press h to list commands\n\n");
+            print_uart_cmds();
+        } else {
+            print("Init trans UART\n");
+            init_trans_uart();
+        }
+    } else {
+        print("Init OBC comms\n");
+        init_obc_comms();
     }
+    print("\n");
 
     while (1) {
         // EPS TX
