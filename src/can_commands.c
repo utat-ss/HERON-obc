@@ -48,7 +48,6 @@ void handle_rx_msg(void) {
                 handle_pay_ctrl(data);
                 break;
             default:
-                // print("Invalid RX\n");
                 break;
         }
     }
@@ -97,7 +96,11 @@ void handle_eps_ctrl(const uint8_t* data){
         field_num == CAN_EPS_CTRL_HEAT_SP2) &&
         current_cmd == &set_eps_heater_sp_cmd) {
 
-        print("Done setting EPS heaters\n");
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_decoded_tx_msg();
+            finish_trans_decoded_tx_msg();
+        }
+
         finish_current_cmd(true);
     }
 }
@@ -170,7 +173,6 @@ void handle_pay_opt(const uint8_t* data){
     }
 }
 
-// TODO - fix actuation
 void handle_pay_ctrl(const uint8_t* data) {
     uint8_t field_num = data[2];
 
@@ -178,7 +180,11 @@ void handle_pay_ctrl(const uint8_t* data) {
         field_num == CAN_PAY_CTRL_HEAT_SP2) &&
         current_cmd == &set_pay_heater_sp_cmd) {
 
-        print("Done setting PAY heaters\n");
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_decoded_tx_msg();
+            finish_trans_decoded_tx_msg();
+        }
+
         finish_current_cmd(true);
     }
 
@@ -186,7 +192,11 @@ void handle_pay_ctrl(const uint8_t* data) {
         field_num == CAN_PAY_CTRL_ACT_DOWN) &&
         current_cmd == &actuate_pay_motors_cmd) {
 
-        print("Done actuating PAY motors\n");
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_decoded_tx_msg();
+            finish_trans_decoded_tx_msg();
+        }
+
         finish_current_cmd(true);
     }
 }

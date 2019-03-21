@@ -45,6 +45,9 @@ typedef struct {
     cmd_t* cmd;
     uint32_t arg1;
     uint32_t arg2;
+    // true to bypass enqueuing a transceiver message and just enqueue directly
+    // in command queue
+    bool bypass_trans;
 } uart_cmd_t;
 
 
@@ -69,54 +72,76 @@ cmd_t read_all_mem_blocks_to_local_cmd = {
 // All possible commands
 uart_cmd_t all_cmds[] = {
     {
+        .description = "Ping OBC",
+        .cmd = &ping_cmd,
+        .arg1 = 0,
+        .arg2 = 0,
+        .bypass_trans = false
+    },
+    {
+        .description = "Get restart and uptime",
+        .cmd = &get_restart_uptime_cmd,
+        .arg1 = 0,
+        .arg2 = 0,
+        .bypass_trans = false
+    },
+    {
         .description = "Print all local data blocks",
         .cmd = &print_local_data_cmd,
         .arg1 = 0,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = true
     },
     {
         .description = "Clear local data",
         .cmd = &clear_local_data_cmd,
         .arg1 = 0,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = true
     },
     {
         .description = "Read all mem blocks to local data",
         .cmd = &read_all_mem_blocks_to_local_cmd,
         .arg1 = 0,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = true
     },
     {
         .description = "Request EPS HK",
         .cmd = &collect_block_cmd,
         .arg1 = CMD_BLOCK_EPS_HK,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     },
     {
         .description = "Request PAY HK",
         .cmd = &collect_block_cmd,
         .arg1 = CMD_BLOCK_PAY_HK,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     },
     {
         .description = "Request PAY OPT",
         .cmd = &collect_block_cmd,
         .arg1 = CMD_BLOCK_PAY_OPT,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     },
     {
         .description = "Actuate motors up",
         .cmd = &actuate_pay_motors_cmd,
         // TODO - constants
         .arg1 = 1,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     },
     {
         .description = "Actuate motors down",
         .cmd = &actuate_pay_motors_cmd,
         // TODO - constants
         .arg1 = 2,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     }
 };
 
@@ -603,7 +628,25 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
     else if ('0' <= data[0] && data[0] < '0' + all_cmds_len) {
         // Enqueue the selected command
         uint8_t i = data[0] - '0';
-        enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
+
+        if (all_cmds[i].bypass_trans) {
+            enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
+        } else {
+            trans_encoded_rx_msg[0] = 0x00;
+            trans_encoded_rx_msg[1] = 9;
+            trans_encoded_rx_msg[2] = trans_cmd_to_msg_type(all_cmds[i].cmd);
+            trans_encoded_rx_msg[3] = (all_cmds[i].arg1 >> 24) & 0xFF;
+            trans_encoded_rx_msg[4] = (all_cmds[i].arg1 >> 16) & 0xFF;
+            trans_encoded_rx_msg[5] = (all_cmds[i].arg1 >> 8) & 0xFF;
+            trans_encoded_rx_msg[6] = all_cmds[i].arg1 & 0xFF;
+            trans_encoded_rx_msg[7] = (all_cmds[i].arg2 >> 24) & 0xFF;
+            trans_encoded_rx_msg[8] = (all_cmds[i].arg2 >> 16) & 0xFF;
+            trans_encoded_rx_msg[9] = (all_cmds[i].arg2 >> 8) & 0xFF;
+            trans_encoded_rx_msg[10] = all_cmds[i].arg2 & 0xFF;
+
+            trans_encoded_rx_msg_len = 11;
+            trans_encoded_rx_msg_avail = true;
+        }
     }
 
     else {
