@@ -1,6 +1,6 @@
 /*
- * Harness based test for the transciever.
- *
+ * Harness based test for the transceiver.
+ * PS TRANSCEIVER NOT TRANSCIEVER.
  *
  */
 
@@ -18,7 +18,9 @@ void trans_uart_rx_cb_test(void){
     //will compare update time before and after calling trans_uart_rx_cb
     uint32_t prev_uptime = uptime_s;
 
-    uint8_t test = trans_uart_rx_cb((uint8_t*)trans_cmd_resp, len);
+    //buffer needs be remade or smth yep
+    uint8_t* buf = (uint8_t*)trans_cmd_resp;
+    uint8_t test = trans_uart_rx_cb(buf, len);
     //note: given the conditions required to make trans_cmd_resp_avail TRUE
     //in this funciton, i believe this len check is also valid. (check in case tho)
     //return value should be same as input length
@@ -68,8 +70,9 @@ void scan_trans_cmd_resp_avail_test(void){
     trans_cmd_resp[1] = 'K';
     trans_cmd_resp[2] = 1;
     trans_cmd_resp[3] = '\r';
+    trans_cmd_resp_len = 4;
     uint8_t expected_len = trans_cmd_resp_len - 1;
-    scan_trans_cmd_resp_avail();
+    scan_trans_cmd_resp((uint8_t*)trans_cmd_resp, trans_cmd_resp_len);
     //trans_cmd_resp_avail should be true
     ASSERT_EQ(trans_cmd_resp_avail,true);
     //check through the wait_for_trans_cmd_resp fcn as well
@@ -253,13 +256,20 @@ test_t t13 = {.name = "get_trans_num_packets_test", .fn = get_trans_num_packets_
 
 test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11, &t12, &t13 };
 
+void run_test(test_t*);
+
+//test harness needs be bypassed as the UART of the transceiver and OBC happen at
+//the same time and thats not ok. ...
+//test harness output needs be observed and evaluated manually as a result :D
 int main(void) {
     init_uart();
-    init_spi();
-    init_trans(); //assume this just works?
-    //init_mem();
-    //init_rtc();
 
-    run_tests(suite, sizeof(suite) / sizeof(suite[0]));
+    print("delay 5s\n");
+    _delay_ms(5000);
+
+    init_trans();
+    for (int i=0;i<13;i++){
+        run_test(suite[i]);
+    }
     return 0;
 }
