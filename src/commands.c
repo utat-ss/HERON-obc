@@ -103,7 +103,7 @@ cmd_t set_eps_heater_sp_cmd = {
 cmd_t set_pay_heater_sp_cmd = {
     .fn = set_pay_heater_sp_fn
 };
-cmd_t actuate_motors_cmd = {
+cmd_t actuate_pay_motors_cmd = {
     .fn = actuate_motors_fn
 };
 cmd_t reset_cmd = {
@@ -119,32 +119,116 @@ cmd_t reset_cmd = {
 void nop_fn(void) {}
 
 void ping_fn(void) {
-    print("Ping TODO\n");
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        finish_trans_decoded_tx_msg();
+    }
     finish_current_cmd(true);
 }
 
 void get_restart_uptime_fn(void) {
-    print("Get restart uptime TODO\n");
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        append_to_trans_decoded_tx_msg((restart_count >> 24) & 0xFF);
+        append_to_trans_decoded_tx_msg((restart_count >> 16) & 0xFF);
+        append_to_trans_decoded_tx_msg((restart_count >> 8) & 0xFF);
+        append_to_trans_decoded_tx_msg(restart_count & 0xFF);
+        append_to_trans_decoded_tx_msg(restart_date.yy);
+        append_to_trans_decoded_tx_msg(restart_date.mm);
+        append_to_trans_decoded_tx_msg(restart_date.dd);
+        append_to_trans_decoded_tx_msg(restart_time.hh);
+        append_to_trans_decoded_tx_msg(restart_time.mm);
+        append_to_trans_decoded_tx_msg(restart_time.ss);
+        append_to_trans_decoded_tx_msg((uptime_s >> 24) & 0xFF);
+        append_to_trans_decoded_tx_msg((uptime_s >> 16) & 0xFF);
+        append_to_trans_decoded_tx_msg((uptime_s >> 8) & 0xFF);
+        append_to_trans_decoded_tx_msg(uptime_s & 0xFF);
+        finish_trans_decoded_tx_msg();
+    }
     finish_current_cmd(true);
 }
 
 void get_rtc_fn(void) {
-    print("Get RTC TODO\n");
+    rtc_date_t date = read_rtc_date();
+    rtc_time_t time = read_rtc_time();
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        append_to_trans_decoded_tx_msg(date.yy);
+        append_to_trans_decoded_tx_msg(date.mm);
+        append_to_trans_decoded_tx_msg(date.dd);
+        append_to_trans_decoded_tx_msg(time.hh);
+        append_to_trans_decoded_tx_msg(time.mm);
+        append_to_trans_decoded_tx_msg(time.ss);
+        finish_trans_decoded_tx_msg();
+    }
+
     finish_current_cmd(true);
 }
 
 void set_rtc_fn(void) {
-    print("Set RTC TODO\n");
+    rtc_date_t date = {
+        .yy = (current_cmd_arg1 >> 16) & 0xFF,
+        .mm = (current_cmd_arg1 >> 8) & 0xFF,
+        .dd = current_cmd_arg1 & 0xFF
+    };
+    rtc_time_t time = {
+        .hh = (current_cmd_arg2 >> 16) & 0xFF,
+        .mm = (current_cmd_arg2 >> 8) & 0xFF,
+        .ss = current_cmd_arg2 & 0xFF
+    };
+
+    set_rtc_date(date);
+    set_rtc_time(time);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        finish_trans_decoded_tx_msg();
+    }
+
     finish_current_cmd(true);
 }
 
 void read_mem_fn(void) {
-    print("Read mem TODO\n");
+    // Currently max 64 bytes
+    // TODO - decide and document max count
+    if (current_cmd_arg2 > 64) {
+        finish_current_cmd(false);
+        return;
+    }
+
+    // TODO - constant
+    uint8_t data[64] = { 0x00 };
+    read_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        for (uint8_t i = 0; i < (uint8_t) current_cmd_arg2; i++) {
+            append_to_trans_decoded_tx_msg(data[i]);
+        }
+        finish_trans_decoded_tx_msg();
+    }
+
     finish_current_cmd(true);
 }
 
 void erase_mem_fn(void) {
-    print("Erase mem TODO\n");
+    // Currently max 64 bytes
+    // TODO - decide and document max count
+    if (current_cmd_arg2 > 64) {
+        finish_current_cmd(false);
+        return;
+    }
+
+    // TODO - constant
+    uint8_t data[64] = { 0xFF };
+    write_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        finish_trans_decoded_tx_msg();
+    }
+
     finish_current_cmd(true);
 }
 
@@ -169,10 +253,35 @@ void collect_block_fn(void) {
         default:
             break;
     }
+
+    // Will continue from CAN callbacks
 }
 
 void read_local_block_fn(void) {
-    print("Read local TODO\n");
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+
+        switch (current_cmd_arg1) {
+            case CMD_BLOCK_EPS_HK:
+                append_header_to_tx_msg(&eps_hk_header);
+                append_fields_to_tx_msg(eps_hk_fields, CAN_EPS_HK_FIELD_COUNT);
+                break;
+            case CMD_BLOCK_PAY_HK:
+                append_header_to_tx_msg(&pay_hk_header);
+                append_fields_to_tx_msg(pay_hk_fields, CAN_PAY_HK_FIELD_COUNT);
+                break;
+            case CMD_BLOCK_PAY_OPT:
+                append_header_to_tx_msg(&pay_opt_header);
+                append_fields_to_tx_msg(pay_opt_fields, CAN_PAY_OPT_FIELD_COUNT);
+                break;
+            default:
+                finish_current_cmd(false);
+                return;
+        }
+
+        finish_trans_decoded_tx_msg();
+    }
+
     finish_current_cmd(true);
 }
 
@@ -240,14 +349,12 @@ void read_mem_block_fn(void) {
             break;
 
         default:
-            break;
+            finish_current_cmd(false);
+            return;
     }
 
-    // TODO - create transceiver message
-
-    print("Read memory block\n");
-
-    finish_current_cmd(true);
+    // TODO - will this give the correct behavaiour? maybe refactor both with common functionality?
+    read_local_block_fn();
 }
 
 void set_auto_data_col_enable_fn(void) {
@@ -262,8 +369,15 @@ void set_auto_data_col_enable_fn(void) {
             pay_opt_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
             break;
         default:
-            break;
+            finish_current_cmd(false);
+            return;
     }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        finish_trans_decoded_tx_msg();
+    }
+
     finish_current_cmd(true);
 }
 
@@ -279,8 +393,15 @@ void set_auto_data_col_period_fn(void) {
             pay_opt_auto_data_col.period = current_cmd_arg2;
             break;
         default:
-            break;
+            finish_current_cmd(false);
+            return;
     }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        finish_trans_decoded_tx_msg();
+    }
+
     finish_current_cmd(true);
 }
 
@@ -290,6 +411,12 @@ void resync_auto_data_col_fn(void) {
         pay_hk_auto_data_col.count = 0;
         pay_opt_auto_data_col.count = 0;
     }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        finish_trans_decoded_tx_msg();
+    }
+
     finish_current_cmd(true);
 }
 
@@ -305,6 +432,8 @@ void set_eps_heater_sp_fn(void) {
             finish_current_cmd(false);
             break;
     }
+
+    // CAN callbacks
 }
 
 void set_pay_heater_sp_fn(void) {
@@ -319,6 +448,8 @@ void set_pay_heater_sp_fn(void) {
             finish_current_cmd(false);
             break;
     }
+
+    // CAN callbacks
 }
 
 void actuate_motors_fn(void) {
@@ -333,6 +464,8 @@ void actuate_motors_fn(void) {
             finish_current_cmd(false);
             break;
     }
+
+    // CAN callbacks
 }
 
 void reset_fn(void) {
@@ -406,6 +539,29 @@ void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error) {
     } else {
         header->date = read_rtc_date();
         header->time = read_rtc_time();
+    }
+}
+
+
+void append_header_to_tx_msg(mem_header_t* header) {
+    // TODO - use 24 bits of block_num
+    append_to_trans_decoded_tx_msg(0);
+    append_to_trans_decoded_tx_msg(0);
+    append_to_trans_decoded_tx_msg(header->block_num);
+    append_to_trans_decoded_tx_msg(header->error);
+    append_to_trans_decoded_tx_msg(header->date.yy);
+    append_to_trans_decoded_tx_msg(header->date.mm);
+    append_to_trans_decoded_tx_msg(header->date.dd);
+    append_to_trans_decoded_tx_msg(header->time.hh);
+    append_to_trans_decoded_tx_msg(header->time.mm);
+    append_to_trans_decoded_tx_msg(header->time.ss);
+}
+
+void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields) {
+    for (uint8_t i = 0; i < num_fields; i++) {
+        append_to_trans_decoded_tx_msg((fields[i] >> 16) & 0xFF);
+        append_to_trans_decoded_tx_msg((fields[i] >> 8) & 0xFF);
+        append_to_trans_decoded_tx_msg(fields[i] & 0xFF);
     }
 }
 
@@ -488,4 +644,79 @@ void dequeue_cmd(void) {
 
     print("dequeue_cmd: cmd = 0x%x, arg1 = %lu, arg2 = %lu\n", current_cmd,
         current_cmd_arg1, current_cmd_arg2);
+}
+
+
+cmd_t* trans_msg_type_to_cmd(uint8_t msg_type) {
+    switch (msg_type) {
+        case TRANS_CMD_PING:
+            return &ping_cmd;
+        case TRANS_CMD_GET_RESTART_UPTIME:
+            return &get_restart_uptime_cmd;
+        case TRANS_CMD_GET_RTC:
+            return &get_rtc_cmd;
+        case TRANS_CMD_SET_RTC:
+            return &set_rtc_cmd;
+        case TRANS_CMD_READ_MEM:
+            return &read_mem_cmd;
+        case TRANS_CMD_ERASE_MEM:
+            return &erase_mem_cmd;
+        case TRANS_CMD_COL_BLOCK:
+            return &collect_block_cmd;
+        case TRANS_CMD_READ_LOC_BLOCK:
+            return &read_local_block_cmd;
+        case TRANS_CMD_READ_MEM_BLOCK:
+            return &read_mem_block_cmd;
+        case TRANS_CMD_AUTO_DATA_COL_ENABLE:
+            return &set_auto_data_col_enable_cmd;
+        case TRANS_CMD_AUTO_DATA_COL_PERIOD:
+            return &set_auto_data_col_period_cmd;
+        case TRANS_CMD_AUTO_DATA_COL_RESYNC:
+            return &resync_auto_data_col_cmd;
+        case TRANS_CMD_EPS_HEAT_SP:
+            return &set_eps_heater_sp_cmd;
+        case TRANS_CMD_PAY_HEAT_SP:
+            return &set_pay_heater_sp_cmd;
+        case TRANS_CMD_PAY_ACT_MOTORS:
+            return &actuate_pay_motors_cmd;
+        default:
+            return NULL;
+    }
+}
+
+uint8_t trans_cmd_to_msg_type(cmd_t* cmd) {
+    // Can't use case for pointers
+    if (cmd == &ping_cmd) {
+        return TRANS_CMD_PING;
+    } else if (cmd == &get_restart_uptime_cmd) {
+        return TRANS_CMD_GET_RESTART_UPTIME;
+    } else if (cmd == &get_rtc_cmd) {
+        return TRANS_CMD_GET_RTC;
+    } else if (cmd == &set_rtc_cmd) {
+        return TRANS_CMD_SET_RTC;
+    } else if (cmd == &read_mem_cmd) {
+        return TRANS_CMD_READ_MEM;
+    } else if (cmd == &erase_mem_cmd) {
+        return TRANS_CMD_ERASE_MEM;
+    } else if (cmd == &collect_block_cmd) {
+        return TRANS_CMD_COL_BLOCK;
+    } else if (cmd == &read_local_block_cmd) {
+        return TRANS_CMD_READ_LOC_BLOCK;
+    } else if (cmd == &read_mem_block_cmd) {
+        return TRANS_CMD_READ_MEM_BLOCK;
+    } else if (cmd == &set_auto_data_col_enable_cmd) {
+        return TRANS_CMD_AUTO_DATA_COL_ENABLE;
+    } else if (cmd == &set_auto_data_col_period_cmd) {
+        return TRANS_CMD_AUTO_DATA_COL_PERIOD;
+    } else if (cmd == &resync_auto_data_col_cmd) {
+        return TRANS_CMD_AUTO_DATA_COL_RESYNC;
+    } else if (cmd == &set_eps_heater_sp_cmd) {
+        return TRANS_CMD_EPS_HEAT_SP;
+    } else if (cmd == &set_pay_heater_sp_cmd) {
+        return TRANS_CMD_PAY_HEAT_SP;
+    } else if (cmd == &actuate_pay_motors_cmd) {
+        return TRANS_CMD_PAY_ACT_MOTORS;
+    } else {
+        return 0xFF;
+    }
 }

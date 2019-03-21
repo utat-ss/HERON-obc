@@ -28,11 +28,17 @@ bool sim_eps = false;
 // Set to true to simulate communicating with PAY (without PAY actually being
 // connected over CAN)
 bool sim_pay = false;
+// Set to true to simulate using the transceiver
+bool sim_trans = false;
+// Set to true to simulate getting UART from the transceiver
+bool sim_trans_uart = false;
 
 // Set to true to print TX and RX CAN messages
 bool print_can_msgs = false;
 // Set to true to print commands and arguments
 bool print_cmds = false;
+// Set to true to print transceiver messages
+bool print_trans_msgs = false;
 
 
 // Normal command with a string description to print on UART
@@ -41,6 +47,9 @@ typedef struct {
     cmd_t* cmd;
     uint32_t arg1;
     uint32_t arg2;
+    // true to bypass enqueuing a transceiver message and just enqueue directly
+    // in command queue
+    bool bypass_trans;
 } uart_cmd_t;
 
 
@@ -65,54 +74,76 @@ cmd_t read_all_mem_blocks_to_local_cmd = {
 // All possible commands
 uart_cmd_t all_cmds[] = {
     {
+        .description = "Ping OBC",
+        .cmd = &ping_cmd,
+        .arg1 = 0,
+        .arg2 = 0,
+        .bypass_trans = false
+    },
+    {
+        .description = "Get restart and uptime",
+        .cmd = &get_restart_uptime_cmd,
+        .arg1 = 0,
+        .arg2 = 0,
+        .bypass_trans = false
+    },
+    {
         .description = "Print all local data blocks",
         .cmd = &print_local_data_cmd,
         .arg1 = 0,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = true
     },
     {
         .description = "Clear local data",
         .cmd = &clear_local_data_cmd,
         .arg1 = 0,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = true
     },
     {
         .description = "Read all mem blocks to local data",
         .cmd = &read_all_mem_blocks_to_local_cmd,
         .arg1 = 0,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = true
     },
     {
         .description = "Request EPS HK",
         .cmd = &collect_block_cmd,
         .arg1 = CMD_BLOCK_EPS_HK,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     },
     {
         .description = "Request PAY HK",
         .cmd = &collect_block_cmd,
         .arg1 = CMD_BLOCK_PAY_HK,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     },
     {
         .description = "Request PAY OPT",
         .cmd = &collect_block_cmd,
         .arg1 = CMD_BLOCK_PAY_OPT,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     },
     {
         .description = "Actuate motors up",
-        .cmd = &actuate_motors_cmd,
+        .cmd = &actuate_pay_motors_cmd,
         // TODO - constants
         .arg1 = 1,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     },
     {
         .description = "Actuate motors down",
-        .cmd = &actuate_motors_cmd,
+        .cmd = &actuate_pay_motors_cmd,
         // TODO - constants
         .arg1 = 2,
-        .arg2 = 0
+        .arg2 = 0,
+        .bypass_trans = false
     }
 };
 
@@ -336,6 +367,57 @@ void print_next_cmd(void) {
 }
 
 
+void print_next_trans_encoded_tx_msg(void) {
+    if (!print_trans_msgs) {
+        return;
+    }
+    if (!trans_encoded_tx_msg_avail) {
+        return;
+    }
+
+    print("Trans TX (Encoded): %u bytes: ", trans_encoded_tx_msg_len);
+    print_bytes((uint8_t*) trans_encoded_tx_msg, trans_encoded_tx_msg_len);
+}
+
+void print_next_trans_decoded_tx_msg(void) {
+    if (!print_trans_msgs) {
+        return;
+    }
+    if (!trans_decoded_tx_msg_avail) {
+        return;
+    }
+
+    print("Trans TX (Decoded): %u bytes: ", trans_decoded_tx_msg_len);
+    print_bytes((uint8_t*) trans_decoded_tx_msg, trans_decoded_tx_msg_len);
+}
+
+void print_next_trans_decoded_rx_msg(void) {
+    if (!print_trans_msgs) {
+        return;
+    }
+    if (!trans_decoded_rx_msg_avail) {
+        return;
+    }
+
+    print("Trans RX (Decoded): %u bytes: ", trans_decoded_rx_msg_len);
+    print_bytes((uint8_t*) trans_decoded_rx_msg, trans_decoded_rx_msg_len);
+}
+
+void print_next_trans_encoded_rx_msg(void) {
+    if (!print_trans_msgs) {
+        return;
+    }
+    if (!trans_encoded_rx_msg_avail) {
+        return;
+    }
+
+    print("Trans RX (Encoded): %u bytes: ", trans_encoded_rx_msg_len);
+    print_bytes((uint8_t*) trans_encoded_rx_msg, trans_encoded_rx_msg_len);
+}
+
+
+
+
 
 
 void clear_local_data_fn(void) {
@@ -548,7 +630,25 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
     else if ('0' <= data[0] && data[0] < '0' + all_cmds_len) {
         // Enqueue the selected command
         uint8_t i = data[0] - '0';
-        enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
+
+        if (all_cmds[i].bypass_trans) {
+            enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
+        } else {
+            trans_encoded_rx_msg[0] = 0x00;
+            trans_encoded_rx_msg[1] = 9;
+            trans_encoded_rx_msg[2] = trans_cmd_to_msg_type(all_cmds[i].cmd);
+            trans_encoded_rx_msg[3] = (all_cmds[i].arg1 >> 24) & 0xFF;
+            trans_encoded_rx_msg[4] = (all_cmds[i].arg1 >> 16) & 0xFF;
+            trans_encoded_rx_msg[5] = (all_cmds[i].arg1 >> 8) & 0xFF;
+            trans_encoded_rx_msg[6] = all_cmds[i].arg1 & 0xFF;
+            trans_encoded_rx_msg[7] = (all_cmds[i].arg2 >> 24) & 0xFF;
+            trans_encoded_rx_msg[8] = (all_cmds[i].arg2 >> 16) & 0xFF;
+            trans_encoded_rx_msg[9] = (all_cmds[i].arg2 >> 8) & 0xFF;
+            trans_encoded_rx_msg[10] = all_cmds[i].arg2 & 0xFF;
+
+            trans_encoded_rx_msg_len = 11;
+            trans_encoded_rx_msg_avail = true;
+        }
     }
 
     else {
@@ -564,29 +664,50 @@ int main(void){
     init_obc_core();
 
     print("\n\n\nStarting commands test\n\n");
-    print("Mem blocks: eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n\n",
-        eps_hk_mem_section.curr_block,
-        pay_hk_mem_section.curr_block,
-        pay_opt_mem_section.curr_block);
 
     sim_local_actions = false;
     sim_eps = true;
     sim_pay = true;
+    sim_trans = true;
+    sim_trans_uart = false;
     print_can_msgs = true;
     print_cmds = true;
+    print_trans_msgs = true;
 
     print("sim_local_actions = %u\n", sim_local_actions);
     print("sim_eps = %u\n", sim_eps);
     print("sim_pay = %u\n", sim_pay);
+    print("sim_trans = %u\n", sim_trans);
+    print("sim_trans_uart = %u\n", sim_trans_uart);
     print("print_can_msgs = %u\n", print_can_msgs);
     print("print_cmds = %u\n", print_cmds);
+    print("print_trans_msgs = %u\n", print_trans_msgs);
     print("\n");
 
-    set_uart_rx_cb(uart_cb);
-    // print("Press h to list commands\n\n");
-    print_uart_cmds();
+    print("Mem blocks: eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
+        eps_hk_mem_section.curr_block,
+        pay_hk_mem_section.curr_block,
+        pay_opt_mem_section.curr_block);
+    print("\n");
+
+    if (sim_trans) {
+        if (sim_trans_uart) {
+            print("Overwriting UART RX callback\n");
+            set_uart_rx_cb(uart_cb);
+            // print("Press h to list commands\n\n");
+            print_uart_cmds();
+        } else {
+            print("Init trans UART\n");
+            init_trans_uart();
+        }
+    } else {
+        print("Init OBC comms\n");
+        init_obc_comms();
+    }
+    print("\n");
 
     while (1) {
+        // EPS TX
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             print_next_eps_tx_msg();
             // Either simulate EPS over CAN or actually send the CAN message
@@ -597,6 +718,7 @@ int main(void){
             }
         }
 
+        // PAY TX
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             print_next_pay_tx_msg();
             // Either simulate PAY over CAN or actually send the CAN message
@@ -607,14 +729,40 @@ int main(void){
             }
         }
 
+        // CAN RX
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             print_next_rx_msg();
             process_next_rx_msg();
         }
 
+        // Command
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             print_next_cmd();
             execute_next_cmd();
+        }
+
+        // Trans TX (encoded)
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_trans_encoded_tx_msg();
+            send_trans_encoded_tx_msg();
+        }
+
+        // Trans TX (decoded)
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_trans_decoded_tx_msg();
+            encode_trans_tx_msg();
+        }
+
+        // Trans RX (decoded)
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_trans_decoded_rx_msg();
+            handle_trans_decoded_rx_msg();
+        }
+
+        // Trans RX (encoded)
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_trans_encoded_rx_msg();
+            decode_trans_rx_msg();
         }
     }
 
