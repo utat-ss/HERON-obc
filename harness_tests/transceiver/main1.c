@@ -8,7 +8,7 @@
 #include <test/test.h>
 #include <uart/uart.h>
 #include <spi/spi.h>
-#include "../../src/transceiver.h"
+#include "../../src/transceiver.h"//also includes uptime.h by extension
 
 
 // 1
@@ -18,12 +18,15 @@ void trans_uart_rx_cb_test(void){
     //will compare update time before and after calling trans_uart_rx_cb
     uint32_t prev_uptime = uptime_s;
 
-    //buffer needs be remade or smth yep
+    //buffer needs be remade...
+    //note an issue: the globally defined buffer is used in the function.
+    //--resolve later.
+
+    //cast globally defined buffer trans_cmd_resp as buf for fcn to accept the input.
     uint8_t* buf = (uint8_t*)trans_cmd_resp;
     uint8_t test = trans_uart_rx_cb(buf, len);
-    //note: given the conditions required to make trans_cmd_resp_avail TRUE
-    //in this funciton, i believe this len check is also valid. (check in case tho)
-    //return value should be same as input length
+
+    //return value should be same as input length (length processed)
     ASSERT_EQ(len,test);
 
     //new uptime must be greater than previous uptime .
@@ -38,29 +41,28 @@ void trans_uart_rx_cb_test(void){
 
 // 2
 void clear_trans_cmd_resp_test(void){
-    trans_cmd_resp[0] = 1;
-    trans_cmd_resp[1] = 2;
-    trans_cmd_resp_len = 2;
+    trans_cmd_resp[0] = 'A';
+    trans_cmd_resp[1] = 'B';
+    trans_cmd_resp[2] = 'C';
+    trans_cmd_resp[3] = 'D';
+    trans_cmd_resp[4] = 'E';
+    trans_cmd_resp[5] = '\r';
+    trans_cmd_resp_len = 6;
     clear_trans_cmd_resp();
     for (uint8_t i = 0; i < TRANS_CMD_RESP_MAX_SIZE; i++) {
         ASSERT_EQ(trans_cmd_resp[i],0);
     }
     ASSERT_EQ(trans_cmd_resp_len,0);
     ASSERT_EQ(trans_cmd_resp_avail,false);
-    ASSERT_EQ(trans_cmd_resp_avail,false);
 }
-
-//how much ought i check char_to_hex?
-//TODO- figure out way to check scan_uint
-//also string_cmp needs checking -- present in scan_trans_cmd_resp_avail_test
 
 // 3
 void wait_for_trans_cmd_resp_test(void){
     trans_cmd_resp_avail = true;
-    uint8_t expected_len = trans_cmd_resp_len - 1; //slight cheat but should be okie
+    uint8_t expected_len = trans_cmd_resp_len - 1;
     uint8_t test = wait_for_trans_cmd_resp(expected_len);
     ASSERT_EQ(test,1);
-    //TODO- how to check the timout?
+    //TODO- how to check the timeout?
 }
 
 // 4
@@ -70,9 +72,11 @@ void scan_trans_cmd_resp_avail_test(void){
     trans_cmd_resp[1] = 'K';
     trans_cmd_resp[2] = 1;
     trans_cmd_resp[3] = '\r';
-    trans_cmd_resp_len = 4;
+    trans_cmd_resp_len = 4; //this includes the '\r'
     uint8_t expected_len = trans_cmd_resp_len - 1;
-    scan_trans_cmd_resp((uint8_t*)trans_cmd_resp, trans_cmd_resp_len);
+    //make temp buf from casting trans_cmd_resp to make fcn happy with the input
+    uint8_t* buf = (uint8_t*)trans_cmd_resp;
+    scan_trans_cmd_resp(buf, trans_cmd_resp_len);
     //trans_cmd_resp_avail should be true
     ASSERT_EQ(trans_cmd_resp_avail,true);
     //check through the wait_for_trans_cmd_resp fcn as well
@@ -124,11 +128,12 @@ void trans_scw_test(void){
 
 // 6
 void reset_test(void){
+    //ps reset_counter defined in uptime.c
+    //check: this for OBC, ok to use it here too?
+    uint32_t prev_restart_count = restart_count;
     uint8_t test = reset_trans();
-    //TODO- there's currently no reset counter used in this mechanism.
-    //this cntr exists eslewhere, but this mechanism seems isolated..
-    //entire mechanism: 396-425
     ASSERT_EQ(test,1);
+    ASSERT_EQ(prev_restart_count+1,restart_count);//check this cnt actually does inc tho..
 }
 
 // 7
