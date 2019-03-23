@@ -526,7 +526,7 @@ void auto_data_col_timer_cb(void) {
 /*
 Populates the block number, error, and current live date/time.
 */
-void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error) {
+void populate_header(mem_header_t* header, uint32_t block_num, uint8_t error) {
     header->block_num = block_num;
     header->error = error;
     if (sim_local_actions) {
@@ -544,10 +544,9 @@ void populate_header(mem_header_t* header, uint8_t block_num, uint8_t error) {
 
 
 void append_header_to_tx_msg(mem_header_t* header) {
-    // TODO - use 24 bits of block_num
-    append_to_trans_decoded_tx_msg(0);
-    append_to_trans_decoded_tx_msg(0);
-    append_to_trans_decoded_tx_msg(header->block_num);
+    append_to_trans_decoded_tx_msg((header->block_num >> 16) & 0xFF);
+    append_to_trans_decoded_tx_msg((header->block_num >> 8) & 0xFF);
+    append_to_trans_decoded_tx_msg(header->block_num & 0xFF);
     append_to_trans_decoded_tx_msg(header->error);
     append_to_trans_decoded_tx_msg(header->date.yy);
     append_to_trans_decoded_tx_msg(header->date.mm);

@@ -10,9 +10,6 @@ https://utat-ss.readthedocs.io/en/master/our-protocols/obc-mem.html
 
 Addresses are composed as follows (as uint32_t):
 { 0 (9 bits), chip_num (2 bits), chip_addr (21 bits)}
-
-TODO - make sure EEPROM addresses don't conflict with heartbeat
-TODO - develop harness-based test
 */
 
 #include "mem.h"
@@ -41,25 +38,24 @@ pin_info_t mem_cs[MEM_NUM_CHIPS] = {
 
 
 mem_section_t eps_hk_mem_section = {
-    .start_addr = 0x0DB00UL,
+    .start_addr = MEM_EPS_HK_START_ADDR,
     .curr_block = 0,
-    .curr_block_eeprom_addr = (uint32_t*) 0x20,
-    .fields_per_block = CAN_EPS_HK_FIELD_COUNT   // Should be 12
+    .curr_block_eeprom_addr = MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR,
+    .fields_per_block = CAN_EPS_HK_FIELD_COUNT
 };
 
 mem_section_t pay_hk_mem_section = {
-    .start_addr = 0x100000UL,
+    .start_addr = MEM_PAY_HK_START_ADDR,
     .curr_block = 0,
-    .curr_block_eeprom_addr = (uint32_t*) 0x24,
-    .fields_per_block = CAN_PAY_HK_FIELD_COUNT   // Should be 3
+    .curr_block_eeprom_addr = MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR,
+    .fields_per_block = CAN_PAY_HK_FIELD_COUNT
 };
 
 mem_section_t pay_opt_mem_section = {
-    // TODO - should be 0x200000
-    .start_addr = 0x400000UL,
+    .start_addr = MEM_PAY_OPT_START_ADDR,
     .curr_block = 0,
-    .curr_block_eeprom_addr = (uint32_t*) 0x28,
-    .fields_per_block = CAN_PAY_OPT_FIELD_COUNT   // Should be 36
+    .curr_block_eeprom_addr = MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR,
+    .fields_per_block = CAN_PAY_OPT_FIELD_COUNT
 };
 
 // All memory sections
@@ -85,6 +81,9 @@ void init_mem(void){
     }
 
     unlock_mem(); //use global unlock to unlock memory
+
+    // Read all previously stored EEPROM data
+    read_all_mem_sections_eeprom();
 }
 
 /*
@@ -105,56 +104,51 @@ void clear_mem_header(mem_header_t* header) {
     header->time.ss = 0;
 }
 
+
+
+/*
+writes the current block number of `section` to its designated address in EEPROM
+*/
 void write_mem_section_eeprom(mem_section_t* section) {
-    /*
-    writes the current block number of `section` to its designated address in EEPROM
-    */
     eeprom_write_dword (section->curr_block_eeprom_addr, section->curr_block);
 }
 
 /*
-Writes data for all memory sections to EEPROM.
+reads the current block number from its designated address in EEPROM and stores it in `section`
 */
-void write_all_mem_sections_eeprom(void) {
-    write_mem_section_eeprom(&eps_hk_mem_section);
-    write_mem_section_eeprom(&pay_hk_mem_section);
-    write_mem_section_eeprom(&pay_opt_mem_section);
-}
-
-
 void read_mem_section_eeprom(mem_section_t* section) {
-    /*
-    reads the current block number from its designated address in EEPROM and stores it in `section`
-    */
     section->curr_block = eeprom_read_dword (section->curr_block_eeprom_addr);
+    // TODO - constant
+    if (section->curr_block == 0xFFFFFFFF) {
+        section->curr_block = 0;
+    }
 }
 
 /*
 Reads data for all memory sections from EEPROM.
 */
 void read_all_mem_sections_eeprom(void) {
-    read_mem_section_eeprom(&eps_hk_mem_section);
-    read_mem_section_eeprom(&pay_hk_mem_section);
-    read_mem_section_eeprom(&pay_opt_mem_section);
+    for (uint8_t i = 0; i < MEM_NUM_SECTIONS; i++) {
+        read_mem_section_eeprom(all_mem_sections[i]);
+    }
 }
 
-
+/*
+Increments the section's current block number by 1 and writes it to EEPROM.
+*/
 void inc_mem_section_curr_block(mem_section_t* section) {
-    /*
-    Increments the section's current block number by 1.
-    NOTE: this DOES NOT update the value stored in EEPROM
-    */
     section->curr_block++;
+    write_mem_section_eeprom(section);
 }
 
 
 
 
-void write_mem_block(mem_section_t* section, uint8_t block_num,
+void write_mem_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
     // print("%s: ", __FUNCTION__);
-    // print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
+    // print("start_addr = 0x%.8lX, block_num = %lu\n", section->start_addr,
     //     block_num);
 
     // Write header
@@ -165,11 +159,11 @@ void write_mem_block(mem_section_t* section, uint8_t block_num,
     }
 }
 
-void read_mem_block(mem_section_t* section, uint8_t block_num,
+void read_mem_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
     // print("%s: ", __FUNCTION__);
-    // print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
+    // print("start_addr = 0x%.8lX, block_num = %lu\n", section->start_addr,
     //     block_num);
 
     // Read header
@@ -183,7 +177,7 @@ void read_mem_block(mem_section_t* section, uint8_t block_num,
 
 
 
-void write_mem_header(mem_section_t* section, uint8_t block_num,
+void write_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header) {
 
     /*
@@ -193,7 +187,9 @@ void write_mem_header(mem_section_t* section, uint8_t block_num,
     */
 
     uint8_t bytes[MEM_BYTES_PER_HEADER] = {
-        header->block_num,
+        (header->block_num >> 16) & 0xFF,
+        (header->block_num >> 8) & 0xFF,
+        header->block_num & 0xFF,
         header->error,
         header->date.yy, header->date.mm, header->date.dd,
         header->time.hh, header->time.mm, header->time.ss
@@ -209,21 +205,24 @@ block_num - the expected block number (determines the address to start reading
     from) - expected to be equal to header->block_num set by this function
 header - will be set by this function to the results
 */
-void read_mem_header(mem_section_t* section, uint8_t block_num,
+void read_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header) {
 
     uint8_t bytes[MEM_BYTES_PER_HEADER];
     read_mem_bytes(mem_block_addr(section, block_num), bytes,
         MEM_BYTES_PER_HEADER);
 
-    header->block_num = bytes[0];
-    header->error = bytes[1];
-    header->date.yy = bytes[2];
-    header->date.mm = bytes[3];
-    header->date.dd = bytes[4];
-    header->time.hh = bytes[5];
-    header->time.mm = bytes[6];
-    header->time.ss = bytes[7];
+    header->block_num =
+        (((uint32_t) bytes[0]) << 16) |
+        (((uint32_t) bytes[1]) << 8) |
+        ((uint32_t) bytes[2]);
+    header->error = bytes[3];
+    header->date.yy = bytes[4];
+    header->date.mm = bytes[5];
+    header->date.dd = bytes[6];
+    header->time.hh = bytes[7];
+    header->time.mm = bytes[8];
+    header->time.ss = bytes[9];
 }
 
 
