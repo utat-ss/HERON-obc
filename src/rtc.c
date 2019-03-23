@@ -183,15 +183,19 @@ uint8_t rtc_dec_to_bcd(uint8_t dec){
  */
 ISR(PCINT0_vect) {
     // Only act if PINB6 is driven low, otherwise do nothing
-    if(!PINB6) {
+    if(!get_pin_val(6, RTC_PORT)) {
         uint8_t RTC_STATUS = rtc_read(RTC_STATUS_R);
         if(RTC_STATUS & _BV(RTC_A1F)) {
             // perform actions for alarm 1...
             (alarm_1_cmd)();
+            // clear the interrupt flag so that pin B6 gets driven high
+            rtc_write(RTC_STATUS_R, (RTC_STATUS & ~_BV(RTC_A1F)));
         }
         else if(RTC_STATUS & _BV(RTC_A2F)) {
             // perform actions for alarm 2...
             (alarm_2_cmd)();
+            // clear the interrupt flag so that pin B6 gets driven high
+            rtc_write(RTC_STATUS_R, (RTC_STATUS & ~_BV(RTC_A2F)));
         }
     }
 }

@@ -20,7 +20,7 @@ int main(void){
     init_rtc();
 
     rtc_time_t t;
-    t.ss = 40;
+    t.ss = 21;
     t.mm = 59;
     t.hh = 23;
     set_rtc_time(t);
@@ -32,19 +32,19 @@ int main(void){
     set_rtc_date(d);
 
     rtc_time_t t_alarm_1;
-    t_alarm_1.ss = 00;
-    t_alarm_1.mm = 00;
-    t_alarm_1.hh = 00;
+    t_alarm_1.ss = 50;
+    t_alarm_1.mm = 59;
+    t_alarm_1.hh = 23;
 
     rtc_date_t d_alarm_1;
-    d_alarm_1.dd = 01;
-    d_alarm_1.mm = 01;
-    d_alarm_1.yy = 18;
+    d_alarm_1.dd = 31;
+    d_alarm_1.mm = 12;
+    d_alarm_1.yy = 17;
 
-    set_rtc_alarm(t_alarm_1, d_alarm_1, 1, alarm_1_test);
+    set_rtc_alarm(t_alarm_1, d_alarm_1, RTC_ALARM_1, alarm_1_test);
 
     rtc_time_t t_alarm_2;
-    t_alarm_2.ss = 10;
+    t_alarm_2.ss = 30;
     t_alarm_2.mm = 00;
     t_alarm_2.hh = 00;
 
@@ -53,13 +53,12 @@ int main(void){
     d_alarm_2.mm = 01;
     d_alarm_2.yy = 18;
 
-    set_rtc_alarm(t_alarm_2, d_alarm_2, 2, alarm_2_test);
-
+    set_rtc_alarm(t_alarm_2, d_alarm_2, RTC_ALARM_2, alarm_2_test);
     //disable_alarm(1); //comment out this line to test the functionality of the set_alarm function
 
     // run for 40 seconds, expect to see ALARM 1 ON followed by ALARM 2 ON
-    for (uint8_t i=0; i<4; i++){
-        _delay_ms(10000);
+    while(1){
+        _delay_ms(5000);
 
         t = read_rtc_time();
         d = read_rtc_date();
