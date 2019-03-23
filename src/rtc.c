@@ -11,6 +11,13 @@ TODO - test alarm interrupt functionality
 
 #include "rtc.h"
 
+void no_op(void){
+    //default call, do nothing
+}
+
+static alarm_fn_t alarm_1_cmd = no_op;
+static alarm_fn_t alarm_2_cmd = no_op;
+
 void init_rtc(void){
     // initialize the Chip Select pin
     init_cs(RTC_CS, &RTC_DDR);
@@ -18,7 +25,7 @@ void init_rtc(void){
 
     // Write defaults to the control and status registers
     rtc_write(RTC_CTRL_R, RTC_CTRL_DEF);
-    rtc_write(RTC_STATUS_R, RTC_STATUS_DEF);
+    rtc_write(RTC_STATUS_R, RTC_STATUS_DEF); 
 }
 
 void set_rtc_time(rtc_time_t time){
@@ -56,7 +63,7 @@ void set_rtc_date(rtc_date_t date){
 }
 
 uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
-    rtc_alarm_t alarm_number) {
+    rtc_alarm_t alarm_number, alarm_fn_t cmd) {
 
     /*
     Enables interrupts from respective alarm (1 or 2),
@@ -64,23 +71,44 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
     trigger once PER MONTH on given seconds, minutes, hours, date
     (only minutes, hours, date for alarm 2). Alternate configurations
      (with more frequent triggers) could be implemented.
+
+    Alarm 1 can be set to trigger on a specific second
+    Alarm 2 can only be set to trigger on a specific minute.
     */
     uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
     if (alarm_number == RTC_ALARM_1){
-        //enable interrupts from alarm 1
+        // select mask register 0
+        PCICR |= (1 << PCIE0);
+        // tell mcu to look for pin changes on PCINT6 (pin PB6)
+        PCMSK0 |= (1 << PCINT6);
+        // enable global interrupts
+        sei();
+
         rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(RTC_A1IE)));
         rtc_write(RTC_ALARM_1_SEC_R, rtc_dec_to_bcd(time.ss));
         rtc_write(RTC_ALARM_1_MIN_R, rtc_dec_to_bcd(time.mm));
         rtc_write(RTC_ALARM_1_HOUR_R, rtc_dec_to_bcd(time.hh));
         rtc_write(RTC_ALARM_1_DAY_R, rtc_dec_to_bcd(date.dd));
+
+        alarm_1_cmd = cmd;
+
         return 1;
     }
     else if(alarm_number == RTC_ALARM_2){
-        //enable interrupts from alarm 2
+        // select mask register 0
+        PCICR |= (1 << PCIE0);
+        // tell mcu to look for pin changes on PCINT6 (pin PB6)
+        PCMSK0 |= (1 << PCINT6);
+        // enable global interrupts
+        sei();
+
         rtc_write(RTC_CTRL_R, (RTC_CTRL | _BV(RTC_A2IE)));
         rtc_write(RTC_ALARM_2_MIN_R, rtc_dec_to_bcd(time.mm));
         rtc_write(RTC_ALARM_2_HOUR_R, rtc_dec_to_bcd(time.hh));
         rtc_write(RTC_ALARM_2_DAY_R, rtc_dec_to_bcd(date.dd));
+
+        alarm_2_cmd = cmd;
+
         return 1;
     }
     return 0; //if the alarm is not set, return 0
@@ -89,7 +117,7 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
 uint8_t disable_rtc_alarm(rtc_alarm_t alarm_number){
     //disabling the alarm and clearing the interrupt are NOT the same thing
     //disabling the alarm simply prevents any interrupts from being sent in the
-    //  future
+    // future
     uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
     if (alarm_number == RTC_ALARM_1){
         //write 0 to the interrupt enable bit
@@ -150,4 +178,27 @@ uint8_t rtc_dec_to_bcd(uint8_t dec){
     //decimal to binary-coded-decimal converter
     uint8_t bcd = dec % 10;
     return ((dec-bcd)/10 << 4) + bcd;
+}
+
+/* 
+ * Interrupt servce routine. Check the pin values manually to ensure the response is correct. 
+ * For this interrupt to be valid, the logic needs to be going from HIGH -> LOW. This is determined according to the RTC datasheet 
+ */
+ISR(PCINT0_vect) {
+    // Only act if PINB6 is driven low, otherwise do nothing
+    if(!get_pin_val(6, &RTC_PORT)) {
+        uint8_t RTC_STATUS = rtc_read(RTC_STATUS_R);
+        if(RTC_STATUS & _BV(RTC_A1F)) {
+            // perform actions for alarm 1...
+            (alarm_1_cmd)();
+            // clear the interrupt flag so that pin B6 gets driven high
+            rtc_write(RTC_STATUS_R, (RTC_STATUS & ~_BV(RTC_A1F)));
+        }
+        else if(RTC_STATUS & _BV(RTC_A2F)) {
+            // perform actions for alarm 2...
+            (alarm_2_cmd)();
+            // clear the interrupt flag so that pin B6 gets driven high
+            rtc_write(RTC_STATUS_R, (RTC_STATUS & ~_BV(RTC_A2F)));
+        }
+    }
 }
