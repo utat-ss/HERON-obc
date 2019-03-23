@@ -81,6 +81,9 @@ void init_mem(void){
     }
 
     unlock_mem(); //use global unlock to unlock memory
+
+    // Read all previously stored EEPROM data
+    read_all_mem_sections_eeprom();
 }
 
 /*
@@ -101,46 +104,41 @@ void clear_mem_header(mem_header_t* header) {
     header->time.ss = 0;
 }
 
+
+
+/*
+writes the current block number of `section` to its designated address in EEPROM
+*/
 void write_mem_section_eeprom(mem_section_t* section) {
-    /*
-    writes the current block number of `section` to its designated address in EEPROM
-    */
     eeprom_write_dword (section->curr_block_eeprom_addr, section->curr_block);
 }
 
 /*
-Writes data for all memory sections to EEPROM.
+reads the current block number from its designated address in EEPROM and stores it in `section`
 */
-void write_all_mem_sections_eeprom(void) {
-    write_mem_section_eeprom(&eps_hk_mem_section);
-    write_mem_section_eeprom(&pay_hk_mem_section);
-    write_mem_section_eeprom(&pay_opt_mem_section);
-}
-
-
 void read_mem_section_eeprom(mem_section_t* section) {
-    /*
-    reads the current block number from its designated address in EEPROM and stores it in `section`
-    */
     section->curr_block = eeprom_read_dword (section->curr_block_eeprom_addr);
+    // TODO - constant
+    if (section->curr_block == 0xFFFFFFFF) {
+        section->curr_block = 0;
+    }
 }
 
 /*
 Reads data for all memory sections from EEPROM.
 */
 void read_all_mem_sections_eeprom(void) {
-    read_mem_section_eeprom(&eps_hk_mem_section);
-    read_mem_section_eeprom(&pay_hk_mem_section);
-    read_mem_section_eeprom(&pay_opt_mem_section);
+    for (uint8_t i = 0; i < MEM_NUM_SECTIONS; i++) {
+        read_mem_section_eeprom(all_mem_sections[i]);
+    }
 }
 
-
+/*
+Increments the section's current block number by 1 and writes it to EEPROM.
+*/
 void inc_mem_section_curr_block(mem_section_t* section) {
-    /*
-    Increments the section's current block number by 1.
-    NOTE: this DOES NOT update the value stored in EEPROM
-    */
     section->curr_block++;
+    write_mem_section_eeprom(section);
 }
 
 

@@ -12,43 +12,6 @@
 
 #include "rtc.h"
 
-// Sections in memory
-typedef struct {
-    // Start address of section in memory
-    uint32_t start_addr;
-    // Current block number being written to in this section of memory (starting from 0, increasing by 1)
-    uint32_t curr_block;
-    // Address in EEPROM that stores the current block number
-    uint32_t* curr_block_eeprom_addr;
-    // Number of fields in one block (NOT including the header/RTC data)
-    uint16_t fields_per_block;
-} mem_section_t;
-
-// A collection of the data for one header in memory
-typedef struct {
-    // Block number within section
-    // TODO - should it be 32-bit?
-    uint8_t block_num;
-    // Error data - TODO
-    uint8_t error;
-    // RTC data
-    rtc_date_t date;
-    // RTC time
-    rtc_time_t time;
-} mem_header_t;
-
-// Make the memory sections visible to other files so they can write data to sections
-extern mem_section_t eps_hk_mem_section;
-extern mem_section_t pay_hk_mem_section;
-extern mem_section_t pay_opt_mem_section;
-extern mem_section_t* all_mem_sections[];
-
-// Chips are numbered 0-2
-#define MEM_NUM_CHIPS 3
-
-// The number of bits used to address all bytes in one chip
-// Because one chip is 2MB and each adddress is for one byte
-#define MEM_CHIP_ADDR_WIDTH 21
 
 // Pins and Ports
 #define MEM_CS_PORT         PORTB
@@ -82,6 +45,14 @@ extern mem_section_t* all_mem_sections[];
 #define MEM_AAI     6
 #define MEM_BPL     7
 
+
+// Chips are numbered 0-2
+#define MEM_NUM_CHIPS 3
+
+// The number of bits used to address all bytes in one chip
+// Because one chip is 2MB and each adddress is for one byte
+#define MEM_CHIP_ADDR_WIDTH 21
+
 // Number of sections in memory layout
 #define MEM_NUM_SECTIONS 3
 // Number of bytes in a header
@@ -98,13 +69,44 @@ extern mem_section_t* all_mem_sections[];
 #define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x28)
 
 
+// Sections in memory
+typedef struct {
+    // Start address of section in memory
+    uint32_t start_addr;
+    // Current block number being written to in this section of memory (starting from 0, increasing by 1)
+    uint32_t curr_block;
+    // Address in EEPROM that stores the current block number
+    uint32_t* curr_block_eeprom_addr;
+    // Number of fields in one block (NOT including the header/RTC data)
+    uint16_t fields_per_block;
+} mem_section_t;
+
+// A collection of the data for one header in memory
+typedef struct {
+    // Block number within section
+    // TODO - should it be 32-bit?
+    uint8_t block_num;
+    // Error data - TODO
+    uint8_t error;
+    // RTC data
+    rtc_date_t date;
+    // RTC time
+    rtc_time_t time;
+} mem_header_t;
+
+// Make the memory sections visible to other files so they can write data to sections
+extern mem_section_t eps_hk_mem_section;
+extern mem_section_t pay_hk_mem_section;
+extern mem_section_t pay_opt_mem_section;
+extern mem_section_t* all_mem_sections[];
+
+
 // Initialization
 void init_mem(void);
 void clear_mem_header(mem_header_t* header);
 
 // EEPROM
 void write_mem_section_eeprom(mem_section_t* section);
-void write_all_mem_sections_eeprom(void);
 void read_mem_section_eeprom(mem_section_t* section);
 void read_all_mem_sections_eeprom(void);
 void inc_mem_section_curr_block(mem_section_t* section);
