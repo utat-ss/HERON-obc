@@ -51,7 +51,6 @@ extern mem_section_t* all_mem_sections[];
 #define MEM_CHIP_ADDR_WIDTH 21
 
 // Pins and Ports
-// TODO - change
 #define MEM_CS_PORT         PORTB
 #define MEM_CS_DDR          DDRB
 #define MEM_CHIP0_CS_PIN    PB2
@@ -89,6 +88,14 @@ extern mem_section_t* all_mem_sections[];
 #define MEM_BYTES_PER_HEADER 8
 // Number of bytes in one field (one measurement)
 #define MEM_BYTES_PER_FIELD 3
+
+#define MEM_EPS_HK_START_ADDR   0x000000UL
+#define MEM_PAY_HK_START_ADDR   0x200000UL
+#define MEM_PAY_OPT_START_ADDR  0x300000UL
+
+#define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x20)
+#define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x24)
+#define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x28)
 
 
 // Initialization

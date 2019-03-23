@@ -10,9 +10,6 @@ https://utat-ss.readthedocs.io/en/master/our-protocols/obc-mem.html
 
 Addresses are composed as follows (as uint32_t):
 { 0 (9 bits), chip_num (2 bits), chip_addr (21 bits)}
-
-TODO - make sure EEPROM addresses don't conflict with heartbeat
-TODO - develop harness-based test
 */
 
 #include "mem.h"
@@ -41,25 +38,24 @@ pin_info_t mem_cs[MEM_NUM_CHIPS] = {
 
 
 mem_section_t eps_hk_mem_section = {
-    .start_addr = 0x0DB00UL,
+    .start_addr = MEM_EPS_HK_START_ADDR,
     .curr_block = 0,
-    .curr_block_eeprom_addr = (uint32_t*) 0x20,
-    .fields_per_block = CAN_EPS_HK_FIELD_COUNT   // Should be 12
+    .curr_block_eeprom_addr = MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR,
+    .fields_per_block = CAN_EPS_HK_FIELD_COUNT
 };
 
 mem_section_t pay_hk_mem_section = {
-    .start_addr = 0x100000UL,
+    .start_addr = MEM_PAY_HK_START_ADDR,
     .curr_block = 0,
-    .curr_block_eeprom_addr = (uint32_t*) 0x24,
-    .fields_per_block = CAN_PAY_HK_FIELD_COUNT   // Should be 3
+    .curr_block_eeprom_addr = MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR,
+    .fields_per_block = CAN_PAY_HK_FIELD_COUNT
 };
 
 mem_section_t pay_opt_mem_section = {
-    // TODO - should be 0x200000
-    .start_addr = 0x400000UL,
+    .start_addr = MEM_PAY_OPT_START_ADDR,
     .curr_block = 0,
-    .curr_block_eeprom_addr = (uint32_t*) 0x28,
-    .fields_per_block = CAN_PAY_OPT_FIELD_COUNT   // Should be 36
+    .curr_block_eeprom_addr = MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR,
+    .fields_per_block = CAN_PAY_OPT_FIELD_COUNT
 };
 
 // All memory sections
