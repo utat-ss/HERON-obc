@@ -71,6 +71,9 @@ uint8_t set_rtc_alarm(rtc_time_t time, rtc_date_t date,
     trigger once PER MONTH on given seconds, minutes, hours, date
     (only minutes, hours, date for alarm 2). Alternate configurations
      (with more frequent triggers) could be implemented.
+
+    Alarm 1 can be set to trigger on a specific second
+    Alarm 2 can only be set to trigger on a specific minute.
     */
     uint8_t RTC_CTRL = rtc_read(RTC_CTRL_R);
     if (alarm_number == RTC_ALARM_1){
@@ -183,7 +186,7 @@ uint8_t rtc_dec_to_bcd(uint8_t dec){
  */
 ISR(PCINT0_vect) {
     // Only act if PINB6 is driven low, otherwise do nothing
-    if(!get_pin_val(6, RTC_PORT)) {
+    if(!get_pin_val(6, &RTC_PORT)) {
         uint8_t RTC_STATUS = rtc_read(RTC_STATUS_R);
         if(RTC_STATUS & _BV(RTC_A1F)) {
             // perform actions for alarm 1...
