@@ -157,8 +157,6 @@ void eeprom_test(void) {
     inc_mem_section_curr_block(&pay_hk_mem_section);
     inc_mem_section_curr_block(&pay_opt_mem_section);
 
-    write_all_mem_sections_eeprom();
-
     ASSERT_EQ(eps_hk_block_prev + 1, eeprom_read_dword(eps_hk_mem_section.curr_block_eeprom_addr));
     ASSERT_EQ(pay_hk_block_prev + 1, eeprom_read_dword(pay_hk_mem_section.curr_block_eeprom_addr));
     ASSERT_EQ(pay_opt_block_prev + 1, eeprom_read_dword(pay_opt_mem_section.curr_block_eeprom_addr));
