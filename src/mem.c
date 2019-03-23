@@ -144,11 +144,11 @@ void inc_mem_section_curr_block(mem_section_t* section) {
 
 
 
-void write_mem_block(mem_section_t* section, uint8_t block_num,
+void write_mem_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
     // print("%s: ", __FUNCTION__);
-    // print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
+    // print("start_addr = 0x%.8lX, block_num = %lu\n", section->start_addr,
     //     block_num);
 
     // Write header
@@ -159,11 +159,11 @@ void write_mem_block(mem_section_t* section, uint8_t block_num,
     }
 }
 
-void read_mem_block(mem_section_t* section, uint8_t block_num,
+void read_mem_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
     // print("%s: ", __FUNCTION__);
-    // print("start_addr = 0x%.8lX, block_num = %u\n", section->start_addr,
+    // print("start_addr = 0x%.8lX, block_num = %lu\n", section->start_addr,
     //     block_num);
 
     // Read header
@@ -177,7 +177,7 @@ void read_mem_block(mem_section_t* section, uint8_t block_num,
 
 
 
-void write_mem_header(mem_section_t* section, uint8_t block_num,
+void write_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header) {
 
     /*
@@ -187,7 +187,9 @@ void write_mem_header(mem_section_t* section, uint8_t block_num,
     */
 
     uint8_t bytes[MEM_BYTES_PER_HEADER] = {
-        header->block_num,
+        (header->block_num >> 16) & 0xFF,
+        (header->block_num >> 8) & 0xFF,
+        header->block_num & 0xFF,
         header->error,
         header->date.yy, header->date.mm, header->date.dd,
         header->time.hh, header->time.mm, header->time.ss
@@ -203,21 +205,24 @@ block_num - the expected block number (determines the address to start reading
     from) - expected to be equal to header->block_num set by this function
 header - will be set by this function to the results
 */
-void read_mem_header(mem_section_t* section, uint8_t block_num,
+void read_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header) {
 
     uint8_t bytes[MEM_BYTES_PER_HEADER];
     read_mem_bytes(mem_block_addr(section, block_num), bytes,
         MEM_BYTES_PER_HEADER);
 
-    header->block_num = bytes[0];
-    header->error = bytes[1];
-    header->date.yy = bytes[2];
-    header->date.mm = bytes[3];
-    header->date.dd = bytes[4];
-    header->time.hh = bytes[5];
-    header->time.mm = bytes[6];
-    header->time.ss = bytes[7];
+    header->block_num =
+        (((uint32_t) bytes[0]) << 16) |
+        (((uint32_t) bytes[1]) << 8) |
+        ((uint32_t) bytes[2]);
+    header->error = bytes[3];
+    header->date.yy = bytes[4];
+    header->date.mm = bytes[5];
+    header->date.dd = bytes[6];
+    header->time.hh = bytes[7];
+    header->time.mm = bytes[8];
+    header->time.ss = bytes[9];
 }
 
 

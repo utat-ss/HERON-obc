@@ -30,13 +30,13 @@ void print_section(char* name, mem_section_t* section) {
 void print_sections(void) {
     print_section("EPS_HK", &eps_hk_mem_section);
     print_section("PAY_HK", &pay_hk_mem_section);
-    print_section("PAY_SCI", &pay_opt_mem_section);
+    print_section("PAY_OPT", &pay_opt_mem_section);
 }
 
 void print_header(mem_header_t* header) {
-    print("block_num = %u, error = %u, ",
+    print("block_num = %lu, error = %u, ",
         header->block_num, header->error);
-    print("date = %u %u %u, time = %u %u %u\n",
+    print("date = %u:%u:%u, time = %u:%u:%u\n",
         header->date.yy, header->date.mm, header->date.dd,
         header->time.hh, header->time.mm, header->time.ss);
 }
@@ -69,14 +69,12 @@ void test_eeprom(void) {
     inc_mem_section_curr_block(&eps_hk_mem_section);
     inc_mem_section_curr_block(&pay_hk_mem_section);
     inc_mem_section_curr_block(&pay_opt_mem_section);
-    write_all_mem_sections_eeprom();
     print("Incremented all current blocks, wrote to EEPROM\n");
 }
 
 
 void test_header(char* name, mem_section_t* section) {
     print("\nTesting %s section - header\n", name);
-
 
     mem_header_t write = {
         .block_num = section->curr_block,
@@ -143,17 +141,17 @@ int main(void) {
     /*
     What should happen in this test:
     1. Initializes all sections
-    2. Write field value: 0x070914 into PAY SCI section
-    3. Read back the same values from PAY SCI
+    2. Write field value: 0x070914 into PAY OPT section
+    3. Read back the same values from PAY OPT
     */
 
     test_header("EPS_HK", &eps_hk_mem_section);
     test_header("PAY_HK", &pay_hk_mem_section);
-    test_header("PAY_SCI", &pay_opt_mem_section);
+    test_header("PAY_OPT", &pay_opt_mem_section);
 
     test_field("EPS_HK", &eps_hk_mem_section);
     test_field("PAY_HK", &pay_hk_mem_section);
-    test_field("PAY_SCI", &pay_opt_mem_section);
+    test_field("PAY_OPT", &pay_opt_mem_section);
 
     print ("\n*** End of test ***\n");
 }

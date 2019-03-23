@@ -45,20 +45,17 @@
 #define MEM_AAI     6
 #define MEM_BPL     7
 
-
 // Chips are numbered 0-2
-#define MEM_NUM_CHIPS 3
-
+#define MEM_NUM_CHIPS           3
 // The number of bits used to address all bytes in one chip
 // Because one chip is 2MB and each adddress is for one byte
-#define MEM_CHIP_ADDR_WIDTH 21
-
+#define MEM_CHIP_ADDR_WIDTH     21
 // Number of sections in memory layout
-#define MEM_NUM_SECTIONS 3
+#define MEM_NUM_SECTIONS        3
 // Number of bytes in a header
-#define MEM_BYTES_PER_HEADER 8
+#define MEM_BYTES_PER_HEADER    10
 // Number of bytes in one field (one measurement)
-#define MEM_BYTES_PER_FIELD 3
+#define MEM_BYTES_PER_FIELD     3
 
 #define MEM_EPS_HK_START_ADDR   0x000000UL
 #define MEM_PAY_HK_START_ADDR   0x200000UL
@@ -77,15 +74,14 @@ typedef struct {
     uint32_t curr_block;
     // Address in EEPROM that stores the current block number
     uint32_t* curr_block_eeprom_addr;
-    // Number of fields in one block (NOT including the header/RTC data)
-    uint16_t fields_per_block;
+    // Number of fields in one block (NOT including the header)
+    uint8_t fields_per_block;
 } mem_section_t;
 
 // A collection of the data for one header in memory
 typedef struct {
     // Block number within section
-    // TODO - should it be 32-bit?
-    uint8_t block_num;
+    uint32_t block_num;
     // Error data - TODO
     uint8_t error;
     // RTC data
@@ -112,15 +108,15 @@ void read_all_mem_sections_eeprom(void);
 void inc_mem_section_curr_block(mem_section_t* section);
 
 // High-level operations - blocks
-void write_mem_block(mem_section_t* section, uint8_t block_num,
+void write_mem_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
-void read_mem_block(mem_section_t* section, uint8_t block_num,
+void read_mem_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
 
 // High-level operations - headers and fields
-void write_mem_header(mem_section_t* section, uint8_t block_num,
+void write_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header);
-void read_mem_header(mem_section_t* section, uint8_t block_num,
+void read_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header);
 void write_mem_field(mem_section_t* section, uint32_t block_num,
     uint8_t field_num, uint32_t data);
