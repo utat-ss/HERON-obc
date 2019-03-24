@@ -6,6 +6,7 @@
 #include <can/can.h>
 #include <queue/queue.h>
 #include <spi/spi.h>
+#include <watchdog/watchdog.h>
 
 #include "can_interface.h"
 #include "commands.h"
