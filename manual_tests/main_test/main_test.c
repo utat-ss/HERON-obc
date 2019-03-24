@@ -661,6 +661,9 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
 
 
 int main(void){
+    WDT_OFF();
+    WDT_ENABLE_SYS_RESET(WDTO_8S);
+
     init_obc_core();
 
     print("\n\n\nStarting commands test\n\n");
@@ -669,7 +672,7 @@ int main(void){
     sim_eps = true;
     sim_pay = true;
     sim_trans = true;
-    sim_trans_uart = false;
+    sim_trans_uart = true;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;
@@ -707,6 +710,8 @@ int main(void){
     print("\n");
 
     while (1) {
+        WDT_ENABLE_SYS_RESET(WDTO_8S);
+
         // EPS TX
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             print_next_eps_tx_msg();
