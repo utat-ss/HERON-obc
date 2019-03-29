@@ -527,6 +527,16 @@ void sim_send_next_eps_tx_msg(void) {
                 return;
             }
             break;
+
+        case CAN_EPS_CTRL:
+            if ((field_num == CAN_EPS_CTRL_HEAT_SP1) ||
+                (field_num == CAN_EPS_CTRL_HEAT_SP2)) {
+                // Don't need to populate anything
+            } else {
+                return;
+            }
+            break;
+
         default:
             return;
     }
@@ -672,7 +682,7 @@ int main(void){
     sim_eps = true;
     sim_pay = true;
     sim_trans = true;
-    sim_trans_uart = true;
+    sim_trans_uart = false;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;

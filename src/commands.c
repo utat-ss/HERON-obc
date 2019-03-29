@@ -492,30 +492,30 @@ void auto_data_col_timer_cb(void) {
     // print("Aut data col timer cb\n");
 
     if (eps_hk_auto_data_col.enabled) {
-        print("Auto collecting EPS_HK\n");
         eps_hk_auto_data_col.count += 1;
 
         if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
+            print("Auto collecting EPS_HK\n");
             eps_hk_auto_data_col.count = 0;
             enqueue_cmd(&collect_block_cmd, CMD_BLOCK_EPS_HK, 0);
         }
     }
 
     if (pay_hk_auto_data_col.enabled) {
-        print("Auto collecting PAY_HK\n");
         pay_hk_auto_data_col.count += 1;
 
         if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
+            print("Auto collecting PAY_HK\n");
             pay_hk_auto_data_col.count = 0;
             enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_HK, 0);
         }
     }
 
     if (pay_opt_auto_data_col.enabled) {
-        print("Auto collecting PAY_OPT\n");
         pay_opt_auto_data_col.count += 1;
 
         if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
+            print("Auto collecting PAY_OPT\n");
             pay_opt_auto_data_col.count = 0;
             enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_OPT, 0);
         }
