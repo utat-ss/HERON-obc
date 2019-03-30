@@ -17,6 +17,8 @@ void set_eps_heater_sp_fn(void);
 void set_pay_heater_sp_fn(void);
 void actuate_motors_fn(void);
 void reset_fn(void);
+void send_eps_can_fn(void);
+void send_pay_can_fn(void);
 
 
 // If true, the program will simulate local actions (i.e. simulates any
@@ -108,6 +110,12 @@ cmd_t actuate_pay_motors_cmd = {
 };
 cmd_t reset_cmd = {
     .fn = reset_fn
+};
+cmd_t send_eps_can_cmd = {
+    .fn = send_eps_can_fn
+};
+cmd_t send_pay_can_cmd = {
+    .fn = send_pay_can_fn
 };
 
 
@@ -472,6 +480,28 @@ void reset_fn(void) {
     print("Reset TODO\n");
 }
 
+void send_eps_can_fn(void) {
+    print("Sending EPS CAN\n");
+    enqueue_eps_tx_msg(current_cmd_arg1, current_cmd_arg2);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        finish_trans_decoded_tx_msg();
+    }
+    finish_current_cmd(true);
+}
+
+void send_pay_can_fn(void) {
+    print("Sending PAY CAN\n");
+    enqueue_pay_tx_msg(current_cmd_arg1, current_cmd_arg2);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_decoded_tx_msg();
+        finish_trans_decoded_tx_msg();
+    }
+    finish_current_cmd(true);
+}
+
 // Finishes executing the current command and sets the succeeded flag
 void finish_current_cmd(bool succeeded) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -678,6 +708,10 @@ cmd_t* trans_msg_type_to_cmd(uint8_t msg_type) {
             return &set_pay_heater_sp_cmd;
         case TRANS_CMD_PAY_ACT_MOTORS:
             return &actuate_pay_motors_cmd;
+        case TRANS_CMD_EPS_CAN:
+            return &send_eps_can_cmd;
+        case TRANS_CMD_PAY_CAN:
+            return &send_pay_can_cmd;
         default:
             return NULL;
     }
@@ -715,6 +749,10 @@ uint8_t trans_cmd_to_msg_type(cmd_t* cmd) {
         return TRANS_CMD_PAY_HEAT_SP;
     } else if (cmd == &actuate_pay_motors_cmd) {
         return TRANS_CMD_PAY_ACT_MOTORS;
+    } else if (cmd == &send_eps_can_cmd) {
+        return TRANS_CMD_EPS_CAN;
+    } else if (cmd == &send_pay_can_cmd) {
+        return TRANS_CMD_PAY_CAN;
     } else {
         return 0xFF;
     }

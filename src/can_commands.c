@@ -202,6 +202,27 @@ void handle_pay_ctrl(const uint8_t* data) {
 }
 
 
+// Enqueues a CAN message given a general set of 8 bytes data
+void enqueue_tx_msg_general(queue_t* queue, uint32_t data1, uint32_t data2) {
+    uint8_t msg[8] = { 0 };
+    msg[4] = (data1 >> 24) & 0xFF;
+    msg[5] = (data1 >> 16) & 0xFF;
+    msg[6] = (data1 >> 8) & 0xFF;
+    msg[7] = data1 & 0xFF;
+    msg[4] = (data2 >> 24) & 0xFF;
+    msg[5] = (data2 >> 16) & 0xFF;
+    msg[6] = (data2 >> 8) & 0xFF;
+    msg[7] = data2 & 0xFF;
+
+    enqueue(queue, msg);
+}
+
+void enqueue_eps_tx_msg(uint32_t data1, uint32_t data2) {
+    enqueue_tx_msg_general(&eps_tx_msg_queue, data1, data2);
+}
+void enqueue_pay_tx_msg(uint32_t data1, uint32_t data2) {
+    enqueue_tx_msg_general(&pay_tx_msg_queue, data1, data2);
+}
 
 /*
 Enqueues a CAN message onto the specified queue to request the specified message
