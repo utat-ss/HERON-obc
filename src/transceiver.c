@@ -2,13 +2,13 @@
 Transceiver library
 EnduroSat UHF Transceiver Type II
 
-See datasheet in Google Drive folder "EnduroSat USB Contents".
+See datasheet in Google Drive folder "Design/Comms/New Endurosat Documentation"
 
 Commands are sent through UART (by calling print())
 Transceiver responses are handled in trans_uart_rx_cb
 
 Note that all/most configuration functions will return 1 if configuration/read
-successful and 0 if not successful
+successful and 0 if not successful.
 
 Each of the command functions has the structure of an "attempt" function,
 which is repeated until the response is successfully received (with a maximum
