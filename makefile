@@ -6,7 +6,8 @@
 # Parameters that might need to be changed, depending on the repository
 #-------------------------------------------------------------------------------
 # Libraries from lib-common to link
-LIB = -L./lib-common/lib -ladc -lcan -lconversions -ldac -lheartbeat -lpex -lqueue -lspi -ltimer -luart -lutilities -lwatchdog
+# For some reason, conversions needs to come after dac or else it gives an error
+LIB = -L./lib-common/lib -ladc -lcan -ldac -lconversions -lheartbeat -lpex -lqueue -lspi -ltimer -luart -lutilities -lwatchdog
 # Program name
 PROG = obc
 # Name of microcontroller ("32m1" or "64m1")
@@ -185,4 +186,4 @@ endif
 
 # Upload program to board
 upload: $(PROG)
-	avrdude -c $(PGMR) -p $(DEVICE) -P $(PORT) -U flash:w:./build/$^.hex
+	avrdude -c $(PGMR) -C ./lib-common/avrdude.conf -p $(DEVICE) -P $(PORT) -U flash:w:./build/$^.hex
