@@ -679,8 +679,8 @@ int main(void){
     print("\n\n\nStarting commands test\n\n");
 
     sim_local_actions = false;
-    sim_eps = true;
-    sim_pay = true;
+    sim_eps = false;
+    sim_pay = false;
     sim_trans = true;
     sim_trans_uart = false;
     print_can_msgs = true;
