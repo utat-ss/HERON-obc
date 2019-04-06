@@ -483,23 +483,13 @@ void reset_fn(void) {
 void send_eps_can_fn(void) {
     print("Sending EPS CAN\n");
     enqueue_eps_tx_msg(current_cmd_arg1, current_cmd_arg2);
-
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        finish_trans_decoded_tx_msg();
-    }
-    finish_current_cmd(true);
+    // Will continue from CAN callbacks
 }
 
 void send_pay_can_fn(void) {
     print("Sending PAY CAN\n");
     enqueue_pay_tx_msg(current_cmd_arg1, current_cmd_arg2);
-
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        finish_trans_decoded_tx_msg();
-    }
-    finish_current_cmd(true);
+    // Will continue from CAN callbacks
 }
 
 // Finishes executing the current command and sets the succeeded flag

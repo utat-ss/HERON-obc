@@ -31,24 +31,38 @@ void handle_rx_msg(void) {
 
         uint8_t message_type = data[1];
 
-        switch (message_type) {
-            case CAN_EPS_HK:
-                handle_eps_hk(data);
-                break;
-            case CAN_EPS_CTRL:
-                handle_eps_ctrl(data);
-                break;
-            case CAN_PAY_HK:
-                handle_pay_hk(data);
-                break;
-            case CAN_PAY_OPT:
-                handle_pay_opt(data);
-                break;
-            case CAN_PAY_CTRL:
-                handle_pay_ctrl(data);
-                break;
-            default:
-                break;
+        //General CAN command-Send back data
+        if ((current_cmd == &send_eps_can_cmd) ||
+            (current_cmd == &send_pay_can_cmd)) {
+                ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                    start_trans_decoded_tx_msg();
+                    for (uint8_t i = 0; i < 8; i++) {
+                        append_to_trans_decoded_tx_msg(data[i]);
+                    }
+                    finish_trans_decoded_tx_msg();
+                }
+                finish_current_cmd(true);
+            }
+        else {
+            switch (message_type) {
+                case CAN_EPS_HK:
+                    handle_eps_hk(data);
+                    break;
+                case CAN_EPS_CTRL:
+                    handle_eps_ctrl(data);
+                    break;
+                case CAN_PAY_HK:
+                    handle_pay_hk(data);
+                    break;
+                case CAN_PAY_OPT:
+                    handle_pay_opt(data);
+                    break;
+                case CAN_PAY_CTRL:
+                    handle_pay_ctrl(data);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }
@@ -205,10 +219,10 @@ void handle_pay_ctrl(const uint8_t* data) {
 // Enqueues a CAN message given a general set of 8 bytes data
 void enqueue_tx_msg_general(queue_t* queue, uint32_t data1, uint32_t data2) {
     uint8_t msg[8] = { 0 };
-    msg[4] = (data1 >> 24) & 0xFF;
-    msg[5] = (data1 >> 16) & 0xFF;
-    msg[6] = (data1 >> 8) & 0xFF;
-    msg[7] = data1 & 0xFF;
+    msg[0] = (data1 >> 24) & 0xFF;
+    msg[1] = (data1 >> 16) & 0xFF;
+    msg[2] = (data1 >> 8) & 0xFF;
+    msg[3] = data1 & 0xFF;
     msg[4] = (data2 >> 24) & 0xFF;
     msg[5] = (data2 >> 16) & 0xFF;
     msg[6] = (data2 >> 8) & 0xFF;
