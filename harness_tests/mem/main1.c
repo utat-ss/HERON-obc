@@ -212,6 +212,77 @@ void mem_field_test(void) {
 	mem_field_test_individual(&pay_opt_mem_section);
 }
 
+//test blocks
+void mem_block_test(void){
+    uint32_t write_fields_1[12];
+    uint32_t write_fields_2[3];
+    uint32_t write_fields_3[36];
+    //random 32 bit numbers
+    for (int a = 0; a < 12; a++){
+        write_fields_1[a] = (random() % 0xFFFFFFFF) + 1;//check this ok lol
+    }
+    for (int a = 0; a < 3; a++){
+        write_fields_2[a] = (random() % 0xFFFFFFFF) + 1;//check this ok lol
+    }
+    for (int a = 0; a < 36; a++){
+        write_fields_3[a] = (random() % 0xFFFFFFFF) + 1;//check this ok lol
+    }
+    uint32_t* write_test_fields[3] = {write_fields_1, write_fields_2, write_fields_3};
+
+    mem_header_t write_header[3];
+
+    //write to all sections
+    for (int i = 0; i < 3; i++){
+        mem_section_t* section = all_mem_sections[i];
+        uint32_t block_num = section->curr_block;
+        (write_header[i]).block_num = section->curr_block;
+        (write_header[i]).error = 0x00;
+        (write_header[i]).date = read_rtc_date();
+        (write_header[i]).time = read_rtc_time();
+        uint32_t prev_block = section->curr_block;
+        write_mem_block(section, block_num, &(write_header[i]), write_test_fields[i]);
+        //block number should increment by one
+        ASSERT_EQ(prev_block + 1, section->curr_block);
+    }
+
+
+    uint32_t read_fields_1[12];
+    uint32_t read_fields_2[3];
+    uint32_t read_fields_3[36];
+    uint32_t* read_test_fields[3] = {read_fields_1, read_fields_2, read_fields_3};
+    //CHECK THIS WORKS BC I DUMB
+    //if it works then change the first oneb as well for consistency XD
+
+    mem_header_t read_header[3];
+
+    //read from all sections
+    for (int i = 0; i < 3; i++){
+        mem_section_t* section = all_mem_sections[i];
+        uint32_t block_num = section->curr_block;
+        //note: im currently reading the last block only.
+        //should i try reading all? hmm..
+        read_mem_block(section, block_num, &(read_header[i]), read_test_fields[i]);
+    }
+    //check headers
+    for (int a = 0; a < 3; a++){
+        ASSERT_EQ((write_header[a]).block_num, (read_header[a]).block_num); //this should be the case right.
+        ASSERT_EQ((write_header[a]).error, (read_header[a]).error);
+        //ASSERT_EQ((write_header[a]).date, (read_header[a]).date);
+        //ASSERT_EQ((write_header[a]).time, (read_header[a]).time);
+    }
+
+    //check fields
+    for (int a = 0; a < 12; a++){
+        ASSERT_EQ(write_fields_1[a], read_fields_1[a]);
+    }
+    for (int a = 0; a < 3; a++){
+        ASSERT_EQ(write_fields_2[a], read_fields_2[a]);
+    }
+    for (int a = 0; a < 36; a++){
+        ASSERT_EQ(write_fields_3[a], read_fields_3[a]);
+    }
+}
+
 test_t t1 = { .name = "single write read test", .fn = single_write_read_test };
 test_t t2 = { .name = "multiple write read test", .fn = multiple_write_read_test };
 test_t t3 = { .name = "multiple write read test 2", .fn = multiple_write_read_test_2 };
@@ -221,8 +292,9 @@ test_t t6 = { .name = "rollover test", .fn = roll_over_test };
 test_t t7 = { .name = "eeprom test", .fn = eeprom_test };
 test_t t8 = { .name = "mem header test", .fn = mem_header_test };
 test_t t9 = { .name = "mem field test", .fn = mem_field_test };
+test_t t10 = { .name = "mem block test", .fn = mem_block_test };
 
-test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9 };
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10 };
 
 int main() {
     init_uart();
