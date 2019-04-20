@@ -11,6 +11,10 @@ uint32_t pay_hk_fields[CAN_PAY_HK_FIELD_COUNT] = { 0 };
 mem_header_t pay_opt_header;
 uint32_t pay_opt_fields[CAN_PAY_OPT_FIELD_COUNT] = { 0 };
 
+// For the uptime interrupt to can_timer_cb to finish command if no response
+// received after 30 seconds
+volatile uint8_t can_countdown = 0;
+
 void handle_eps_hk(const uint8_t* data);
 void handle_eps_ctrl(const uint8_t* data);
 void handle_pay_hk(const uint8_t* data);
@@ -25,6 +29,8 @@ void handle_rx_msg(void) {
     }
 
     else {
+        // Received message
+        can_countdown = 0;
         uint8_t data[8] = {0x00};
         // print("Dequeued from data_rx_msg_queue\n");
         dequeue(&data_rx_msg_queue, data);
@@ -83,6 +89,7 @@ void handle_eps_hk(const uint8_t* data){
     // Request the next field (if not done yet)
     uint8_t next_field_num = field_num + 1;
     if (next_field_num < CAN_EPS_HK_FIELD_COUNT) {
+        can_countdown = 30;
         enqueue_eps_hk_tx_msg(next_field_num);
     }
 
@@ -133,6 +140,7 @@ void handle_pay_hk(const uint8_t* data){
 
     uint8_t next_field_num = field_num + 1;
     if (next_field_num < CAN_PAY_HK_FIELD_COUNT) {
+        can_countdown = 30;
         enqueue_pay_hk_tx_msg(next_field_num);
     }
 
@@ -167,6 +175,7 @@ void handle_pay_opt(const uint8_t* data){
 
     uint8_t next_field_num = field_num + 1;
     if (next_field_num < CAN_PAY_OPT_FIELD_COUNT){
+        can_countdown = 30;
         enqueue_pay_opt_tx_msg(next_field_num);
     }
 
@@ -254,6 +263,7 @@ void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num, uint32_
     msg[4] = (data >> 8) & 0xFF;
     msg[5] = data & 0xFF;
 
+    can_countdown = 30;
     enqueue(queue, msg);
 }
 
@@ -272,4 +282,14 @@ void enqueue_pay_opt_tx_msg(uint8_t field_num) {
 }
 void enqueue_pay_ctrl_tx_msg(uint8_t field_num, uint32_t data) {
     enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, field_num, data);
+}
+
+// If no CAN response is received after 30 seconds, stops waiting for command
+void can_timer_cb(void) {
+    if (can_countdown > 0) {
+        can_countdown -= 1;
+        if (can_countdown == 0) {
+            finish_current_cmd(false);
+        }
+    }
 }
