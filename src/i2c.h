@@ -59,6 +59,8 @@
 
 
 void init_i2c(void);
+void init_i2c_pins(void);
+void init_i2c_int(void);
 void reset_i2c(void);
 
 void power_down_i2c(void);

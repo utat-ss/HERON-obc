@@ -20,6 +20,13 @@ void print_all_regs(void) {
     print("ADR: %02x\n", read_i2c_reg(I2C_ADR));
 }
 
+void print_string(uint8_t* data, uint8_t len) {
+    for (uint8_t i = 0; i < len; i++) {
+        put_uart_char(data[i]);
+    }
+    put_uart_char('\n');
+}
+
 void test_power_down(void) {
     uint8_t write[3] = { 'A', 'B', 'C' };
     uint8_t ret = 0;
@@ -42,24 +49,49 @@ void test_power_down(void) {
     print("ret = %u, status = %02x\n", ret, status);
 }
 
-void test_write_read(void) {
+bool msg1 = true;
+
+// Alternate messages
+void test_write_single(void) {
     uint8_t ret = 0;
     uint8_t status = 0;
+    
+    uint8_t write[3] = {0x00};
+    if (msg1) {
+        write[0] = 'A';
+        write[1] = 'B';
+        write[2] = 'C';
+    } else {
+        write[0] = 'D';
+        write[1] = 'E';
+        write[2] = 'F';
+    };
+    msg1 = !msg1;
 
+    print("\n");
+    print("Writing ");
+    print_string(write, 3);
+    ret = write_i2c(SLAVE_ADDR, write, 3, &status);
+    print("ret = %u, status = %02x\n", ret, status);
+}
+
+void test_read_single(void) {
+    uint8_t ret = 0;
+    uint8_t status = 0;
+    
+    uint8_t read[5] = { 0x00 };
+    print("\n");
+    print("Reading 5 bytes\n");
+    ret = read_i2c(SLAVE_ADDR, read, 5, &status);
+    print("ret = %u, status = %02x\n", ret, status);
+    print_bytes(read, 5);
+    print_string(read, 5);
+}
+
+void test_write_read_inf(void) {
     while (1) {
-        print("\n");
-        print("Writing 'ABC'\n");
-        uint8_t write[3] = { 'A', 'B', 'C' };
-        ret = write_i2c(SLAVE_ADDR, write, 3, &status);
-        print("ret = %u, status = %02x\n", ret, status);
-
-        print("\n");
-        print("Reading 5 bytes\n");
-        uint8_t read[5] = { 0x00 };
-        ret = read_i2c(SLAVE_ADDR, read, 5, &status);
-        print("ret = %u, status = %02x\n", ret, status);
-        print_bytes(read, 5);
-
+        test_write_single();
+        test_read_single();
         _delay_ms(1000);
     }
 }
@@ -74,7 +106,7 @@ int main(void) {
     print_all_regs();
 
     test_power_down();
-    test_write_read();
+    test_write_read_inf();
 
     print("\nDone I2C test\n\n\n");
 }
