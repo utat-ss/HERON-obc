@@ -69,14 +69,8 @@ pin_info_t i2c_wakeup = {
 Initializes the microcontroller's output pin for the I2C bridge.
 */
 void init_i2c(void) {
-    // Initialize the CS output pin
-    init_cs(i2c_cs.pin, i2c_cs.ddr);
-    // Initialize reset pin (default high - not active)
-    init_output_pin(i2c_reset.pin, i2c_reset.ddr, 1);
-    // Initialize interrupt pin
-    init_input_pin(i2c_int.pin, i2c_int.ddr);
-    // Initialize wakeup pin
-    init_output_pin(i2c_wakeup.pin, i2c_wakeup.ddr, 1);
+    init_i2c_pins();
+    init_i2c_int();
 
     // Reset the I2C bridge
     reset_i2c();
@@ -91,6 +85,26 @@ void init_i2c(void) {
     // (0xFF would be 65,535 cycles of a 57.6 kHz clock, so about 1 second, p. 9)
     // 0x3F register -> 0x3FFF counter -> 2^14 / 57,600 = about 278 ms
     write_i2c_reg(I2C_TO, 0x3F);
+}
+
+void init_i2c_pins(void) {
+    // Initialize the CS output pin
+    init_cs(i2c_cs.pin, i2c_cs.ddr);
+    // Initialize reset pin (default high - not active)
+    init_output_pin(i2c_reset.pin, i2c_reset.ddr, 1);
+    // Initialize interrupt pin
+    init_input_pin(i2c_int.pin, i2c_int.ddr);
+    // Initialize wakeup pin
+    init_output_pin(i2c_wakeup.pin, i2c_wakeup.ddr, 1);
+}
+
+void init_i2c_int(void) {
+    // Enable PCIE3 bit (pin change interrupt 3, pins 31-24) (p. 88)
+    PCICR |= _BV(PCIE2);
+    // Enable PCINT22 -  pin change interrupts for pin 22 (p. 90)
+    PCMSK2 |= _BV(PCINT22);
+    // Enable all (global) interrupts
+    sei();
 }
 
 /*
@@ -306,23 +320,12 @@ uint8_t read_i2c(uint8_t addr, uint8_t* data, uint8_t len, uint8_t* status) {
     return 1;
 }
 
-
-// Can uncomment and use the following code to test the INT pin with an
-// interrupt vector
-// Can use for testing, but this is not needed in the final version since we
-// just block until the interrupt is asserted (INT goes low)
-
-// void init_i2c_int(void) {
-//     // Enable PCIE3 bit (pin change interrupt 3, pins 31-24) (p. 88)
-//     PCICR |= _BV(PCIE2);
-//     // Enable PCINT22 -  pin change interrupts for pin 22 (p. 90)
-//     PCMSK2 |= _BV(PCINT22);
-//     // Enable all (global) interrupts
-//     sei();
-// }
-//
-// // Interrupt service routine for pin change interrupt (INT pin)
-// ISR(PCINT2_vect) {
-//     print("PCINT2 ISR: I2C INT pin = %u\n",
-//         get_pin_val(i2c_int.pin, i2c_int.port));
-// }
+// Interrupt service routine for pin change interrupt (INT pin)
+// Can uncomment the print statement to test the INT pin with an interrupt
+// vector
+// Can use for testing, but this is not needed since the logic just blocks until
+// the interrupt is asserted (INT goes low)
+ISR(PCINT2_vect) {
+    // print("\nPCINT2: pin = %u, PIND = %.2x\n",
+    //     get_pin_val(i2c_int.pin, i2c_int.port), PIND);
+}
