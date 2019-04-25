@@ -32,7 +32,8 @@ For interrupts (e.g. when read and write operations complete), we can just poll
 - Not implementing read after write or write after write
 - Default I2CClk register is 0x19 (p. 5) -> 73.728 kHz (p. 9)
 
-TODO - test I2C at 5V with level translator
+NOTE: If you are using 5V I2C, make sure to power 5V on the OBC board in
+addition to the normal 3.3V power!
 */
 
 #include "i2c.h"

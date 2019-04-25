@@ -91,6 +91,7 @@ void test_read_single(void) {
 void test_write_read_inf(void) {
     while (1) {
         test_write_single();
+        _delay_ms(1000);
         test_read_single();
         _delay_ms(1000);
     }
@@ -99,10 +100,10 @@ void test_write_read_inf(void) {
 int main(void) {
     init_uart();
     init_spi();
-    init_i2c();
-
+    
     print("\n\n\nStarting I2C test\n\n");
 
+    init_i2c();
     print_all_regs();
 
     test_power_down();
