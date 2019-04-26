@@ -233,6 +233,7 @@ void enqueue_tx_msg_general(queue_t* queue, uint32_t data1, uint32_t data2) {
     msg[6] = (data2 >> 8) & 0xFF;
     msg[7] = data2 & 0xFF;
 
+    can_countdown = 5;
     enqueue(queue, msg);
 }
 
@@ -259,7 +260,7 @@ void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num, uint32_
     msg[4] = (data >> 8) & 0xFF;
     msg[5] = data & 0xFF;
 
-    can_countdown = 30; // Wait 30 seconds for return message
+    can_countdown = 5; // Wait 30 seconds for return message
     enqueue(queue, msg);
 }
 
@@ -282,7 +283,10 @@ void enqueue_pay_ctrl_tx_msg(uint8_t field_num, uint32_t data) {
 
 // If no CAN response is received after 30 seconds, stop waiting for command
 void can_timer_cb(void) {
-    if (can_countdown > 0) {
+    if (can_countdown > 155) {
+        finish_current_cmd(false);
+    }
+    else if (can_countdown > 0) {
         can_countdown -= 1;
         if (can_countdown == 0) {
             finish_current_cmd(false);

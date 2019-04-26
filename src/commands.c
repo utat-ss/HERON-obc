@@ -127,6 +127,7 @@ cmd_t send_pay_can_cmd = {
 void nop_fn(void) {}
 
 void ping_fn(void) {
+    can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_decoded_tx_msg();
         finish_trans_decoded_tx_msg();
@@ -135,6 +136,7 @@ void ping_fn(void) {
 }
 
 void get_restart_uptime_fn(void) {
+    can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_decoded_tx_msg();
         append_to_trans_decoded_tx_msg((restart_count >> 24) & 0xFF);
@@ -157,6 +159,7 @@ void get_restart_uptime_fn(void) {
 }
 
 void get_rtc_fn(void) {
+    can_countdown = 30;
     rtc_date_t date = read_rtc_date();
     rtc_time_t time = read_rtc_time();
 
@@ -175,6 +178,7 @@ void get_rtc_fn(void) {
 }
 
 void set_rtc_fn(void) {
+    can_countdown = 30;
     rtc_date_t date = {
         .yy = (current_cmd_arg1 >> 16) & 0xFF,
         .mm = (current_cmd_arg1 >> 8) & 0xFF,
@@ -198,6 +202,7 @@ void set_rtc_fn(void) {
 }
 
 void read_mem_fn(void) {
+    can_countdown = 30;
     // Currently max 64 bytes
     // TODO - decide and document max count
     if (current_cmd_arg2 > 64) {
@@ -221,6 +226,7 @@ void read_mem_fn(void) {
 }
 
 void erase_mem_fn(void) {
+    can_countdown = 30;
     // Currently max 64 bytes
     // TODO - decide and document max count
     if (current_cmd_arg2 > 64) {
@@ -242,6 +248,7 @@ void erase_mem_fn(void) {
 
 // Starts requesting block data (field 0)
 void collect_block_fn(void) {
+    can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
             print("Starting EPS_HK\n");
@@ -266,6 +273,7 @@ void collect_block_fn(void) {
 }
 
 void read_local_block_fn(void) {
+    can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_decoded_tx_msg();
 
@@ -294,6 +302,7 @@ void read_local_block_fn(void) {
 }
 
 void read_mem_block_fn(void) {
+    can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
             if (sim_local_actions) {
@@ -366,6 +375,7 @@ void read_mem_block_fn(void) {
 }
 
 void set_auto_data_col_enable_fn(void) {
+    can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
             eps_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
@@ -390,6 +400,7 @@ void set_auto_data_col_enable_fn(void) {
 }
 
 void set_auto_data_col_period_fn(void) {
+    can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
             eps_hk_auto_data_col.period = current_cmd_arg2;
@@ -414,6 +425,7 @@ void set_auto_data_col_period_fn(void) {
 }
 
 void resync_auto_data_col_fn(void) {
+    can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         eps_hk_auto_data_col.count = 0;
         pay_hk_auto_data_col.count = 0;
@@ -429,6 +441,7 @@ void resync_auto_data_col_fn(void) {
 }
 
 void set_eps_heater_sp_fn(void) {
+    can_countdown = 30;
     switch (current_cmd_arg1) {
         case 0:
             enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_HEAT_SP1, current_cmd_arg2);
@@ -445,6 +458,7 @@ void set_eps_heater_sp_fn(void) {
 }
 
 void set_pay_heater_sp_fn(void) {
+    can_countdown = 30;
     switch (current_cmd_arg1) {
         case 0:
             enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_HEAT_SP1, current_cmd_arg2);
@@ -461,6 +475,7 @@ void set_pay_heater_sp_fn(void) {
 }
 
 void actuate_motors_fn(void) {
+    can_countdown = 30;
     switch (current_cmd_arg1) {
         case 1:
             enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_ACT_UP, 0);
@@ -481,12 +496,14 @@ void reset_fn(void) {
 }
 
 void send_eps_can_fn(void) {
+    can_countdown = 30;
     print("Sending EPS CAN\n");
     enqueue_eps_tx_msg(current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
 }
 
 void send_pay_can_fn(void) {
+    can_countdown = 30;
     print("Sending PAY CAN\n");
     enqueue_pay_tx_msg(current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
@@ -499,6 +516,7 @@ void finish_current_cmd(bool succeeded) {
         current_cmd_arg1 = 0;
         current_cmd_arg2 = 0;
         prev_cmd_succeeded = succeeded;
+        can_countdown = 0;
     }
     print("Finished cmd\n");
 }

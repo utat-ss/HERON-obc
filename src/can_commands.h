@@ -23,6 +23,8 @@ extern uint32_t pay_hk_fields[];
 extern mem_header_t pay_opt_header;
 extern uint32_t pay_opt_fields[];
 
+extern volatile uint8_t can_countdown;
+
 void handle_rx_msg(void);
 
 void enqueue_tx_msg_general(queue_t* queue, uint32_t data1, uint32_t data2);
