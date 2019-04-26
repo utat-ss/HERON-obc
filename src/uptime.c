@@ -12,7 +12,8 @@ decide what to do.
 #include "uptime.h"
 
 // Variables  modified inside the timer interrupt must be volatile
-// Note that 1 billion seconds is about 31.7 years
+// Note that 1 billion seconds is about 31.7 years (reasoning for using 32-bit
+// uptime_s variable)
 
 // Number of times OBC has started up, i.e. how many times the program has
 // started from the beginning (includes 1 for the first time)
