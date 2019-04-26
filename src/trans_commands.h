@@ -34,6 +34,8 @@
 #define TRANS_CMD_PAY_HEAT_SP           0x0D
 #define TRANS_CMD_PAY_ACT_MOTORS        0x0E
 #define TRANS_CMD_RESET                 0x0F
+#define TRANS_CMD_EPS_CAN               0x10
+#define TRANS_CMD_PAY_CAN               0x11
 
 
 void handle_trans_decoded_rx_msg(void);

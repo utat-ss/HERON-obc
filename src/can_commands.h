@@ -25,6 +25,9 @@ extern uint32_t pay_opt_fields[];
 
 void handle_rx_msg(void);
 
+void enqueue_tx_msg_general(queue_t* queue, uint32_t data1, uint32_t data2);
+void enqueue_eps_tx_msg(uint32_t data1, uint32_t data2);
+void enqueue_pay_tx_msg(uint32_t data1, uint32_t data2);
 void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num, uint32_t data);
 void enqueue_eps_hk_tx_msg(uint8_t field_num);
 void enqueue_eps_ctrl_tx_msg(uint8_t field_num, uint32_t data);

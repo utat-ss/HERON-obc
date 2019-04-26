@@ -76,6 +76,8 @@ extern cmd_t set_eps_heater_sp_cmd;
 extern cmd_t set_pay_heater_sp_cmd;
 extern cmd_t actuate_pay_motors_cmd;
 extern cmd_t reset_cmd;
+extern cmd_t send_eps_can_cmd;
+extern cmd_t send_pay_can_cmd;
 
 
 void finish_current_cmd(bool succeeded);
