@@ -12,16 +12,16 @@ Other Notes:
 
 #include <uart/uart.h>
 #include <utilities/utilities.h>
+#include <uptime/uptime.h>
+
+#include "../../src/rtc.h"
 #include "../../src/transceiver.h"
-#include "../../src/uptime.h"
 
 int main(void){
     init_uart();
     print("\n\n");
 
-    rtc_date_t date;
-    rtc_time_t time;
-    init_uptime(date, time);
+    init_uptime();
 
     print("Starting test\n");
 
