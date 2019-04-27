@@ -7,7 +7,9 @@
 #-------------------------------------------------------------------------------
 # Libraries from lib-common to link
 # For some reason, conversions needs to come after dac or else it gives an error
-LIB = -L./lib-common/lib -ladc -lcan -ldac -lconversions -lheartbeat -lpex -lqueue -lspi -ltimer -luart -lutilities -lwatchdog
+# Need to put dac before conversions, uptime before timer,
+# or else gives an error for undefined reference
+LIB = -L./lib-common/lib -ladc -lcan -ldac -lconversions -lheartbeat -lpex -lqueue -lspi -luptime -ltimer -luart -lutilities -lwatchdog
 # Program name
 PROG = obc
 # Name of microcontroller ("32m1" or "64m1")

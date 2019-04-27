@@ -5,9 +5,9 @@
 
 // lib-common includes
 #include <uart/uart.h>
+#include <uptime/uptime.h>
 #include <utilities/utilities.h>
 
-#include "uptime.h"
 
 // Number of characters in the buffer of received UART RX characters
 #define TRANS_CMD_RESP_MAX_SIZE         20

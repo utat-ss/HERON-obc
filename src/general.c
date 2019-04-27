@@ -7,6 +7,10 @@ volatile uint32_t comms_thresh_s = COMMS_TIME_DELAY;
 // Number of seconds since we last updated comms time in EEPROM
 volatile uint32_t comms_eeprom_update_time_s = 0;
 
+// Date and time of the most recent restart		
+rtc_date_t restart_date = { .yy = 0, .mm = 0, .dd  = 0 };		
+rtc_time_t restart_time = { .hh = 0, .mm = 0, .ss  = 0 };
+
 
 // Initializes everything in OBC, EXCEPT the transceiver/comms things that must
 // not be turned on for the first 30 minutes
@@ -34,9 +38,9 @@ void init_obc_core(void) {
 
     init_comms_time();
 
-    rtc_date_t date = read_rtc_date();
-    rtc_time_t time = read_rtc_time();
-    init_uptime(date, time);
+    restart_date = read_rtc_date();
+    restart_time = read_rtc_time();
+    init_uptime();
 
     add_uptime_callback(auto_data_col_timer_cb);
     add_uptime_callback(can_timer_cb);

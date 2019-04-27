@@ -6,6 +6,7 @@
 #include <can/can.h>
 #include <queue/queue.h>
 #include <spi/spi.h>
+#include <uptime/uptime.h>
 #include <watchdog/watchdog.h>
 
 #include "can_interface.h"
@@ -13,7 +14,7 @@
 #include "mem.h"
 #include "rtc.h"
 #include "transceiver.h"
-#include "uptime.h"
+
 
 // EEPROM address to store number of seconds - counting to comms init
 #define COMMS_TIME_EEPROM_ADDR ((uint32_t*) 0x34)
@@ -26,6 +27,10 @@
 extern volatile uint32_t comms_time_s;
 extern volatile uint32_t comms_thresh_s;
 extern volatile uint32_t comms_eeprom_update_time_s;
+
+extern rtc_date_t restart_date;		
+extern rtc_time_t restart_time;
+
 
 void init_obc_core(void);
 void init_obc_comms(void);

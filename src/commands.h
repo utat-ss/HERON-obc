@@ -6,11 +6,12 @@
 
 #include <can/data_protocol.h>
 #include <timer/timer.h>
+#include <uptime/uptime.h>
 
 #include "can_interface.h"
 #include "mem.h"
 #include "trans_commands.h"
-#include "uptime.h"
+
 
 
 // Automatic data collection for one block type
@@ -48,6 +49,10 @@ typedef struct {
 #define CMD_BLOCK_PAY_HK    1
 #define CMD_BLOCK_PAY_OPT   2
 
+
+// TODO
+extern rtc_date_t restart_date;		
+extern rtc_time_t restart_time;
 
 extern bool sim_local_actions;
 
