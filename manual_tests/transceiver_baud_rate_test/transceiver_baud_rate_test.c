@@ -62,22 +62,33 @@ void test_tranceiver_baud_rate(void) {
 
     uint8_t reset_count = 0;
     uint16_t scw = 0;
+    set_uart_baud_rate(UART_BAUD_1200);
+    _delay_ms(100);
+
     ret = get_trans_scw(&rssi, &reset_count, &scw);
-    print("get_trans_scw: ret = %u, scw = %04X\n", ret, scw);
+    // set_uart_baud_rate(UART_BAUD_9600);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        print("get_trans_scw: ret = %u, scw = %04X\n", ret, scw);
+    }
 
     uart_baud_rate_t baud_rate = 0;
-    uint8_t corrected = correct_transceiver_baud_rate(&baud_rate);
+    uint8_t corrected;
+    // corrected = correct_transceiver_baud_rate(&baud_rate);
 
-    test_transceiver_baud_rate_1200(&scw, &baud_rate);
-    test_transceiver_baud_rate_19200(&scw, &baud_rate);
-    test_transceiver_baud_rate_115200(&scw, &baud_rate);
+    // test_transceiver_baud_rate_1200(&scw, &baud_rate);
+    // test_transceiver_baud_rate_19200(&scw, &baud_rate);
+    // test_transceiver_baud_rate_115200(&scw, &baud_rate);
 
     // Confirm 9600
-    set_uart_baud_rate(UART_BAUD_9600);
-    ret = get_trans_scw(&rssi, &reset_count, &scw);
-    printf("Final check for 9600 \n");
-    print("get_trans_scw: retrieved = %u, baudrate = 0, scw = %04X\n", ret, corrected, scw);
+    set_uart_baud_rate(UART_BAUD_1200);
+    _delay_ms(100);
 
+    ret = get_trans_scw(&rssi, &reset_count, &scw);
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        print("Final check for 9600 \n");
+        print("get_trans_scw: retrieved = %u, baudrate = 1200, scw = %04X\n", ret, scw);
+    }
 }
 
 // Simple baud rate test fix for 1200

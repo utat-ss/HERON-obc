@@ -126,7 +126,7 @@ void trans_uptime_cb(void) {
         uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
         uart_rx_buf_count > 0) {
 
-        clear_uart_rx_buf();
+        clear_uart_rx_buf();-
         print("\nTimed out and cleared RX buf\n");
     }
 }
@@ -356,6 +356,7 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
     // Wait for trans_cmd_resp_avail to become true, with a timeout
     uint16_t timeout = UINT16_MAX;
     while ((!trans_cmd_resp_avail) && (timeout > 0)) {
+        _delay_us(2);
         timeout--;
     }
     // Failed if the timeout went to 0
@@ -406,7 +407,9 @@ uint8_t set_trans_scw(uint16_t scw) {
 uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
     // Send command
     clear_trans_cmd_resp();
-    print("\rES+R%02X00\r", TRANS_ADDR);
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        print("\rES+R%02X00\r", TRANS_ADDR);
+    }
 
     //Wait for response
     //check validity
@@ -1099,7 +1102,7 @@ uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous) {
     for ( ;baud_rate <= UART_BAUD_115200; baud_rate++) {
         // Set the MCU baud rate
         set_uart_baud_rate(baud_rate);
-        // _delay_ms(50);
+        _delay_ms(50);
         received = get_trans_scw(&rssi, &reset_count, &scw);
         // Break out of the loop if we found the baudrate
         if (received == 1) {
