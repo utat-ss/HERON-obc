@@ -1077,7 +1077,7 @@ uint8_t get_trans_num_rx_packets_crc(uint8_t* rssi, uint32_t* num_rx_packets_crc
 }
 
 /*
-Checks that the transceiver baud rate is 9600. If not, then attempts to readtransceiver's baud rate and then set it back to 9600 by changing MCU baud rate.
+Checks that the transceiver baud rate is 9600. If not, then attempts to read transceiver's baud rate and then set it back to 9600 by changing MCU baud rate.
 Assumes the UART's baud rate is already set to 9600
 
 previous - pointer to transceiver's previous baud_rate
@@ -1086,6 +1086,8 @@ Returns 1 if success, 0 if failed
 uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous) {
     uint8_t rssi = 0, reset_count = 0;
     uint16_t scw = 0;
+
+    // Check if the transciever is already at 9600, if if is we don't have to do anything
     uint8_t received = get_trans_scw(&rssi, &reset_count, &scw);
     if (received == 1) {
         *previous = UART_BAUD_9600;
@@ -1094,13 +1096,15 @@ uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous) {
 
     uint8_t baud_rate = UART_BAUD_1200;
     // Iterate through the baud rates and see which one works
-    for ( ; baud_rate <= UART_BAUD_115200 && received != 1; baud_rate++) {
+    for ( ;baud_rate <= UART_BAUD_115200; baud_rate++) {
         // Set the MCU baud rate
         set_uart_baud_rate(baud_rate);
+        // _delay_ms(50);
         received = get_trans_scw(&rssi, &reset_count, &scw);
-        // Debugging stuff
-        set_uart_baud_rate(UART_BAUD_9600);
-        print("Received: %u\n", received);
+        // Break out of the loop if we found the baudrate
+        if (received == 1) {
+            break;
+        }
     }
 
     // set bits 12 and 13 of the scw to 00 which sets baud rate to 9600
@@ -1113,8 +1117,7 @@ uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous) {
     // Make sure it got set
     received = get_trans_scw(&rssi, &reset_count, &scw);
     if (received == 1 && scw == scw_new) {
-        *previous = baud_rate-1;
-        // -1 because baud rate gets incrememnted while loop
+        *previous = baud_rate;
         return 1;
     }
     else {
