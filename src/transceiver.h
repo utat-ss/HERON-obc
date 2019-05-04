@@ -146,3 +146,6 @@ uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets);
 
 // 19
 uint8_t get_trans_num_rx_packets_crc(uint8_t* rssi, uint32_t* num_rx_packets_crc);
+
+// Corrects transceiver baud rate
+uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous);
