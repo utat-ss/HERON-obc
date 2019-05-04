@@ -126,7 +126,7 @@ void trans_uptime_cb(void) {
         uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
         uart_rx_buf_count > 0) {
 
-        clear_uart_rx_buf();-
+        clear_uart_rx_buf();
         print("\nTimed out and cleared RX buf\n");
     }
 }
@@ -407,9 +407,7 @@ uint8_t set_trans_scw(uint16_t scw) {
 uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
     // Send command
     clear_trans_cmd_resp();
-    // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        print("\rES+R%02X00\r", TRANS_ADDR);
-    // }
+    print("\rES+R%02X00\r", TRANS_ADDR);
 
     //Wait for response
     //check validity

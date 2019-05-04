@@ -1,3 +1,3 @@
 PROG = transceiver_baud_rate_test
-SRC = $(addprefix ../../src/,transceiver.c uptime.c)
+SRC = $(addprefix ../../src/,transceiver.c)
 include ../makefile
