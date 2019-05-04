@@ -1102,7 +1102,6 @@ uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous) {
     for ( ;baud_rate <= UART_BAUD_115200; baud_rate++) {
         // Set the MCU baud rate
         set_uart_baud_rate(baud_rate);
-        _delay_ms(50);
         received = get_trans_scw(&rssi, &reset_count, &scw);
         // Break out of the loop if we found the baudrate
         if (received == 1) {

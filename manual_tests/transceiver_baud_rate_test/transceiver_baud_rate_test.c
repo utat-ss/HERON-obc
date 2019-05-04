@@ -39,7 +39,6 @@ void test_transceiver_baud_rate_19200(uint16_t* scw, uart_baud_rate_t* current_r
 void test_transceiver_baud_rate_115200(uint16_t* scw, uart_baud_rate_t* current_rate);
 
 
-
 int main(void){
     init_uart();
     print("\n\n");
@@ -70,11 +69,11 @@ void test_tranceiver_baud_rate(void) {
 
     uart_baud_rate_t baud_rate = 0;
     uint8_t corrected;
-    corrected = correct_transceiver_baud_rate(&baud_rate);
 
-    // test_transceiver_baud_rate_1200(&scw, &baud_rate);
-    // test_transceiver_baud_rate_19200(&scw, &baud_rate);
-    // test_transceiver_baud_rate_115200(&scw, &baud_rate);
+    // Try changing transceiver to different baud rates and then fixing it using the function
+    test_transceiver_baud_rate_1200(&scw, &baud_rate);
+    test_transceiver_baud_rate_19200(&scw, &baud_rate);
+    test_transceiver_baud_rate_115200(&scw, &baud_rate);
 
     // Confirm 9600
     set_uart_baud_rate(UART_BAUD_9600);
@@ -82,7 +81,7 @@ void test_tranceiver_baud_rate(void) {
 
     ret = get_trans_scw(&rssi, &reset_count, &scw);
     print("Final check for 9600 \n");
-    print("get_trans_scw: retrieved = %u, baudrate = 9600, scw = %04X\n", ret, scw);
+    print("get_trans_scw: retrieved = %u, baudrate = 9600, previous = %u, scw = %04X\n", ret, baud_rate, scw);
 }
 
 // Simple baud rate test fix for 1200
@@ -97,14 +96,11 @@ void test_transceiver_baud_rate_1200(uint16_t* scw, uart_baud_rate_t* current_ra
     print("Set transceiver's baudrate to 1200");
     uint8_t corrected = correct_transceiver_baud_rate(current_rate);
     ret = get_trans_scw(&rssi, &reset_count, scw);
-    print("get_trans_scw: ret = %u, corrected = %u, baudrate = 1200, scw = %04X\n", ret, corrected, scw);
+    print("get_trans_scw: ret = %u, corrected = %u, baudrate = %u, scw = %04X\n", ret, corrected, *current_rate, scw);
 }
 
 // Simple test for baud rate of 9600
 void test_transceiver_baud_rate_9600(uint16_t* scw, uart_baud_rate_t* current_rate) {
-    // uint8_t ret = 0;
-    // uint8_t rssi = 0;
-    // uint8_t reset_count = 0;
     correct_transceiver_baud_rate(current_rate);
 }
 
@@ -120,7 +116,7 @@ void test_transceiver_baud_rate_19200(uint16_t* scw, uart_baud_rate_t* current_r
     print("Set transceiver's baudrate to 19200");
     uint8_t corrected = correct_transceiver_baud_rate(current_rate);
     ret = get_trans_scw(&rssi, &reset_count, scw);
-    print("get_trans_scw: ret = %u, corrected = %u, baudrate = 19200, scw = %04X\n", ret, corrected, scw);
+    print("get_trans_scw: ret = %u, corrected = %u, baudrate = %u, scw = %04X\n", ret, corrected, *current_rate, scw);
 }
 
 // Simple test for baud rate at 115200
@@ -134,5 +130,5 @@ void test_transceiver_baud_rate_115200(uint16_t* scw, uart_baud_rate_t* current_
     print("Set transceiver's baudrate to 115200");
     uint8_t corrected = correct_transceiver_baud_rate(current_rate);
     ret = get_trans_scw(&rssi, &reset_count, scw);
-    print("get_trans_scw: ret = %u, corrected = %u, baudrate = 115200, scw = %04X\n", ret, corrected, scw);
+    print("get_trans_scw: ret = %u, corrected = %u, baudrate = %u, scw = %04X\n", ret, corrected, *current_rate, scw);
 }
