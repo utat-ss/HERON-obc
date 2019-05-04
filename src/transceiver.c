@@ -407,9 +407,9 @@ uint8_t set_trans_scw(uint16_t scw) {
 uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
     // Send command
     clear_trans_cmd_resp();
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         print("\rES+R%02X00\r", TRANS_ADDR);
-    }
+    // }
 
     //Wait for response
     //check validity
