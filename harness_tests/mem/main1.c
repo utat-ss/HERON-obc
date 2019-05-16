@@ -213,7 +213,7 @@ void mem_field_test(void) {
 }
 
 //test blocks
-void mem_block_test_failed_but_idk_why_so_investigate(void){
+void mem_block_test_1(void){
     uint32_t write_fields_1[eps_hk_mem_section.fields_per_block];
     uint32_t write_fields_2[pay_hk_mem_section.fields_per_block];
     uint32_t write_fields_3[pay_opt_mem_section.fields_per_block];
@@ -270,41 +270,25 @@ void mem_block_test_failed_but_idk_why_so_investigate(void){
     for (int i = 0; i < 3; i++){
         ASSERT_EQ((write_header[i]).block_num, (read_header[i]).block_num); //this should be the case right.
         ASSERT_EQ((write_header[i]).error, (read_header[i]).error);
-        //ASSERT_EQ((write_header[a]).date, (read_header[a]).date);
-        //ASSERT_EQ((write_header[a]).time, (read_header[a]).time);
+        ASSERT_EQ_DATE((write_header[i]).date, (read_header[i]).date);
+        ASSERT_EQ_TIME((write_header[i]).time, (read_header[i]).time);
     }
-
-    ASSERT_EQ(1000,1000);
-    ASSERT_EQ(1000,1000);
-    ASSERT_EQ(1000,1000);
-    ASSERT_EQ(1000,1000);
-    ASSERT_EQ(1000,1000);
-    ASSERT_EQ(1000,1000);
 
     //check fields
     for (uint8_t a = 0; a < eps_hk_mem_section.fields_per_block; a++){
-        //ASSERT_EQ(write_fields_1[a], read_fields_1[a]);
-        //tmp
-        ASSERT_EQ(write_fields_1[a],write_fields_1[a]);
-        ASSERT_EQ(read_fields_1[a],read_fields_1[a]);
+        ASSERT_EQ(write_fields_1[a], read_fields_1[a]);
 
     }
     for (uint8_t a = 0; a < pay_hk_mem_section.fields_per_block; a++){
-        //ASSERT_EQ(write_fields_2[a], read_fields_2[a]);
-        //tmp
-        //ASSERT_EQ(write_fields_2[a], write_fields_2[a]);
-        //ASSERT_EQ(read_fields_2[a],read_fields_2[a]);
+        ASSERT_EQ(write_fields_2[a], read_fields_2[a]);
     }
     for (uint8_t a = 0; a < pay_opt_mem_section.fields_per_block; a++){
-        //ASSERT_EQ(write_fields_3[a], read_fields_3[a]);
-        //tmp
-        //ASSERT_EQ(write_fields_3[a], write_fields_3[a]);
-        //ASSERT_EQ(read_fields_3[a], read_fields_3[a]);
+        ASSERT_EQ(write_fields_3[a], read_fields_3[a]);
     }
 }
 
 //actually test blocks
-void mem_block_test(void){
+void mem_block_test_2(void){
     uint32_t write_fields_1[eps_hk_mem_section.fields_per_block];
     uint32_t write_fields_2[pay_hk_mem_section.fields_per_block];
     uint32_t write_fields_3[pay_opt_mem_section.fields_per_block];
@@ -406,11 +390,10 @@ test_t t6 = { .name = "rollover test", .fn = roll_over_test };
 test_t t7 = { .name = "eeprom test", .fn = eeprom_test };
 test_t t8 = { .name = "mem header test", .fn = mem_header_test };
 test_t t9 = { .name = "mem field test", .fn = mem_field_test };
-//test_t t10 = { .name = "mem_block_test_failed_but_idk_why_so_investigate", .fn = mem_block_test_failed_but_idk_why_so_investigate };
-test_t t10 = { .name = "mem block test", .fn = mem_block_test };
+test_t t10 = { .name = "mem block test 1", .fn = mem_block_test_1 };
+test_t t11 = { .name = "mem block test 2", .fn = mem_block_test_2 };
 
-//test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10 };
-test_t* suite[] = { &t10 }; //VERY TEMPORARY CHANGE ME BACK PLEASE
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11 };
 
 int main() {
     init_uart();
