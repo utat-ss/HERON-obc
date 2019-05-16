@@ -48,7 +48,7 @@
 // Chips are numbered 0-2
 #define MEM_NUM_CHIPS           3
 // The number of bits used to address all bytes in one chip
-// Because one chip is 2MB and each adddress is for one byte
+// Because one chip is 2MB and each address is for one byte
 #define MEM_CHIP_ADDR_WIDTH     21
 // Number of sections in memory layout
 #define MEM_NUM_SECTIONS        3
@@ -61,6 +61,10 @@
 #define MEM_PAY_HK_START_ADDR   0x200000UL
 #define MEM_PAY_OPT_START_ADDR  0x300000UL
 
+#define MEM_EPS_HK_END_ADDR     0x1FFFFFUL
+#define MEM_PAY_HK_END_ADDR     0x2FFFFFUL
+#define MEM_PAY_OPT_END_ADDR    0x5FFFFFUL
+    
 #define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x20)
 #define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x24)
 #define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x28)
@@ -70,6 +74,8 @@
 typedef struct {
     // Start address of section in memory
     uint32_t start_addr;
+    // End address of section in memory
+    uint32_t end_addr;
     // Current block number being written to in this section of memory (starting from 0, increasing by 1)
     uint32_t curr_block;
     // Address in EEPROM that stores the current block number
@@ -131,6 +137,8 @@ void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1,
     uint8_t* addr2, uint8_t* addr3);
 
 // Low-level operations - bytes
+uint8_t write_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* data, uint8_t data_len);
+void read_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* data, uint8_t data_len);
 void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
 void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
 void erase_mem(void);

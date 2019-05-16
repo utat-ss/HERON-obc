@@ -39,6 +39,7 @@ pin_info_t mem_cs[MEM_NUM_CHIPS] = {
 
 mem_section_t eps_hk_mem_section = {
     .start_addr = MEM_EPS_HK_START_ADDR,
+    .end_addr = MEM_EPS_HK_END_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_EPS_HK_FIELD_COUNT
@@ -46,6 +47,7 @@ mem_section_t eps_hk_mem_section = {
 
 mem_section_t pay_hk_mem_section = {
     .start_addr = MEM_PAY_HK_START_ADDR,
+    .end_addr = MEM_PAY_HK_END_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_PAY_HK_FIELD_COUNT
@@ -53,6 +55,7 @@ mem_section_t pay_hk_mem_section = {
 
 mem_section_t pay_opt_mem_section = {
     .start_addr = MEM_PAY_OPT_START_ADDR,
+    .end_addr = MEM_PAY_OPT_END_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_PAY_OPT_FIELD_COUNT
@@ -250,7 +253,6 @@ void write_mem_field(mem_section_t* section, uint32_t block_num,
     write_mem_bytes(address, data_bytes, MEM_BYTES_PER_FIELD);
 }
 
-
 uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
         uint8_t field_num) {
 /*
@@ -322,6 +324,27 @@ void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1,
     }
 }
 
+uint8_t write_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* data, uint8_t data_len){
+/*
+    writes an array of bytes to the specific section where address is the offset from the start of
+    the section. Data will only be written if the array fits into the section. Returns 1 if write was success.
+*/
+    if(address < 0 || data_len <= 0)
+        return 0;
+
+    if((section->start_addr + address + data_len) <= section->end_addr ){
+        write_mem_bytes(address + section->start_addr, data, data_len);
+    } else {
+        return 0;
+    }
+}
+
+void read_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* data, uint8_t data_len){
+/*
+    reads an array of bytes from a section where address is the offset from the start of the section
+*/
+    read_mem_bytes(address + section->start_addr, data, data_len);
+}
 
 void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 /*
