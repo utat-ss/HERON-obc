@@ -143,7 +143,6 @@ void inc_mem_section_curr_block(mem_section_t* section) {
 
 
 
-
 void write_mem_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
@@ -156,6 +155,7 @@ void write_mem_block(mem_section_t* section, uint32_t block_num,
     // Write data fields
     for (uint8_t i = 0; i < section->fields_per_block; i++) {
         write_mem_field(section, block_num, i, fields[i]);
+        // i is field number; fields[i] corresponds to associated field data
     }
 }
 

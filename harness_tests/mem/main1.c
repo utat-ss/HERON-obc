@@ -212,6 +212,175 @@ void mem_field_test(void) {
 	mem_field_test_individual(&pay_opt_mem_section);
 }
 
+//test blocks
+void mem_block_test_1(void){
+    uint32_t write_fields_1[eps_hk_mem_section.fields_per_block];
+    uint32_t write_fields_2[pay_hk_mem_section.fields_per_block];
+    uint32_t write_fields_3[pay_opt_mem_section.fields_per_block];
+    //random 32 bit numbers
+    for (int a = 0; a < eps_hk_mem_section.fields_per_block; a++){
+        write_fields_1[a] = (random() & 0xFFFFFF);
+    }
+    for (int a = 0; a < pay_hk_mem_section.fields_per_block; a++){
+        write_fields_2[a] = (random() & 0xFFFFFF);
+    }
+    for (int a = 0; a < pay_opt_mem_section.fields_per_block; a++){
+        write_fields_3[a] = (random() & 0xFFFFFF);
+    }
+    uint32_t* write_test_fields[3] = {write_fields_1, write_fields_2, write_fields_3};
+
+    mem_header_t write_header[3];
+
+    uint32_t block_num[3];
+    //write to all sections
+    for (int i = 0; i < 3; i++){
+        mem_section_t* section = all_mem_sections[i];
+        section->curr_block = 1;////////////////
+        block_num[i] = section->curr_block;
+        (write_header[i]).block_num = section->curr_block;
+        (write_header[i]).error = 0x00;
+        (write_header[i]).date = read_rtc_date();
+        (write_header[i]).time = read_rtc_time();
+        uint32_t prev_block = section->curr_block;
+        write_mem_block(section, block_num[i], &(write_header[i]), write_test_fields[i]);
+        ASSERT_EQ(prev_block, block_num[i]);///////////////
+    }
+
+    uint32_t read_fields_1[eps_hk_mem_section.fields_per_block];
+    uint32_t read_fields_2[pay_hk_mem_section.fields_per_block];
+    uint32_t read_fields_3[pay_opt_mem_section.fields_per_block];
+    uint32_t* read_test_fields[3] = {read_fields_1, read_fields_2, read_fields_3};
+
+    mem_header_t read_header[3];
+    uint32_t read_block_num[3];
+
+    //read from all sections
+    for (int i = 0; i < 3; i++){
+        mem_section_t* section = all_mem_sections[i];
+        section->curr_block = 1;////////////////////
+        read_block_num[i] = section->curr_block;
+        read_mem_block(section, read_block_num[i], &(read_header[i]), read_test_fields[i]);
+    }
+
+    for (int i=0; i<3; i++){
+        ASSERT_EQ(block_num[i], read_block_num[i]);
+    }
+
+    //check headers
+    for (int i = 0; i < 3; i++){
+        ASSERT_EQ((write_header[i]).block_num, (read_header[i]).block_num); //this should be the case right.
+        ASSERT_EQ((write_header[i]).error, (read_header[i]).error);
+        ASSERT_EQ_DATE((write_header[i]).date, (read_header[i]).date);
+        ASSERT_EQ_TIME((write_header[i]).time, (read_header[i]).time);
+    }
+
+    //check fields
+    for (uint8_t a = 0; a < eps_hk_mem_section.fields_per_block; a++){
+        ASSERT_EQ(write_fields_1[a], read_fields_1[a]);
+
+    }
+    for (uint8_t a = 0; a < pay_hk_mem_section.fields_per_block; a++){
+        ASSERT_EQ(write_fields_2[a], read_fields_2[a]);
+    }
+    for (uint8_t a = 0; a < pay_opt_mem_section.fields_per_block; a++){
+        ASSERT_EQ(write_fields_3[a], read_fields_3[a]);
+    }
+}
+
+//actually test blocks
+void mem_block_test_2(void){
+    uint32_t write_fields_1[eps_hk_mem_section.fields_per_block];
+    uint32_t write_fields_2[pay_hk_mem_section.fields_per_block];
+    uint32_t write_fields_3[pay_opt_mem_section.fields_per_block];
+
+    uint32_t read_fields_1[eps_hk_mem_section.fields_per_block];
+    uint32_t read_fields_2[pay_hk_mem_section.fields_per_block];
+    uint32_t read_fields_3[pay_opt_mem_section.fields_per_block];
+
+    //populate with random data
+    for (uint8_t i=0; i<eps_hk_mem_section.fields_per_block; i++){
+        write_fields_1[i] = 0x765432;
+        read_fields_1[i] = 0x234567;
+    }
+    for (uint8_t i=0; i<pay_hk_mem_section.fields_per_block; i++){
+        write_fields_2[i] = 0x765432;
+        read_fields_2[i] = 0x234567;
+    }
+    for (uint8_t i=0; i<pay_opt_mem_section.fields_per_block; i++){
+        write_fields_3[i] = 0x765432;
+        read_fields_3[i] = 0x234567;
+    }
+
+    //test eps housekeeping
+    mem_section_t* section = all_mem_sections[0];
+    section->curr_block = 0;//
+
+    uint32_t block_num = section->curr_block;
+    mem_header_t write_header;
+    mem_header_t read_header;
+    write_header.block_num = section->curr_block;
+    write_header.error = 0x00;
+    write_header.date = read_rtc_date();
+    write_header.time = read_rtc_time();
+
+    write_mem_block(section, block_num, &write_header, write_fields_1);
+    ASSERT_EQ(block_num,0);
+    read_mem_block(section, block_num, &read_header, read_fields_1);
+    ASSERT_EQ(block_num,0);
+
+    ASSERT_EQ(write_header.block_num, read_header.block_num);
+    ASSERT_EQ(write_header.error, read_header.error);
+
+    for (uint8_t i=0; i<eps_hk_mem_section.fields_per_block; i++){
+        ASSERT_EQ(write_fields_1[i], read_fields_1[i]);
+    }
+
+    //test pay housekeeping
+    section = all_mem_sections[1];
+    section->curr_block = 0;//
+
+    block_num = section->curr_block;
+    write_header.block_num = section->curr_block;
+    write_header.error = 0x00;
+    write_header.date = read_rtc_date();
+    write_header.time = read_rtc_time();
+
+    write_mem_block(section, block_num, &write_header, write_fields_2);
+    ASSERT_EQ(block_num,0);
+    read_mem_block(section, block_num, &read_header, read_fields_2);
+    ASSERT_EQ(block_num,0);
+
+    ASSERT_EQ(write_header.block_num, read_header.block_num);
+    ASSERT_EQ(write_header.error, read_header.error);
+
+    for (uint8_t i=0; i<pay_hk_mem_section.fields_per_block; i++){
+        ASSERT_EQ(write_fields_2[i], read_fields_2[i]);
+    }
+
+    //test pay optical
+    section = all_mem_sections[2];
+    section->curr_block = 0;//
+
+    block_num = section->curr_block;
+    write_header.block_num = section->curr_block;
+    write_header.error = 0x00;
+    write_header.date = read_rtc_date();
+    write_header.time = read_rtc_time();
+
+    write_mem_block(section, block_num, &write_header, write_fields_3);
+    ASSERT_EQ(block_num,0);
+    read_mem_block(section, block_num, &read_header, read_fields_3);
+    ASSERT_EQ(block_num,0);
+
+    ASSERT_EQ(write_header.block_num, read_header.block_num);
+    ASSERT_EQ(write_header.error, read_header.error);
+
+    for (uint8_t i=0; i<pay_opt_mem_section.fields_per_block; i++){
+        ASSERT_EQ(write_fields_3[i], read_fields_3[i]);
+    }
+}
+
+
 test_t t1 = { .name = "single write read test", .fn = single_write_read_test };
 test_t t2 = { .name = "multiple write read test", .fn = multiple_write_read_test };
 test_t t3 = { .name = "multiple write read test 2", .fn = multiple_write_read_test_2 };
@@ -221,8 +390,10 @@ test_t t6 = { .name = "rollover test", .fn = roll_over_test };
 test_t t7 = { .name = "eeprom test", .fn = eeprom_test };
 test_t t8 = { .name = "mem header test", .fn = mem_header_test };
 test_t t9 = { .name = "mem field test", .fn = mem_field_test };
+test_t t10 = { .name = "mem block test 1", .fn = mem_block_test_1 };
+test_t t11 = { .name = "mem block test 2", .fn = mem_block_test_2 };
 
-test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9 };
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11 };
 
 int main() {
     init_uart();
