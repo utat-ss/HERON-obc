@@ -4,5 +4,5 @@
 PROG = main1
 # .c files from `src` folder to compile (except for in `lib-common`),
 # separated by spaces
-SRC = $(addprefix ../../src/, can_commands.c commands.c general.c)
+SRC = $(addprefix ../../src/, can_commands.c can_interface.c commands.c general.c mem.c rtc.c trans_commands.c transceiver.c)
 include ../makefile

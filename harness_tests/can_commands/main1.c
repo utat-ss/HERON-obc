@@ -10,11 +10,11 @@
 
 #include <stdlib.h>
 #include <test/test.h>
-#include "general.h"
+#include "../../src/general.h"
 
 // Check functionality of harness test
 void harness_func_test( void ){
-	ASSERT_EQUAL(1+1, 2);
+	ASSERT_EQ(1+1, 2);
 }
 
 // EPS HK test
@@ -33,15 +33,16 @@ void eps_hk_test( void ){
 	}
 
 	// request data from EPS, and then proceed to simulate responses
-	req_eps_hk_fn();
+	enqueue_cmd(&collect_block_cmd, CMD_BLOCK_EPS_HK, 0);
+	execute_next_cmd();
 	uint8_t queue_data[8] = { 0 };
 	uint8_t field_num = 0;
 
 	while(field_num < CAN_EPS_HK_FIELD_COUNT){
 		// dequeue from the tx_msg queue and check its contents
-		dequeue(&eps_tx_msg_queue, data);
-		ASSERT_EQUAL(queue_data[1], CAN_EPS_HK);
-		ASSERT_EQUAL(queue_data[2], field_num);
+		dequeue(&eps_tx_msg_queue, queue_data);
+		ASSERT_EQ(queue_data[1], CAN_EPS_HK);
+		ASSERT_EQ(queue_data[2], field_num);
 
 		// insert simulated eps response into the rx_queue the response and process it
 		enqueue(&data_rx_msg_queue, eps_response[field_num]);
@@ -51,10 +52,10 @@ void eps_hk_test( void ){
 
 	// check if eps_hk_fields holds the proper values
 	for(uint8_t field=0; field<CAN_EPS_HK_FIELD_COUNT; field++){
-	 	uint32_t eps_response_data = (eps_response[field][3] << 16) | 
-	 									(eps_response[field][4] << 8) | 
-	 									(eps_response[field][5]);
-	 	ASSERT_EQUAL(eps_response_data, eps_hk_fields[field]);
+	 	uint32_t eps_response_data = ((uint32_t) eps_response[field][3] << 16) | 
+	 									((uint32_t) eps_response[field][4] << 8) | 
+	 									((uint32_t) eps_response[field][5]);
+	 	ASSERT_EQ(eps_response_data, eps_hk_fields[field]);
 	}
 }
 
@@ -74,15 +75,16 @@ void pay_hk_test( void ){
 	}
 
 	// request data from PAY, and then proceed to simulate responses
-	req_pay_hk_fn();
+	enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_HK, 0);
+	execute_next_cmd();
 	uint8_t queue_data[8] = { 0 };
 	uint8_t field_num = 0;
 
 	while(field_num < CAN_PAY_HK_FIELD_COUNT){
 		// dequeue from the tx_msg queue and check its contents
-		dequeue(&pay_tx_msg_queue, data);
-		ASSERT_EQUAL(queue_data[1], CAN_PAY_HK);
-		ASSERT_EQUAL(queue_data[2], field_num);
+		dequeue(&pay_tx_msg_queue, queue_data);
+		ASSERT_EQ(queue_data[1], CAN_PAY_HK);
+		ASSERT_EQ(queue_data[2], field_num);
 
 		// insert simulated pay response into the rx_queue the response and process it
 		enqueue(&data_rx_msg_queue, pay_response[field_num]);
@@ -92,10 +94,10 @@ void pay_hk_test( void ){
 
 	// check if pay_hk_fields holds the proper values
 	for(uint8_t field=0; field<CAN_PAY_HK_FIELD_COUNT; field++){
-	 	uint32_t pay_response_data = (pay_response[field][3] << 16) | 
-	 									(pay_response[field][4] << 8) | 
-	 									(pay_response[field][5]);
-	 	ASSERT_EQUAL(pay_response_data, pay_hk_fields[field]);
+	 	uint32_t pay_response_data = ((uint32_t) pay_response[field][3] << 16) | 
+	 									((uint32_t) pay_response[field][4] << 8) | 
+	 									((uint32_t) pay_response[field][5]);
+	 	ASSERT_EQ(pay_response_data, pay_hk_fields[field]);
 	}
 }
 
@@ -115,15 +117,16 @@ void pay_opt_test( void ){
 	}
 
 	// request data from PAY_OPT, and then proceed to simulate responses
-	req_pay_opt_fn();
+	enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_OPT, 0);
+	execute_next_cmd();
 	uint8_t queue_data[8] = { 0 };
 	uint8_t field_num = 0;
 
 	while(field_num < CAN_PAY_OPT_FIELD_COUNT){
 		// dequeue from the tx_msg queue and check its contents
-		dequeue(&pay_tx_msg_queue, data);
-		ASSERT_EQUAL(queue_data[1], CAN_PAY_OPT);
-		ASSERT_EQUAL(queue_data[2], field_num);
+		dequeue(&pay_tx_msg_queue, queue_data);
+		ASSERT_EQ(queue_data[1], CAN_PAY_OPT);
+		ASSERT_EQ(queue_data[2], field_num);
 
 		// insert simulated pay opt response into the rx_queue the response and process it
 		enqueue(&data_rx_msg_queue, pay_response[field_num]);
@@ -132,18 +135,18 @@ void pay_opt_test( void ){
 	}
 
 	// check if pay_opt_fields holds the proper values
-	for(uint8_t field=0; field<CAN_PAY_FIELD_COUNT; field++){
-	 	uint32_t pay_response_data = (pay_response[field][3] << 16) | 
-	 									(pay_response[field][4] << 8) | 
-	 									(pay_response[field][5]);
-	 	ASSERT_EQUAL(pay_response_data, pay_opt_fields[field]);
+	for(uint8_t field=0; field<CAN_PAY_OPT_FIELD_COUNT; field++){
+	 	uint32_t pay_response_data = ((uint32_t) pay_response[field][3] << 16) | 
+	 									((uint32_t) pay_response[field][4] << 8) | 
+	 									((uint32_t) pay_response[field][5]);
+	 	ASSERT_EQ(pay_response_data, pay_opt_fields[field]);
 	}
 }
 
 test_t t1 = { .name = "harness functionality test", .fn = harness_func_test };
 test_t t2 = { .name = "eps hk test", .fn = eps_hk_test };
 test_t t3 = { .name = "pay hk test", .fn = pay_hk_test };
-test_t t4 = { .name = "pay opt test", .fn = pay_opt_test }
+test_t t4 = { .name = "pay opt test", .fn = pay_opt_test };
 
 test_t* suite[] = { &t1, &t2, &t3, &t4};
 
