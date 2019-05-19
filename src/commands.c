@@ -129,8 +129,8 @@ void nop_fn(void) {}
 void ping_fn(void) {
     can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        finish_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
     }
     finish_current_cmd(true);
 }
@@ -138,22 +138,22 @@ void ping_fn(void) {
 void get_restart_uptime_fn(void) {
     can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        append_to_trans_decoded_tx_msg((restart_count >> 24) & 0xFF);
-        append_to_trans_decoded_tx_msg((restart_count >> 16) & 0xFF);
-        append_to_trans_decoded_tx_msg((restart_count >> 8) & 0xFF);
-        append_to_trans_decoded_tx_msg(restart_count & 0xFF);
-        append_to_trans_decoded_tx_msg(restart_date.yy);
-        append_to_trans_decoded_tx_msg(restart_date.mm);
-        append_to_trans_decoded_tx_msg(restart_date.dd);
-        append_to_trans_decoded_tx_msg(restart_time.hh);
-        append_to_trans_decoded_tx_msg(restart_time.mm);
-        append_to_trans_decoded_tx_msg(restart_time.ss);
-        append_to_trans_decoded_tx_msg((uptime_s >> 24) & 0xFF);
-        append_to_trans_decoded_tx_msg((uptime_s >> 16) & 0xFF);
-        append_to_trans_decoded_tx_msg((uptime_s >> 8) & 0xFF);
-        append_to_trans_decoded_tx_msg(uptime_s & 0xFF);
-        finish_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg((restart_count >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((restart_count >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((restart_count >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(restart_count & 0xFF);
+        append_to_trans_tx_dec_msg(restart_date.yy);
+        append_to_trans_tx_dec_msg(restart_date.mm);
+        append_to_trans_tx_dec_msg(restart_date.dd);
+        append_to_trans_tx_dec_msg(restart_time.hh);
+        append_to_trans_tx_dec_msg(restart_time.mm);
+        append_to_trans_tx_dec_msg(restart_time.ss);
+        append_to_trans_tx_dec_msg((uptime_s >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((uptime_s >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((uptime_s >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(uptime_s & 0xFF);
+        finish_trans_tx_dec_msg();
     }
     finish_current_cmd(true);
 }
@@ -164,14 +164,14 @@ void get_rtc_fn(void) {
     rtc_time_t time = read_rtc_time();
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        append_to_trans_decoded_tx_msg(date.yy);
-        append_to_trans_decoded_tx_msg(date.mm);
-        append_to_trans_decoded_tx_msg(date.dd);
-        append_to_trans_decoded_tx_msg(time.hh);
-        append_to_trans_decoded_tx_msg(time.mm);
-        append_to_trans_decoded_tx_msg(time.ss);
-        finish_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg(date.yy);
+        append_to_trans_tx_dec_msg(date.mm);
+        append_to_trans_tx_dec_msg(date.dd);
+        append_to_trans_tx_dec_msg(time.hh);
+        append_to_trans_tx_dec_msg(time.mm);
+        append_to_trans_tx_dec_msg(time.ss);
+        finish_trans_tx_dec_msg();
     }
 
     finish_current_cmd(true);
@@ -194,8 +194,8 @@ void set_rtc_fn(void) {
     set_rtc_time(time);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        finish_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
     }
 
     finish_current_cmd(true);
@@ -215,11 +215,11 @@ void read_mem_fn(void) {
     read_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
         for (uint8_t i = 0; i < (uint8_t) current_cmd_arg2; i++) {
-            append_to_trans_decoded_tx_msg(data[i]);
+            append_to_trans_tx_dec_msg(data[i]);
         }
-        finish_trans_decoded_tx_msg();
+        finish_trans_tx_dec_msg();
     }
 
     finish_current_cmd(true);
@@ -239,8 +239,8 @@ void erase_mem_fn(void) {
     write_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        finish_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
     }
 
     finish_current_cmd(true);
@@ -275,7 +275,7 @@ void collect_block_fn(void) {
 void read_local_block_fn(void) {
     can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
 
         switch (current_cmd_arg1) {
             case CMD_BLOCK_EPS_HK:
@@ -295,7 +295,7 @@ void read_local_block_fn(void) {
                 return;
         }
 
-        finish_trans_decoded_tx_msg();
+        finish_trans_tx_dec_msg();
     }
 
     finish_current_cmd(true);
@@ -392,8 +392,8 @@ void set_auto_data_col_enable_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        finish_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
     }
 
     finish_current_cmd(true);
@@ -417,8 +417,8 @@ void set_auto_data_col_period_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        finish_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
     }
 
     finish_current_cmd(true);
@@ -433,8 +433,8 @@ void resync_auto_data_col_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_decoded_tx_msg();
-        finish_trans_decoded_tx_msg();
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
     }
 
     finish_current_cmd(true);
@@ -582,23 +582,23 @@ void populate_header(mem_header_t* header, uint32_t block_num, uint8_t error) {
 
 
 void append_header_to_tx_msg(mem_header_t* header) {
-    append_to_trans_decoded_tx_msg((header->block_num >> 16) & 0xFF);
-    append_to_trans_decoded_tx_msg((header->block_num >> 8) & 0xFF);
-    append_to_trans_decoded_tx_msg(header->block_num & 0xFF);
-    append_to_trans_decoded_tx_msg(header->error);
-    append_to_trans_decoded_tx_msg(header->date.yy);
-    append_to_trans_decoded_tx_msg(header->date.mm);
-    append_to_trans_decoded_tx_msg(header->date.dd);
-    append_to_trans_decoded_tx_msg(header->time.hh);
-    append_to_trans_decoded_tx_msg(header->time.mm);
-    append_to_trans_decoded_tx_msg(header->time.ss);
+    append_to_trans_tx_dec_msg((header->block_num >> 16) & 0xFF);
+    append_to_trans_tx_dec_msg((header->block_num >> 8) & 0xFF);
+    append_to_trans_tx_dec_msg(header->block_num & 0xFF);
+    append_to_trans_tx_dec_msg(header->error);
+    append_to_trans_tx_dec_msg(header->date.yy);
+    append_to_trans_tx_dec_msg(header->date.mm);
+    append_to_trans_tx_dec_msg(header->date.dd);
+    append_to_trans_tx_dec_msg(header->time.hh);
+    append_to_trans_tx_dec_msg(header->time.mm);
+    append_to_trans_tx_dec_msg(header->time.ss);
 }
 
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields) {
     for (uint8_t i = 0; i < num_fields; i++) {
-        append_to_trans_decoded_tx_msg((fields[i] >> 16) & 0xFF);
-        append_to_trans_decoded_tx_msg((fields[i] >> 8) & 0xFF);
-        append_to_trans_decoded_tx_msg(fields[i] & 0xFF);
+        append_to_trans_tx_dec_msg((fields[i] >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((fields[i] >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(fields[i] & 0xFF);
     }
 }
 

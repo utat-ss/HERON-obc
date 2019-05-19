@@ -367,52 +367,52 @@ void print_next_cmd(void) {
 }
 
 
-void print_next_trans_encoded_tx_msg(void) {
+void print_next_trans_tx_enc_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_encoded_tx_msg_avail) {
+    if (!trans_tx_enc_msg_avail) {
         return;
     }
 
-    print("Trans TX (Encoded): %u bytes: ", trans_encoded_tx_msg_len);
-    print_bytes((uint8_t*) trans_encoded_tx_msg, trans_encoded_tx_msg_len);
+    print("Trans TX (Encoded): %u bytes: ", trans_tx_enc_msg_len);
+    print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_msg_len);
 }
 
-void print_next_trans_decoded_tx_msg(void) {
+void print_next_trans_tx_dec_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_decoded_tx_msg_avail) {
+    if (!trans_tx_dec_msg_avail) {
         return;
     }
 
-    print("Trans TX (Decoded): %u bytes: ", trans_decoded_tx_msg_len);
-    print_bytes((uint8_t*) trans_decoded_tx_msg, trans_decoded_tx_msg_len);
+    print("Trans TX (Decoded): %u bytes: ", trans_tx_dec_msg_len);
+    print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_msg_len);
 }
 
-void print_next_trans_decoded_rx_msg(void) {
+void print_next_trans_rx_dec_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_decoded_rx_msg_avail) {
+    if (!trans_rx_dec_msg_avail) {
         return;
     }
 
-    print("Trans RX (Decoded): %u bytes: ", trans_decoded_rx_msg_len);
-    print_bytes((uint8_t*) trans_decoded_rx_msg, trans_decoded_rx_msg_len);
+    print("Trans RX (Decoded): %u bytes: ", trans_rx_dec_msg_len);
+    print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_msg_len);
 }
 
-void print_next_trans_encoded_rx_msg(void) {
+void print_next_trans_rx_enc_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_encoded_rx_msg_avail) {
+    if (!trans_rx_enc_msg_avail) {
         return;
     }
 
-    print("Trans RX (Encoded): %u bytes: ", trans_encoded_rx_msg_len);
-    print_bytes((uint8_t*) trans_encoded_rx_msg, trans_encoded_rx_msg_len);
+    print("Trans RX (Encoded): %u bytes: ", trans_rx_enc_msg_len);
+    print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_msg_len);
 }
 
 
@@ -644,20 +644,20 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
         if (all_cmds[i].bypass_trans) {
             enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
         } else {
-            trans_encoded_rx_msg[0] = 0x00;
-            trans_encoded_rx_msg[1] = 9;
-            trans_encoded_rx_msg[2] = trans_cmd_to_msg_type(all_cmds[i].cmd);
-            trans_encoded_rx_msg[3] = (all_cmds[i].arg1 >> 24) & 0xFF;
-            trans_encoded_rx_msg[4] = (all_cmds[i].arg1 >> 16) & 0xFF;
-            trans_encoded_rx_msg[5] = (all_cmds[i].arg1 >> 8) & 0xFF;
-            trans_encoded_rx_msg[6] = all_cmds[i].arg1 & 0xFF;
-            trans_encoded_rx_msg[7] = (all_cmds[i].arg2 >> 24) & 0xFF;
-            trans_encoded_rx_msg[8] = (all_cmds[i].arg2 >> 16) & 0xFF;
-            trans_encoded_rx_msg[9] = (all_cmds[i].arg2 >> 8) & 0xFF;
-            trans_encoded_rx_msg[10] = all_cmds[i].arg2 & 0xFF;
+            trans_rx_enc_msg[0] = 0x00;
+            trans_rx_enc_msg[1] = 9;
+            trans_rx_enc_msg[2] = trans_cmd_to_msg_type(all_cmds[i].cmd);
+            trans_rx_enc_msg[3] = (all_cmds[i].arg1 >> 24) & 0xFF;
+            trans_rx_enc_msg[4] = (all_cmds[i].arg1 >> 16) & 0xFF;
+            trans_rx_enc_msg[5] = (all_cmds[i].arg1 >> 8) & 0xFF;
+            trans_rx_enc_msg[6] = all_cmds[i].arg1 & 0xFF;
+            trans_rx_enc_msg[7] = (all_cmds[i].arg2 >> 24) & 0xFF;
+            trans_rx_enc_msg[8] = (all_cmds[i].arg2 >> 16) & 0xFF;
+            trans_rx_enc_msg[9] = (all_cmds[i].arg2 >> 8) & 0xFF;
+            trans_rx_enc_msg[10] = all_cmds[i].arg2 & 0xFF;
 
-            trans_encoded_rx_msg_len = 11;
-            trans_encoded_rx_msg_avail = true;
+            trans_rx_enc_msg_len = 11;
+            trans_rx_enc_msg_avail = true;
         }
     }
 
@@ -758,25 +758,25 @@ int main(void){
 
         // Trans TX (encoded)
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_encoded_tx_msg();
-            send_trans_encoded_tx_msg();
+            print_next_trans_tx_enc_msg();
+            send_trans_tx_enc_msg();
         }
 
         // Trans TX (decoded)
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_decoded_tx_msg();
+            print_next_trans_tx_dec_msg();
             encode_trans_tx_msg();
         }
 
         // Trans RX (decoded)
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_decoded_rx_msg();
-            handle_trans_decoded_rx_msg();
+            print_next_trans_rx_dec_msg();
+            handle_trans_rx_dec_msg();
         }
 
         // Trans RX (encoded)
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_encoded_rx_msg();
+            print_next_trans_rx_enc_msg();
             decode_trans_rx_msg();
         }
     }

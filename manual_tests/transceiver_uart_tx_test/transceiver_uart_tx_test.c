@@ -20,30 +20,30 @@ Other Notes:
 void add_message(char* string) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // Don't add the terminating '\0' character
-        trans_decoded_tx_msg_len = strlen(string);
-        for (uint8_t i = 0; i < trans_decoded_tx_msg_len; i++) {
-            trans_decoded_tx_msg[i] = string[i];
+        trans_tx_dec_msg_len = strlen(string);
+        for (uint8_t i = 0; i < trans_tx_dec_msg_len; i++) {
+            trans_tx_dec_msg[i] = string[i];
         }
-        trans_decoded_tx_msg_avail = true;
+        trans_tx_dec_msg_avail = true;
     }
 }
 
 void print_decoded(void) {
-    if (!trans_decoded_tx_msg_avail) {
+    if (!trans_tx_dec_msg_avail) {
         print("No decoded message available\n");
         return;
     }
     print("Decoded: ");
-    print_bytes((uint8_t*) trans_decoded_tx_msg, trans_decoded_tx_msg_len);
+    print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_msg_len);
 }
 
 void print_encoded(void) {
-    if (!trans_encoded_tx_msg_avail) {
+    if (!trans_tx_enc_msg_avail) {
         print("No encoded message available\n");
         return;
     }
     print("Encoded: ");
-    print_bytes((uint8_t*) trans_encoded_tx_msg, trans_encoded_tx_msg_len);
+    print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_msg_len);
 }
 
 void test_message(char* string) {
@@ -51,7 +51,7 @@ void test_message(char* string) {
     print_decoded();
     encode_trans_tx_msg();
     print_encoded();
-    send_trans_encoded_tx_msg();
+    send_trans_tx_enc_msg();
     print("\n");
     print_decoded();
     print_encoded();

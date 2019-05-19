@@ -38,10 +38,10 @@
 #define TRANS_CMD_PAY_CAN               0x11
 
 
-void handle_trans_decoded_rx_msg(void);
+void handle_trans_rx_dec_msg(void);
 
-void start_trans_decoded_tx_msg(void);
-void append_to_trans_decoded_tx_msg(uint8_t byte);
-void finish_trans_decoded_tx_msg(void);
+void start_trans_tx_dec_msg(void);
+void append_to_trans_tx_dec_msg(uint8_t byte);
+void finish_trans_tx_dec_msg(void);
 
 #endif
