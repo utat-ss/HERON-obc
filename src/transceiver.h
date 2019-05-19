@@ -10,14 +10,14 @@
 
 
 // Number of characters in the buffer of received UART RX characters
-#define TRANS_CMD_RESP_MAX_SIZE         20
+#define TRANS_CMD_RESP_MAX_SIZE     20
 #define TRANS_RX_ENC_MSG_MAX_SIZE   20
-#define TRANS_RX_DEC_MSG_MAX_SIZE   20
-#define TRANS_TX_DEC_MSG_MAX_SIZE   128
-#define TRANS_TX_ENC_MSG_MAX_SIZE   128
+#define TRANS_RX_DEC_MSG_MAX_SIZE   9
+#define TRANS_TX_DEC_MSG_MAX_SIZE   115
+#define TRANS_TX_ENC_MSG_MAX_SIZE   232
 
 // Number of seconds to wait (if we are not receiving anymore characters) to clear the buffer
-#define TRANS_RX_BUF_TIMEOUT 5
+#define TRANS_RX_BUF_TIMEOUT 2
 
 //Default Address - DO NOT CHANGE
 #define TRANS_ADDR  0x22
@@ -56,13 +56,8 @@ boot = 0b0 (application mode)
 #define TRANS_CALL_SIGN_LEN 6
 
 // Maximum number of times to attempt each command
-// TODO - what number?
 #define TRANS_MAX_CMD_ATTEMPTS 3
 
-
-// Expose this global variable from the UART library because we need it
-// TODO - put this in the UART library itself
-extern volatile uint8_t uart_rx_buf_count;
 
 extern volatile uint8_t    trans_cmd_resp[]; //buffer
 extern volatile uint8_t    trans_cmd_resp_len; //numebr valid chars
@@ -96,6 +91,7 @@ void encode_trans_tx_msg(void);
 void send_trans_tx_enc_msg(void);
 
 // Helper Functions to process responses
+uint8_t hex_to_char(uint8_t num);
 uint8_t char_to_hex(uint8_t c);
 uint32_t scan_uint(volatile uint8_t* string, uint8_t offset, uint8_t count);
 uint8_t string_cmp(const uint8_t* first, const char* second, uint8_t len);

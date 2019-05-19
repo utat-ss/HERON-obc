@@ -124,7 +124,7 @@ void trans_uptime_cb(void) {
     // Check for a timeout in receiving characters to clear the buffer
     if (uptime_s > trans_rx_prev_uptime_s &&
         uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
-        uart_rx_buf_count > 0) {
+        get_uart_rx_buf_count() > 0) {
 
         clear_uart_rx_buf();
         print("\nTimed out and cleared RX buf\n");
@@ -169,7 +169,9 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
 // Scans the contents of trans_cmd_resp for a command response, sets
 // trans_cmd_resp_avail if appropriate
 void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len) {
-    // TODO - is this really robust? what if an RX message has "OK" or "\r"?
+    // This should be a safe distinction
+    // An RX encoded message should always start with 0x00 and some number
+    // It should not start with "OK" and should not end with "\r"
 
     // Check conditions:
     // - Minimum 3 characters
@@ -197,19 +199,14 @@ void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len) {
 
 // Scans the contents of trans_cmd_resp for a received message, sets
 // trans_rx_msg_avail if appropriate
+// This should be called within an ISR so it is atomic
 void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
-    // TODO - is this really robust? what if an RX message has "OK" or "\r"?
-
     // Check conditions:
-    // - Minimum 3 characters
-    // - Fits in buffer
-    // - Does not start with "OK"
+    // - 20 characters, fits in buffer (all RX messages should be the same length)
     // - First byte is 0
     // - Second byte is not 0
     // - Second byte is the number of bytes remaining in the buffer
-    if (len >= 3 &&
-        len <= TRANS_RX_ENC_MSG_MAX_SIZE &&
-        string_cmp(buf, "OK", 2) == 0 &&
+    if (len == TRANS_RX_ENC_MSG_MAX_SIZE &&
         buf[0] == 0x00 &&
         buf[1] != 0x00 &&
         buf[1] == len - 2) {
@@ -229,15 +226,18 @@ void decode_trans_rx_msg(void) {
         if (!trans_rx_enc_msg_avail) {
             return;
         }
-        if (trans_rx_enc_msg_len < 3) {
+        if (trans_rx_enc_msg_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
             trans_rx_enc_msg_avail = false;
             return;
         }
 
-        for (uint8_t i = 0; i < trans_rx_enc_msg_len - 2; i++) {
-            trans_rx_dec_msg[i] = trans_rx_enc_msg[2 + i];
+        uint8_t dec_len = (trans_rx_enc_msg_len - 2) / 2;
+
+        // Decode two ASCII hex byte to one byte
+        for (uint8_t i = 0; i < dec_len; i++) {
+            trans_rx_dec_msg[i] = scan_uint(trans_rx_enc_msg, 2 + (i * 2), 2);
         }
-        trans_rx_dec_msg_len = trans_rx_enc_msg_len - 2;
+        trans_rx_dec_msg_len = dec_len;
         trans_rx_dec_msg_avail = true;
 
         trans_rx_enc_msg_avail = false;
@@ -257,11 +257,13 @@ void encode_trans_tx_msg(void) {
         // TODO - check length doesn't exceed buffer
 
         trans_tx_enc_msg[0] = 0x00;
-        trans_tx_enc_msg[1] = trans_tx_dec_msg_len;
+        trans_tx_enc_msg[1] = 2 + (trans_tx_dec_msg_len * 2);
+        // Encode one byte to two ASCII hex bytes
         for (uint8_t i = 0; i < trans_tx_dec_msg_len; i++) {
-            trans_tx_enc_msg[2 + i] = trans_tx_dec_msg[i];
+            trans_tx_enc_msg[2 + (i * 2) + 0] = hex_to_char((trans_tx_dec_msg[i] >> 4) & 0xFF);
+            trans_tx_enc_msg[2 + (i * 2) + 1] = hex_to_char(trans_tx_dec_msg[i] & 0xFF);
         }
-        trans_tx_enc_msg_len = trans_tx_dec_msg_len + 2;
+        trans_tx_enc_msg_len = 2 + (trans_tx_dec_msg_len * 2);
         trans_tx_enc_msg_avail = true;
 
         trans_tx_dec_msg_avail = false;
@@ -285,6 +287,19 @@ void send_trans_tx_enc_msg(void) {
 }
 
 
+/*
+Converts a number between 0 and 15 to the ASCII representation of it in hex
+(uses capital letters).
+*/
+uint8_t hex_to_char(uint8_t num) {
+    if (0x0 <= num && num <= 0x9) {
+        return '0' + num;
+    } else if (0xA <= num && num <= 0xF) {
+        return 'A' + (num - 0xA);
+    } else {
+        return 0;
+    }
+}
 
 /*
 Converts the ASCII representation of a hex number to an integer value.
