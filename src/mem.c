@@ -61,11 +61,20 @@ mem_section_t pay_opt_mem_section = {
     .fields_per_block = CAN_PAY_OPT_FIELD_COUNT
 };
 
+mem_section_t cmd_log_mem_section = {
+    .start_addr = MEM_CMD_LOG_START_ADDR,
+    .end_addr = MEM_CMD_LOG_END_ADDR,
+    .curr_block = 0,
+    .curr_block_eeprom_addr = MEM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR,
+    .fields_per_block = 1
+}
+
 // All memory sections
 mem_section_t* all_mem_sections[MEM_NUM_SECTIONS] = {
     &eps_hk_mem_section,
     &pay_hk_mem_section,
-    &pay_opt_mem_section
+    &pay_opt_mem_section,
+    &cmd_log_mem_section
 };
 
 
@@ -177,6 +186,54 @@ void read_mem_block(mem_section_t* section, uint32_t block_num,
     }
 }
 
+uint8_t write_mem_cmd_block(uint32_t block_num, mem_header_t* header,
+    uint8_t cmd_num, uint32_t arg1, uint32_t arg2) {
+    /*
+     * Writes to cmd_log section in the flash memory. Each entry is 19 bytes. 10 bytes for 
+     * the header, 1 byte for command type, 4 bytes for arg 1, and 4 bytes for arg 2.
+     * This format differs from the rest of the memory sections, which has standardized 3 bytes/field and multiple
+     * fields forming a block
+     * Returns a 1 if write was successful, 0 if not
+     */
+    // calculate the address based on block number. This is the offset address from the start of the section
+    uint32_t start_address = (MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD)*block_num;
+    // write the 19 bytes of information and check if write was successful
+    uint8_t bytes[MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD] = {
+        (header->block_num >> 16) & 0xFF,
+        (header->block_num >> 8) & 0xFF,
+        header->block_num & 0xFF,
+        header->error,
+        header->date.yy, header->date.mm, header->date.dd,
+        header->time.hh, header->time.mm, header->time.ss,
+        cmd_num, 
+        (arg1 >> 24) & 0xFF, (arg1 >> 16) & 0xFF, (arg1 >> 8) & 0xFF, arg1 & 0xFF,
+        (arg2 >> 24) & 0xFF, (arg2 >> 16) & 0xFF, (arg2 >> 8) & 0xFF, arg2 & 0xFF
+    };
+    if(write_mem_section_bytes(&cmd_log_mem_section, start_address, bytes, MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD))
+        return 1;
+    else
+        return 0;
+}
+
+
+void read_mem_cmd_block(uint32_t block_num, mem_header_t* header,
+    uint8_t* cmd_num, uint32_t* arg1, uint32_t* arg2){
+    /*
+     * Reads the cmd log from flash memory. Each cmd log is 19 bytes
+     */
+    // read the 19 bytes that constitute the cmd_log block
+    uint32_t start_address = (MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD)*block_num;
+    uint8_t bytes[MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD] = {0};
+    read_mem_section_bytes(&cmd_log_mem_section, start_address, bytes, MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD);
+
+    // deconstruct the 19 bytes into the specific components(header, cmd_num, arg1, and arg2)
+    for(uint8_t i=0; i<MEM_BYTES_PER_HEADER; i++){
+        header[i] = bytes[i];
+    }
+    *cmd_num = bytes[11];
+    *arg1 = (bytes[12] << 24) || (bytes[13] << 16) || (bytes[14] << 8) || (bytes[15]);
+    *arg2 = (bytes[16] << 24) || (bytes[17] << 16) || (bytes[18] << 8) || (bytes[19]);
+}
 
 
 
@@ -334,6 +391,7 @@ uint8_t write_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_
 
     if((section->start_addr + address + data_len) <= section->end_addr ){
         write_mem_bytes(address + section->start_addr, data, data_len);
+        return 1;
     } else {
         return 0;
     }
