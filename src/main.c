@@ -16,9 +16,9 @@ int main(void) {
 
         execute_next_cmd();
 
-        send_trans_encoded_tx_msg();
+        send_trans_tx_enc_msg();
         encode_trans_tx_msg();
-        handle_trans_decoded_rx_msg();
+        handle_trans_rx_dec_msg();
         decode_trans_rx_msg();
     }
 

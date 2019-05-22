@@ -83,24 +83,24 @@ volatile uint8_t    trans_cmd_resp_len = 0;
 volatile bool       trans_cmd_resp_avail = false;
 
 // Encoded RX message (from ground station)
-volatile uint8_t    trans_encoded_rx_msg[TRANS_ENCODED_RX_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_encoded_rx_msg_len = 0;
-volatile bool       trans_encoded_rx_msg_avail = false;
+volatile uint8_t    trans_rx_enc_msg[TRANS_RX_ENC_MSG_MAX_SIZE] = {0x00};
+volatile uint8_t    trans_rx_enc_msg_len = 0;
+volatile bool       trans_rx_enc_msg_avail = false;
 
 // Decoded RX message (from ground station)
-volatile uint8_t    trans_decoded_rx_msg[TRANS_DECODED_RX_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_decoded_rx_msg_len = 0;
-volatile bool       trans_decoded_rx_msg_avail = false;
+volatile uint8_t    trans_rx_dec_msg[TRANS_RX_DEC_MSG_MAX_SIZE] = {0x00};
+volatile uint8_t    trans_rx_dec_msg_len = 0;
+volatile bool       trans_rx_dec_msg_avail = false;
 
 // Decoded TX message (to ground station)
-volatile uint8_t    trans_decoded_tx_msg[TRANS_DECODED_TX_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_decoded_tx_msg_len = 0;
-volatile bool       trans_decoded_tx_msg_avail = false;
+volatile uint8_t    trans_tx_dec_msg[TRANS_TX_DEC_MSG_MAX_SIZE] = {0x00};
+volatile uint8_t    trans_tx_dec_msg_len = 0;
+volatile bool       trans_tx_dec_msg_avail = false;
 
 // Encoded TX message (to ground station)
-volatile uint8_t    trans_encoded_tx_msg[TRANS_ENCODED_TX_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_encoded_tx_msg_len = 0;
-volatile bool       trans_encoded_tx_msg_avail = false;
+volatile uint8_t    trans_tx_enc_msg[TRANS_TX_ENC_MSG_MAX_SIZE] = {0x00};
+volatile uint8_t    trans_tx_enc_msg_len = 0;
+volatile bool       trans_tx_enc_msg_avail = false;
 
 // Last time we have received a UART character
 volatile uint32_t trans_rx_prev_uptime_s = 0;
@@ -124,7 +124,7 @@ void trans_uptime_cb(void) {
     // Check for a timeout in receiving characters to clear the buffer
     if (uptime_s > trans_rx_prev_uptime_s &&
         uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
-        uart_rx_buf_count > 0) {
+        get_uart_rx_buf_count() > 0) {
 
         clear_uart_rx_buf();
         print("\nTimed out and cleared RX buf\n");
@@ -156,8 +156,8 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
         put_uart_char('\n');
         return len;
     }
-    scan_trans_encoded_rx_msg(buf, len);
-    if (trans_encoded_rx_msg_avail) {
+    scan_trans_rx_enc_msg(buf, len);
+    if (trans_rx_enc_msg_avail) {
         return len;
     }
 
@@ -169,7 +169,9 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
 // Scans the contents of trans_cmd_resp for a command response, sets
 // trans_cmd_resp_avail if appropriate
 void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len) {
-    // TODO - is this really robust? what if an RX message has "OK" or "\r"?
+    // This should be a safe distinction
+    // An RX encoded message should always start with 0x00 and some number
+    // It should not start with "OK" and should not end with "\r"
 
     // Check conditions:
     // - Minimum 3 characters
@@ -197,94 +199,107 @@ void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len) {
 
 // Scans the contents of trans_cmd_resp for a received message, sets
 // trans_rx_msg_avail if appropriate
-void scan_trans_encoded_rx_msg(const uint8_t* buf, uint8_t len) {
-    // TODO - is this really robust? what if an RX message has "OK" or "\r"?
-
+// This should be called within an ISR so it is atomic
+void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
     // Check conditions:
-    // - Minimum 3 characters
-    // - Fits in buffer
-    // - Does not start with "OK"
+    // - 20 characters, fits in buffer (all RX messages should be the same length)
     // - First byte is 0
     // - Second byte is not 0
     // - Second byte is the number of bytes remaining in the buffer
-    if (len >= 3 &&
-        len <= TRANS_ENCODED_RX_MSG_MAX_SIZE &&
-        string_cmp(buf, "OK", 2) == 0 &&
+    if (len == TRANS_RX_ENC_MSG_MAX_SIZE &&
         buf[0] == 0x00 &&
         buf[1] != 0x00 &&
         buf[1] == len - 2) {
 
         // Copy all characters except '\r'
         for (uint8_t i = 0; i < len; i++) {
-            trans_encoded_rx_msg[i] = buf[i];
+            trans_rx_enc_msg[i] = buf[i];
         }
-        trans_encoded_rx_msg_len = len;
-        trans_encoded_rx_msg_avail = true;
+        trans_rx_enc_msg_len = len;
+        trans_rx_enc_msg_avail = true;
     }
 }
 
-// trans_encoded_rx_msg -> trans_decoded_rx_msg
+// trans_rx_enc_msg -> trans_rx_dec_msg
 void decode_trans_rx_msg(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_encoded_rx_msg_avail) {
+        if (!trans_rx_enc_msg_avail) {
             return;
         }
-        if (trans_encoded_rx_msg_len < 3) {
-            trans_encoded_rx_msg_avail = false;
+        if (trans_rx_enc_msg_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
+            trans_rx_enc_msg_avail = false;
             return;
         }
 
-        for (uint8_t i = 0; i < trans_encoded_rx_msg_len - 2; i++) {
-            trans_decoded_rx_msg[i] = trans_encoded_rx_msg[2 + i];
-        }
-        trans_decoded_rx_msg_len = trans_encoded_rx_msg_len - 2;
-        trans_decoded_rx_msg_avail = true;
+        uint8_t dec_len = (trans_rx_enc_msg_len - 2) / 2;
 
-        trans_encoded_rx_msg_avail = false;
+        // Decode two ASCII hex byte to one byte
+        for (uint8_t i = 0; i < dec_len; i++) {
+            trans_rx_dec_msg[i] = scan_uint(trans_rx_enc_msg, 2 + (i * 2), 2);
+        }
+        trans_rx_dec_msg_len = dec_len;
+        trans_rx_dec_msg_avail = true;
+
+        trans_rx_enc_msg_avail = false;
     }
 }
 
-// trans_decoded_tx_msg -> trans_encoded_tx_msg
+// trans_tx_dec_msg -> trans_tx_enc_msg
 void encode_trans_tx_msg(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_decoded_tx_msg_avail) {
+        if (!trans_tx_dec_msg_avail) {
             return;
         }
-        if (trans_decoded_tx_msg_len == 0) {
-            trans_decoded_tx_msg_avail = false;
+        if (trans_tx_dec_msg_len == 0) {
+            trans_tx_dec_msg_avail = false;
             return;
         }
         // TODO - check length doesn't exceed buffer
 
-        trans_encoded_tx_msg[0] = 0x00;
-        trans_encoded_tx_msg[1] = trans_decoded_tx_msg_len;
-        for (uint8_t i = 0; i < trans_decoded_tx_msg_len; i++) {
-            trans_encoded_tx_msg[2 + i] = trans_decoded_tx_msg[i];
+        trans_tx_enc_msg[0] = 0x00;
+        trans_tx_enc_msg[1] = trans_tx_dec_msg_len * 2;
+        // Encode one byte to two ASCII hex bytes
+        for (uint8_t i = 0; i < trans_tx_dec_msg_len; i++) {
+            trans_tx_enc_msg[2 + (i * 2) + 0] = hex_to_char((trans_tx_dec_msg[i] >> 4) & 0x0F);
+            trans_tx_enc_msg[2 + (i * 2) + 1] = hex_to_char(trans_tx_dec_msg[i] & 0x0F);
         }
-        trans_encoded_tx_msg_len = trans_decoded_tx_msg_len + 2;
-        trans_encoded_tx_msg_avail = true;
+        trans_tx_enc_msg_len = 2 + (trans_tx_dec_msg_len * 2);
+        trans_tx_enc_msg_avail = true;
 
-        trans_decoded_tx_msg_avail = false;
+        trans_tx_dec_msg_avail = false;
     }
 }
 
-void send_trans_encoded_tx_msg(void) {
+void send_trans_tx_enc_msg(void) {
     // TODO - put into pipe mode or check if it's in pipe mode?
 
     // Make sure all the bytes are sent atomically over UART
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_encoded_tx_msg_avail) {
+        if (!trans_tx_enc_msg_avail) {
             return;
         }
 
-        for (uint8_t i = 0; i < trans_encoded_tx_msg_len; i++) {
-            put_uart_char(trans_encoded_tx_msg[i]);
+        for (uint8_t i = 0; i < trans_tx_enc_msg_len; i++) {
+            put_uart_char(trans_tx_enc_msg[i]);
         }
-        trans_encoded_tx_msg_avail = false;
+        trans_tx_enc_msg_avail = false;
     }
 }
 
 
+/*
+Converts a number between 0 and 15 to the ASCII representation of it in hex
+(uses capital letters).
+*/
+uint8_t hex_to_char(uint8_t num) {
+    if (0x0 <= num && num <= 0x9) {
+        return '0' + num;
+    } else if (0xA <= num && num <= 0xF) {
+        return 'A' + (num - 0xA);
+    } else {
+        return 0;
+    }
+}
 
 /*
 Converts the ASCII representation of a hex number to an integer value.

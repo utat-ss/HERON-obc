@@ -40,11 +40,11 @@ void handle_rx_msg(void) {
         if ((current_cmd == &send_eps_can_cmd) ||
             (current_cmd == &send_pay_can_cmd)) {
                 ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                    start_trans_decoded_tx_msg();
+                    start_trans_tx_dec_msg();
                     for (uint8_t i = 0; i < 8; i++) {
-                        append_to_trans_decoded_tx_msg(data[i]);
+                        append_to_trans_tx_dec_msg(data[i]);
                     }
-                    finish_trans_decoded_tx_msg();
+                    finish_trans_tx_dec_msg();
                 }
                 finish_current_cmd(true);
             }
@@ -116,8 +116,8 @@ void handle_eps_ctrl(const uint8_t* data){
         current_cmd == &set_eps_heater_sp_cmd) {
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_decoded_tx_msg();
-            finish_trans_decoded_tx_msg();
+            start_trans_tx_dec_msg();
+            finish_trans_tx_dec_msg();
         }
 
         finish_current_cmd(true);
@@ -200,8 +200,8 @@ void handle_pay_ctrl(const uint8_t* data) {
         current_cmd == &set_pay_heater_sp_cmd) {
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_decoded_tx_msg();
-            finish_trans_decoded_tx_msg();
+            start_trans_tx_dec_msg();
+            finish_trans_tx_dec_msg();
         }
 
         finish_current_cmd(true);
@@ -212,8 +212,8 @@ void handle_pay_ctrl(const uint8_t* data) {
         current_cmd == &actuate_pay_motors_cmd) {
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_decoded_tx_msg();
-            finish_trans_decoded_tx_msg();
+            start_trans_tx_dec_msg();
+            finish_trans_tx_dec_msg();
         }
 
         finish_current_cmd(true);
