@@ -411,6 +411,7 @@ void print_next_trans_rx_enc_msg(void) {
         return;
     }
 
+    print("\n");
     print("Trans RX (Encoded): %u bytes: ", trans_rx_enc_msg_len);
     print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_msg_len);
 }
@@ -679,8 +680,8 @@ int main(void){
     print("\n\n\nStarting commands test\n\n");
 
     sim_local_actions = false;
-    sim_eps = false;
-    sim_pay = false;
+    sim_eps = true;
+    sim_pay = true;
     sim_trans = true;
     sim_trans_uart = false;
     print_can_msgs = true;

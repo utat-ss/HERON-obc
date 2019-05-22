@@ -257,11 +257,11 @@ void encode_trans_tx_msg(void) {
         // TODO - check length doesn't exceed buffer
 
         trans_tx_enc_msg[0] = 0x00;
-        trans_tx_enc_msg[1] = 2 + (trans_tx_dec_msg_len * 2);
+        trans_tx_enc_msg[1] = trans_tx_dec_msg_len * 2;
         // Encode one byte to two ASCII hex bytes
         for (uint8_t i = 0; i < trans_tx_dec_msg_len; i++) {
-            trans_tx_enc_msg[2 + (i * 2) + 0] = hex_to_char((trans_tx_dec_msg[i] >> 4) & 0xFF);
-            trans_tx_enc_msg[2 + (i * 2) + 1] = hex_to_char(trans_tx_dec_msg[i] & 0xFF);
+            trans_tx_enc_msg[2 + (i * 2) + 0] = hex_to_char((trans_tx_dec_msg[i] >> 4) & 0x0F);
+            trans_tx_enc_msg[2 + (i * 2) + 1] = hex_to_char(trans_tx_dec_msg[i] & 0x0F);
         }
         trans_tx_enc_msg_len = 2 + (trans_tx_dec_msg_len * 2);
         trans_tx_enc_msg_avail = true;
