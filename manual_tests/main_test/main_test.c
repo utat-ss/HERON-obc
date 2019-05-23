@@ -132,16 +132,14 @@ uart_cmd_t all_cmds[] = {
     {
         .description = "Actuate motors up",
         .cmd = &actuate_pay_motors_cmd,
-        // TODO - constants
-        .arg1 = 1,
+        .arg1 = CAN_PAY_CTRL_ACT_UP,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Actuate motors down",
         .cmd = &actuate_pay_motors_cmd,
-        // TODO - constants
-        .arg1 = 2,
+        .arg1 = CAN_PAY_CTRL_ACT_DOWN,
         .arg2 = 0,
         .bypass_trans = false
     }
@@ -172,8 +170,8 @@ void print_therm_temp(uint16_t raw_data) {
         adc_raw_data_to_raw_vol(raw_data))));
 }
 
-void print_imu_data(uint16_t raw_data) {
-    print(" 0x%.4X\n", raw_data);
+void print_gyro_data(uint16_t raw_data) {
+    print(" 0x%.4X = %.3f rad/s\n", raw_data, imu_raw_data_to_gyro(raw_data));
 }
 
 void print_header(mem_header_t header) {
@@ -199,48 +197,43 @@ void print_local_data_fn(void) {
     print_voltage(eps_hk_fields[CAN_EPS_HK_BB_VOL]);
     print("BB Cur:");
     print_current(eps_hk_fields[CAN_EPS_HK_BB_CUR]);
-    print("BT Vol:");
-    print_voltage(eps_hk_fields[CAN_EPS_HK_BT_VOL]);
-    print("BT Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_BT_CUR]);
-    print("+X Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_PX_CUR]);
-    print("-X Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_NX_CUR]);
-    print("+Y Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_PY_CUR]);
     print("-Y Cur:");
     print_current(eps_hk_fields[CAN_EPS_HK_NY_CUR]);
-    print("Bat Vol:");
-    print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
-    print("Bat Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
+    print("+X Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_PX_CUR]);
+    print("+Y Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_PY_CUR]);
+    print("-X Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_NX_CUR]);
     print("Bat Temp 1:");
     print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP1]);
     print("Bat Temp 2:");
     print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP2]);
-    // print("Acc X:");
-    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_X]);
-    // print("Acc Y:");
-    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_Y]);
-    // print("Acc Z:");
-    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_ACC_Z]);
-    // print("Gyr X:");
-    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_GYR_X]);
-    // print("Gyr Y:");
-    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_GYR_Y]);
-    // print("Gyr Z:");
-    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_GYR_Z]);
-    // print("Mag X:");
-    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_X]);
-    // print("Mag Y:");
-    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Y]);
-    // print("Mag Z:");
-    // print_imu_data(eps_hk_fields[CAN_EPS_HK_IMU_MAG_Z]);
-    print("Bat Temp Setpt 1:");
+    print("Bat Vol:");
+    print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
+    print("Bat Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
+    print("BT Cur:");
+    print_current(eps_hk_fields[CAN_EPS_HK_BT_CUR]);
+    print("BT Vol:");
+    print_voltage(eps_hk_fields[CAN_EPS_HK_BT_VOL]);
+    print("Heater Setpt 1:");
     print_therm_temp(eps_hk_fields[CAN_EPS_HK_HEAT_SP1]);
-    print("Bat Temp Setpt 2:");
+    print("Heater Setpt 2:");
     print_therm_temp(eps_hk_fields[CAN_EPS_HK_HEAT_SP2]);
+    print("Gyro (uncal) X:");
+    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_UNCAL_X]);
+    print("Gyro (uncal) Y:");
+    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_UNCAL_Y]);
+    print("Gyro (uncal) Z:");
+    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_UNCAL_Z]);
+    print("Gyro (cal) X:");
+    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_CAL_X]);
+    print("Gyro (cal) Y:");
+    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_CAL_Y]);
+    print("Gyro (cal) Z:");
+    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_CAL_Z]);
+    
 
     print("\nPAY HK:\n");
 
@@ -263,10 +256,11 @@ void print_local_data_fn(void) {
         print("Temp %u:", i);
         print_therm_temp(pay_hk_fields[CAN_PAY_HK_THERM0 + i]);
     }
-    print("Temp Setpt 1:");
+    print("Heater Setpt 1:");
     print_therm_temp(pay_hk_fields[CAN_PAY_HK_HEAT_SP1]);
-    print("Temp Setpt 2:");
+    print("Heater Setpt 2:");
     print_therm_temp(pay_hk_fields[CAN_PAY_HK_HEAT_SP2]);
+
 
     print("\nPAY OPT:\n");
 
@@ -521,9 +515,12 @@ void sim_send_next_eps_tx_msg(void) {
     // Can return early to not send a message back
     switch (msg_type) {
         case CAN_EPS_HK:
-            if (0 <= field_num && field_num < CAN_EPS_HK_FIELD_COUNT) {
-                // All fields are 12-bit ADC data
+            if (CAN_EPS_HK_BB_VOL <= field_num && field_num <= CAN_EPS_HK_HEAT_SP2) {
+                // 12-bit data - ADC (fields 0-11) or DAC (fields 12-13)
                 populate_msg_data(rx_msg, rand_bits(12));
+            } else if (CAN_EPS_HK_GYR_UNCAL_X <= field_num && field_num <= CAN_EPS_HK_GYR_CAL_Z) {
+                // 16-bit data - IMU gyro
+                populate_msg_data(rx_msg, rand_bits(16));
             } else {
                 return;
             }
@@ -645,19 +642,33 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
         if (all_cmds[i].bypass_trans) {
             enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
         } else {
-            trans_rx_enc_msg[0] = 0x00;
-            trans_rx_enc_msg[1] = 9;
-            trans_rx_enc_msg[2] = trans_cmd_to_msg_type(all_cmds[i].cmd);
-            trans_rx_enc_msg[3] = (all_cmds[i].arg1 >> 24) & 0xFF;
-            trans_rx_enc_msg[4] = (all_cmds[i].arg1 >> 16) & 0xFF;
-            trans_rx_enc_msg[5] = (all_cmds[i].arg1 >> 8) & 0xFF;
-            trans_rx_enc_msg[6] = all_cmds[i].arg1 & 0xFF;
-            trans_rx_enc_msg[7] = (all_cmds[i].arg2 >> 24) & 0xFF;
-            trans_rx_enc_msg[8] = (all_cmds[i].arg2 >> 16) & 0xFF;
-            trans_rx_enc_msg[9] = (all_cmds[i].arg2 >> 8) & 0xFF;
-            trans_rx_enc_msg[10] = all_cmds[i].arg2 & 0xFF;
+            uint8_t msg_type = trans_cmd_to_msg_type(all_cmds[i].cmd);
+            uint32_t arg1 = all_cmds[i].arg1;
+            uint32_t arg2 = all_cmds[i].arg2;
 
-            trans_rx_enc_msg_len = 11;
+            // Encode one byte to two ASCII hex bytes
+            trans_rx_enc_msg[0] = 0x00;
+            trans_rx_enc_msg[1] = 9 * 2;
+            trans_rx_enc_msg[2] = hex_to_char((msg_type >> 4) & 0x0F);
+            trans_rx_enc_msg[3] = hex_to_char((msg_type >> 0) & 0x0F);
+            trans_rx_enc_msg[4] = hex_to_char((arg1 >> 28) & 0x0F);
+            trans_rx_enc_msg[5] = hex_to_char((arg1 >> 24) & 0x0F);
+            trans_rx_enc_msg[6] = hex_to_char((arg1 >> 20) & 0x0F);
+            trans_rx_enc_msg[7] = hex_to_char((arg1 >> 16) & 0x0F);
+            trans_rx_enc_msg[8] = hex_to_char((arg1 >> 12) & 0x0F);
+            trans_rx_enc_msg[9] = hex_to_char((arg1 >> 8) & 0x0F);
+            trans_rx_enc_msg[10] = hex_to_char((arg1 >> 4) & 0x0F);
+            trans_rx_enc_msg[11] = hex_to_char((arg1 >> 0) & 0x0F);
+            trans_rx_enc_msg[12] = hex_to_char((arg2 >> 28) & 0x0F);
+            trans_rx_enc_msg[13] = hex_to_char((arg2 >> 24) & 0x0F);
+            trans_rx_enc_msg[14] = hex_to_char((arg2 >> 20) & 0x0F);
+            trans_rx_enc_msg[15] = hex_to_char((arg2 >> 16) & 0x0F);
+            trans_rx_enc_msg[16] = hex_to_char((arg2 >> 12) & 0x0F);
+            trans_rx_enc_msg[17] = hex_to_char((arg2 >> 8) & 0x0F);
+            trans_rx_enc_msg[18] = hex_to_char((arg2 >> 4) & 0x0F);
+            trans_rx_enc_msg[19] = hex_to_char((arg2 >> 0) & 0x0F);
+
+            trans_rx_enc_msg_len = 20;
             trans_rx_enc_msg_avail = true;
         }
     }
@@ -683,7 +694,7 @@ int main(void){
     sim_eps = true;
     sim_pay = true;
     sim_trans = true;
-    sim_trans_uart = false;
+    sim_trans_uart = true;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;
