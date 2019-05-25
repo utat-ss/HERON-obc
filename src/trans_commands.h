@@ -36,7 +36,8 @@
 #define TRANS_CMD_RESET                 0x0F
 #define TRANS_CMD_EPS_CAN               0x10
 #define TRANS_CMD_PAY_CAN               0x11
-
+#define TRANS_CMD_READ_EEPROM           0x12
+#define TRANS_CMD_GET_CURR_BLOCK_NUM    0x13
 
 void handle_trans_rx_dec_msg(void);
 
