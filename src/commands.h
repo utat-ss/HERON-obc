@@ -83,7 +83,8 @@ extern cmd_t actuate_pay_motors_cmd;
 extern cmd_t reset_cmd;
 extern cmd_t send_eps_can_cmd;
 extern cmd_t send_pay_can_cmd;
-
+extern cmd_t read_eeprom_cmd;
+extern cmd_t get_curr_block_num_cmd;
 
 void finish_current_cmd(bool succeeded);
 

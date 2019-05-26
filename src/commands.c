@@ -19,7 +19,8 @@ void actuate_motors_fn(void);
 void reset_fn(void);
 void send_eps_can_fn(void);
 void send_pay_can_fn(void);
-
+void read_eeprom_fn(void);
+void get_curr_block_num_fn(void);
 
 // If true, the program will simulate local actions (i.e. simulates any
 // operations with peripherals besides the microcontroller and CAN)
@@ -50,7 +51,7 @@ queue_t cmd_args_queue;
 
 // The currently executing command (or nop_fn for no command executing)
 // NOTE: need to compare the function pointer, not the command pointer (could have a duplicate of the command struct but the function pointer will always be the same for the same command)
-// TODO - check volatile
+// Use double volatile just in case
 volatile cmd_t* volatile current_cmd = &nop_cmd;
 // Current command arguments
 volatile uint32_t current_cmd_arg1 = 0;
@@ -117,8 +118,12 @@ cmd_t send_eps_can_cmd = {
 cmd_t send_pay_can_cmd = {
     .fn = send_pay_can_fn
 };
-
-
+cmd_t read_eeprom_cmd = {
+    .fn = read_eeprom_fn
+};
+cmd_t get_curr_block_num_cmd = {
+    .fn = get_curr_block_num_fn
+};
 
 
 
@@ -492,6 +497,7 @@ void actuate_motors_fn(void) {
 }
 
 void reset_fn(void) {
+    // TODO
     print("Reset TODO\n");
 }
 
@@ -507,6 +513,40 @@ void send_pay_can_fn(void) {
     print("Sending PAY CAN\n");
     enqueue_pay_tx_msg(current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
+}
+
+void read_eeprom_fn(void) {
+    // TODO
+}
+
+void get_curr_block_num_fn(void) {
+    can_countdown = 30;
+
+    uint32_t block_num = 0;
+    switch (current_cmd_arg1) {
+        case CMD_BLOCK_EPS_HK:
+            block_num = eps_hk_mem_section.curr_block;
+            break;
+        case CMD_BLOCK_PAY_HK:
+            block_num = pay_hk_mem_section.curr_block;
+            break;
+        case CMD_BLOCK_PAY_OPT:
+            block_num = pay_opt_mem_section.curr_block;
+            break;
+        default:
+            break;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg((block_num >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((block_num >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((block_num >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(block_num & 0xFF);
+        finish_trans_tx_dec_msg();
+    }
+    
+    finish_current_cmd(true);
 }
 
 // Finishes executing the current command and sets the succeeded flag
@@ -720,6 +760,10 @@ cmd_t* trans_msg_type_to_cmd(uint8_t msg_type) {
             return &send_eps_can_cmd;
         case TRANS_CMD_PAY_CAN:
             return &send_pay_can_cmd;
+        case TRANS_CMD_READ_EEPROM:
+            return &read_eeprom_cmd;
+        case TRANS_CMD_GET_CURR_BLOCK_NUM:
+            return &get_curr_block_num_cmd;
         default:
             return NULL;
     }
@@ -761,6 +805,10 @@ uint8_t trans_cmd_to_msg_type(cmd_t* cmd) {
         return TRANS_CMD_EPS_CAN;
     } else if (cmd == &send_pay_can_cmd) {
         return TRANS_CMD_PAY_CAN;
+    } else if (cmd == &read_eeprom_cmd) {
+        return TRANS_CMD_READ_EEPROM;
+    } else if (cmd == &get_curr_block_num_cmd) {
+        return TRANS_CMD_GET_CURR_BLOCK_NUM;
     } else {
         return 0xFF;
     }
