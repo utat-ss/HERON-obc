@@ -48,14 +48,6 @@ TODO - For most of the get commands, OBC misses the first 1 or 2 characters in
     the response for the first attempt, but the second attempt seems to always work
 TODO - it was observed that after either sending data in pipe mode, the
     transceiver sent the UART message "+ESTTC<CR>" - figure out what this is
-TODO - macro for repeating command attempts?
-TODO - if commands to the transceiver fail, change UART baud rate and switch
-    the transceiver back to 9600 baud
-TODO - sort out possible race condition where we receive UART RX, which triggers
-    an action in some function, but before the function finished, the uptime
-    timer triggers and clears the buffer that the function was taking data from
-    - currently assuming that the function acts quickly enough to use the data
-      before it is cleared
 
 TODO - perhaps refactor sending a transceiver command and receiving UART back
 uint8_t send_trans_cmd(uint8_t resp_len, char* fmt, ...) {
@@ -113,6 +105,8 @@ Initializes the transceiver for UART RX callbacks (does not change any settings)
 */
 void init_trans(void) {
     init_trans_uart();
+    uart_baud_rate_t previous_baud = UART_BAUD_9600;
+    correct_transceiver_baud_rate(&previous_baud);
 }
 
 void init_trans_uart(void) {
@@ -127,7 +121,7 @@ void trans_uptime_cb(void) {
         get_uart_rx_buf_count() > 0) {
 
         clear_uart_rx_buf();
-        print("\nTimed out and cleared RX buf\n");
+        print("\nTimed out, cleared UART RX buf\n");
     }
 }
 
@@ -141,21 +135,25 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
     // Save the new time we have received a character
     trans_rx_prev_uptime_s = uptime_s;
 
-    // Output new character?
+    // Output new character
     // put_uart_char(buf[len - 1]);
 
     // Scan what we have in the buffer now
     // If we found something, clear it from the main UART buffer because the
     // other function has already copied it to a dedicated buffer
+
+    // Command response
     scan_trans_cmd_resp(buf, len);
     if (trans_cmd_resp_avail) {
-        print("got resp: %u chars: ", trans_cmd_resp_len);
+        print("cmd resp: %u chars: ", trans_cmd_resp_len);
         for (uint8_t i = 0; i < trans_cmd_resp_len; i++) {
             put_uart_char(trans_cmd_resp[i]);
         }
         put_uart_char('\n');
         return len;
     }
+
+    // RX encoded message
     scan_trans_rx_enc_msg(buf, len);
     if (trans_rx_enc_msg_avail) {
         return len;
@@ -211,7 +209,7 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
         buf[1] != 0x00 &&
         buf[1] == len - 2) {
 
-        // Copy all characters except '\r'
+        // Copy all characters
         for (uint8_t i = 0; i < len; i++) {
             trans_rx_enc_msg[i] = buf[i];
         }
@@ -250,11 +248,10 @@ void encode_trans_tx_msg(void) {
         if (!trans_tx_dec_msg_avail) {
             return;
         }
-        if (trans_tx_dec_msg_len == 0) {
+        if (trans_tx_dec_msg_len == 0 || trans_tx_dec_msg_len > TRANS_TX_DEC_MSG_MAX_SIZE) {
             trans_tx_dec_msg_avail = false;
             return;
         }
-        // TODO - check length doesn't exceed buffer
 
         trans_tx_enc_msg[0] = 0x00;
         trans_tx_enc_msg[1] = trans_tx_dec_msg_len * 2;
@@ -271,7 +268,8 @@ void encode_trans_tx_msg(void) {
 }
 
 void send_trans_tx_enc_msg(void) {
-    // TODO - put into pipe mode or check if it's in pipe mode?
+    // Assume the transceiver is already in pipe mode (should only be a few
+    // seconds since when we received a packet)
 
     // Make sure all the bytes are sent atomically over UART
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {

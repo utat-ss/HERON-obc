@@ -17,6 +17,7 @@
 #define TRANS_TX_ENC_MSG_MAX_SIZE   232
 
 // Number of seconds to wait (if we are not receiving anymore characters) to clear the buffer
+// Uptime error is +- 1 second, which should be accounted for in this number
 #define TRANS_RX_BUF_TIMEOUT 2
 
 //Default Address - DO NOT CHANGE

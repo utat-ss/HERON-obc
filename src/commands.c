@@ -49,8 +49,7 @@ queue_t cmd_queue;
 // Arguments corresponding to each command
 queue_t cmd_args_queue;
 
-// The currently executing command (or nop_fn for no command executing)
-// NOTE: need to compare the function pointer, not the command pointer (could have a duplicate of the command struct but the function pointer will always be the same for the same command)
+// A pointer to the currently executing command (or nop_cmd for no command executing)
 // Use double volatile just in case
 volatile cmd_t* volatile current_cmd = &nop_cmd;
 // Current command arguments
@@ -129,7 +128,10 @@ cmd_t get_curr_block_num_cmd = {
 
 // Command callback functions
 
-void nop_fn(void) {}
+void nop_fn(void) {
+    // Don't need to do anything here because execute_next_cmd() in general.c
+    // will start a newly requested command if nop is the current command
+}
 
 void ping_fn(void) {
     can_countdown = 30;
