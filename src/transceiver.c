@@ -277,13 +277,68 @@ void send_trans_tx_enc_msg(void) {
             return;
         }
 
+        uint16_t crc = calc_trans_crc();
+
+        // Send message using the additional packet information
+        // From Transceiver Packet Protocol document on Google Drive
+        for (uint8_t i = 0; i <= 4; i++) {
+            put_uart_char(0x55);
+        }
+        put_uart_char(0x7E);
+        put_uart_char(trans_tx_enc_msg_len);
         for (uint8_t i = 0; i < trans_tx_enc_msg_len; i++) {
             put_uart_char(trans_tx_enc_msg[i]);
         }
+        put_uart_char((crc >> 8) & 0xFF);
+        put_uart_char(crc & 0xFF);
+        // Need to terminate the packet to send it
+        put_uart_char('\r');
+
         trans_tx_enc_msg_avail = false;
     }
 }
 
+// Calculates and returns the 16-bit CRC on trans_tx_enc_msg of length
+// trans_tx_enc_msg_len
+// Based on update_bad_crc() from
+// https://github.com/HeronMkII/ground-station/blob/master/crc16.c
+uint16_t calc_trans_crc(void) {
+    /* based on code found at
+    http://www.programmingparadise.com/utility/crc.html
+    */
+    uint16_t crc = 0xffff;
+
+    // TODO - is it supposed to include the size byte in the calculation?
+    update_trans_crc(&crc, trans_tx_enc_msg_len);
+    for (uint8_t i = 0; i < trans_tx_enc_msg_len; i++) {
+        update_trans_crc(&crc, trans_tx_enc_msg[i]);
+    }
+
+    return crc;
+}
+
+void update_trans_crc(uint16_t* crc, uint8_t byte) {
+    /*
+    Why are they shifting this byte left by 8 bits??
+    How do the low bits of the poly ever see it?
+    */
+    uint16_t ch = ((uint16_t) byte) << 8;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        uint16_t xor_flag;
+        if ((*crc ^ ch) & 0x8000) {
+            xor_flag = 1;
+        }
+        else {
+            xor_flag = 0;
+        }
+        *crc = *crc << 1;
+        if (xor_flag) {
+            *crc = *crc ^ TRANS_CRC_POLY;
+        }
+        ch = ch << 1;
+    }
+}
 
 /*
 Converts a number between 0 and 15 to the ASCII representation of it in hex

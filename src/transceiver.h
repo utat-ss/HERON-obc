@@ -16,6 +16,9 @@
 #define TRANS_TX_DEC_MSG_MAX_SIZE   115
 #define TRANS_TX_ENC_MSG_MAX_SIZE   232
 
+/* crc-ccitt mask */
+#define TRANS_CRC_POLY 0x1021
+
 // Number of seconds to wait (if we are not receiving anymore characters) to clear the buffer
 // Uptime error is +- 1 second, which should be accounted for in this number
 #define TRANS_RX_BUF_TIMEOUT 2
@@ -90,6 +93,8 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len);
 void decode_trans_rx_msg(void);
 void encode_trans_tx_msg(void);
 void send_trans_tx_enc_msg(void);
+uint16_t calc_trans_crc(void);
+void update_trans_crc(uint16_t* crc, uint8_t byte);
 
 // Helper Functions to process responses
 uint8_t hex_to_char(uint8_t num);
