@@ -114,12 +114,17 @@ void init_trans_uart(void) {
     add_uptime_callback(trans_uptime_cb);
 }
 
+extern volatile uint8_t uart_rx_buf[];
+
+
 void trans_uptime_cb(void) {
     // Check for a timeout in receiving characters to clear the buffer
     if (uptime_s > trans_rx_prev_uptime_s &&
         uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
         get_uart_rx_buf_count() > 0) {
-
+        
+        print("UART RX buf (%u bytes): ", get_uart_rx_buf_count());
+        print_bytes((uint8_t*) uart_rx_buf, get_uart_rx_buf_count());
         clear_uart_rx_buf();
         print("\nTimed out, cleared UART RX buf\n");
     }

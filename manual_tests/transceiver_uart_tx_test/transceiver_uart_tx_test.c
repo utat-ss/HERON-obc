@@ -95,7 +95,18 @@ int main(void) {
 
     print("Starting test\n\n");
 
-    init_trans_uart();
+    // init_trans_uart();
+
+    init_trans();
+    turn_on_trans_pipe();
+    print("Pipe mode on\n");
+
+
+    // while (1) {
+    //     test_string_message("hello");
+    //     _delay_ms(3000);
+    // }
+
 
     test_string_message("hello");
     test_string_message("world!");
