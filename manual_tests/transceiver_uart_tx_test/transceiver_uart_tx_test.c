@@ -95,8 +95,10 @@ int main(void) {
 
     print("Starting test\n\n");
 
+    // For simulated transceiver
     // init_trans_uart();
 
+    // For actual transceiver - enable pipe mode from OBC
     init_trans();
     turn_on_trans_pipe();
     print("Pipe mode on\n");
