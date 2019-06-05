@@ -15,15 +15,13 @@ void handle_trans_rx_dec_msg(void) {
             return;
         }
         // Only accept 9 byte messages
-        // TODO
-        if (trans_rx_dec_msg_len != 9) {
+        if (trans_rx_dec_msg_len != TRANS_RX_DEC_MSG_MAX_SIZE) {
             trans_rx_dec_msg_avail = false;
             return;
         }
 
         // Use shorter names for now
         uint8_t* msg = (uint8_t*) trans_rx_dec_msg;
-
         uint8_t msg_type = msg[0];
         uint32_t arg1 =
             (((uint32_t) msg[1]) << 24) |
@@ -46,7 +44,8 @@ void handle_trans_rx_dec_msg(void) {
     }
 }
 
-// NOTE: this function should be used within an atomic block
+// NOTE: these three functions should be used within the same atomic block
+
 void start_trans_tx_dec_msg(void) {
     trans_tx_dec_msg[0] = trans_cmd_to_msg_type((cmd_t*) current_cmd);
     trans_tx_dec_msg[1] = (current_cmd_arg1 >> 24) & 0xFF;
