@@ -24,3 +24,12 @@ void run_comms_delay(void) {
 
     print("Comms delay done\n");
 }
+
+// Currently a dummy I2C sequence
+// TODO - implement real deployment commands
+void deploy_antenna(void) {
+    uint8_t data[1] = {0x00};
+    uint8_t status = 0;
+    write_i2c(0x00, data, 1, &status);
+    read_i2c(0x00, data, 1, &status);
+}

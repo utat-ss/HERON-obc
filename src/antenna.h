@@ -6,6 +6,8 @@
 #include <uart/uart.h>
 #include <utilities/utilities.h>
 
+#include "i2c.h"
+
 // EEPROM address to store whether comms delay has finished
 #define COMMS_DELAY_DONE_EEPROM_ADDR ((uint32_t*) 0x34)
 // Write 1 when it has already been done
@@ -18,5 +20,6 @@
 extern volatile uint32_t comms_delay_s;
 
 void run_comms_delay(void);
+void deploy_antenna(void);
 
 #endif
