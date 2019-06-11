@@ -12,11 +12,6 @@
 #include <test/test.h>
 #include "../../src/general.h"
 
-// Check functionality of harness test
-void harness_func_test( void ){
-	ASSERT_EQ(1+1, 2);
-}
-
 // EPS HK test
 void eps_hk_test( void ){
 	// generate a simulated EPS response that will later be used
@@ -143,12 +138,11 @@ void pay_opt_test( void ){
 	}
 }
 
-test_t t1 = { .name = "harness functionality test", .fn = harness_func_test };
-test_t t2 = { .name = "eps hk test", .fn = eps_hk_test };
-test_t t3 = { .name = "pay hk test", .fn = pay_hk_test };
-test_t t4 = { .name = "pay opt test", .fn = pay_opt_test };
+test_t t1 = { .name = "eps hk test", .fn = eps_hk_test };
+test_t t2 = { .name = "pay hk test", .fn = pay_hk_test };
+test_t t3 = { .name = "pay opt test", .fn = pay_opt_test };
 
-test_t* suite[] = { &t1, &t2, &t3, &t4};
+test_t* suite[] = { &t1, &t2, &t3 };
 
 int main( void ) {
     init_obc_core();
