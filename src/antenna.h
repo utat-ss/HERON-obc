@@ -5,6 +5,7 @@
 
 #include <uart/uart.h>
 #include <utilities/utilities.h>
+#include <watchdog/watchdog.h>
 
 #include "i2c.h"
 

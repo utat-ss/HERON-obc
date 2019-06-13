@@ -15,6 +15,7 @@ void run_comms_delay(void) {
 
     // Use 100ms increments because that is tolerable for delay precision
     for (uint32_t seconds = 0; seconds < comms_delay_s; seconds++) {
+        WDT_ENABLE_SYS_RESET(WDTO_8S);
         for (uint8_t i = 0; i < 10; i++) {
             _delay_ms(100);
         }
@@ -28,8 +29,20 @@ void run_comms_delay(void) {
 // Currently a dummy I2C sequence
 // TODO - implement real deployment commands
 void deploy_antenna(void) {
-    uint8_t data[1] = {0x00};
-    uint8_t status = 0;
-    write_i2c(0x00, data, 1, &status);
-    read_i2c(0x00, data, 1, &status);
+    // TODO - read status of each door and deploy any that failed
+    print("Deploying antenna...\n");
+
+    for (uint8_t i = 0; i < 5; i++) {
+        WDT_ENABLE_SYS_RESET(WDTO_8S);
+        print("Loop %u\n", i);
+
+        uint8_t data[1] = {0x00};
+        uint8_t status = 0;
+
+        write_i2c(0x00, data, 1, &status);
+        read_i2c(0x00, data, 1, &status);
+        _delay_ms(5000);
+    }
+    
+    print("Done deploying antenna\n");
 }
