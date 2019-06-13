@@ -146,7 +146,6 @@ test_t* suite[] = { &t1, &t2, &t3 };
 
 int main( void ) {
     init_obc_core();
-    init_obc_comms();
 
     run_tests(suite, sizeof(suite) / sizeof(suite[0]));
     return 0;
