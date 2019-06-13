@@ -33,6 +33,9 @@ bool sim_trans = false;
 // Set to true to simulate getting UART from the transceiver
 bool sim_trans_uart = false;
 
+bool skip_comms_delay = false;
+bool skip_deploy_antenna = false;
+
 // Set to true to print TX and RX CAN messages
 bool print_can_msgs = false;
 // Set to true to print commands and arguments
@@ -695,6 +698,9 @@ int main(void){
     sim_pay = true;
     sim_trans = true;
     sim_trans_uart = true;
+    comms_delay_s = 30;
+    skip_comms_delay = false;
+    skip_deploy_antenna = false;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;
@@ -704,6 +710,9 @@ int main(void){
     print("sim_pay = %u\n", sim_pay);
     print("sim_trans = %u\n", sim_trans);
     print("sim_trans_uart = %u\n", sim_trans_uart);
+    print("comms_delay_s = %lu\n", comms_delay_s);
+    print("skip_comms_delay = %u\n", skip_comms_delay);
+    print("skip_deploy_antenna = %u\n", skip_deploy_antenna);
     print("print_can_msgs = %u\n", print_can_msgs);
     print("print_cmds = %u\n", print_cmds);
     print("print_trans_msgs = %u\n", print_trans_msgs);
@@ -714,6 +723,13 @@ int main(void){
         pay_hk_mem_section.curr_block,
         pay_opt_mem_section.curr_block);
     print("\n");
+
+    if (!skip_comms_delay) {
+        run_comms_delay();
+    }
+    if (!skip_deploy_antenna) {
+        deploy_antenna();
+    }
 
     if (sim_trans) {
         if (sim_trans_uart) {

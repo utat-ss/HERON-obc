@@ -9,6 +9,7 @@
 #include <uptime/uptime.h>
 #include <watchdog/watchdog.h>
 
+#include "antenna.h"
 #include "can_interface.h"
 #include "commands.h"
 #include "mem.h"
