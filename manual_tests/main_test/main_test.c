@@ -33,6 +33,7 @@ bool sim_trans = false;
 // Set to true to simulate getting UART from the transceiver
 bool sim_trans_uart = false;
 
+bool reset_comms_delay_eeprom = false;
 bool skip_comms_delay = false;
 bool skip_deploy_antenna = false;
 
@@ -699,6 +700,7 @@ int main(void){
     sim_trans = true;
     sim_trans_uart = true;
     comms_delay_s = 30;
+    reset_comms_delay_eeprom = false;
     skip_comms_delay = false;
     skip_deploy_antenna = false;
     print_can_msgs = true;
@@ -711,6 +713,7 @@ int main(void){
     print("sim_trans = %u\n", sim_trans);
     print("sim_trans_uart = %u\n", sim_trans_uart);
     print("comms_delay_s = %lu\n", comms_delay_s);
+    print("reset_comms_delay_eeprom = %u\n", reset_comms_delay_eeprom);
     print("skip_comms_delay = %u\n", skip_comms_delay);
     print("skip_deploy_antenna = %u\n", skip_deploy_antenna);
     print("print_can_msgs = %u\n", print_can_msgs);
@@ -724,6 +727,10 @@ int main(void){
         pay_opt_mem_section.curr_block);
     print("\n");
 
+    if (reset_comms_delay_eeprom) {
+        eeprom_write_dword(COMMS_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
+        print("Reset comms delay EEPROM\n");
+    }
     if (!skip_comms_delay) {
         run_comms_delay();
     }
