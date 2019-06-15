@@ -97,7 +97,7 @@ void handle_eps_hk(const uint8_t* data){
         (current_cmd_arg1 == CMD_BLOCK_EPS_HK)) {
 
         if (!sim_local_actions) {
-            write_mem_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
+            write_mem_data_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
                 &eps_hk_header, eps_hk_fields);
         }
         inc_mem_section_curr_block(&eps_hk_mem_section);
@@ -147,7 +147,7 @@ void handle_pay_hk(const uint8_t* data){
         (current_cmd_arg1 == CMD_BLOCK_PAY_HK)) {
 
         if (!sim_local_actions) {
-            write_mem_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
+            write_mem_data_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
                 &pay_hk_header, pay_hk_fields);
         }
         inc_mem_section_curr_block(&pay_hk_mem_section);
@@ -181,7 +181,7 @@ void handle_pay_opt(const uint8_t* data){
         (current_cmd_arg1 == CMD_BLOCK_PAY_OPT)) {
 
         if (!sim_local_actions) {
-            write_mem_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
+            write_mem_data_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
                 &pay_opt_header, pay_opt_fields);
         }
         inc_mem_section_curr_block(&pay_opt_mem_section);

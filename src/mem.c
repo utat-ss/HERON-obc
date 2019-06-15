@@ -67,7 +67,7 @@ mem_section_t cmd_log_mem_section = {
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = 1
-}
+};
 
 // All memory sections
 mem_section_t* all_mem_sections[MEM_NUM_SECTIONS] = {
@@ -155,7 +155,7 @@ void inc_mem_section_curr_block(mem_section_t* section) {
 
 
 
-void write_mem_block(mem_section_t* section, uint32_t block_num,
+void write_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
     // print("%s: ", __FUNCTION__);
@@ -171,7 +171,7 @@ void write_mem_block(mem_section_t* section, uint32_t block_num,
     }
 }
 
-void read_mem_block(mem_section_t* section, uint32_t block_num,
+void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
     // print("%s: ", __FUNCTION__);
@@ -195,24 +195,24 @@ uint8_t write_mem_cmd_block(uint32_t block_num, mem_header_t* header,
      * fields forming a block
      * Returns a 1 if write was successful, 0 if not
      */
+
+    write_mem_header(&cmd_log_mem_section, block_num, header);
+
     // calculate the address based on block number. This is the offset address from the start of the section
-    uint32_t start_address = (MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD)*block_num;
+    uint32_t start_address = mem_cmd_section_addr(block_num);
+
     // write the 19 bytes of information and check if write was successful
-    uint8_t bytes[MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD] = {
-        (header->block_num >> 16) & 0xFF,
-        (header->block_num >> 8) & 0xFF,
-        header->block_num & 0xFF,
-        header->error,
-        header->date.yy, header->date.mm, header->date.dd,
-        header->time.hh, header->time.mm, header->time.ss,
+    uint8_t bytes[MEM_BYTES_PER_CMD] = {
         cmd_num, 
         (arg1 >> 24) & 0xFF, (arg1 >> 16) & 0xFF, (arg1 >> 8) & 0xFF, arg1 & 0xFF,
         (arg2 >> 24) & 0xFF, (arg2 >> 16) & 0xFF, (arg2 >> 8) & 0xFF, arg2 & 0xFF
     };
-    if(write_mem_section_bytes(&cmd_log_mem_section, start_address, bytes, MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD))
+    if (write_mem_section_bytes(&cmd_log_mem_section, start_address,
+        bytes, MEM_BYTES_PER_CMD)) {
         return 1;
-    else
+    } else {
         return 0;
+    }
 }
 
 
@@ -221,18 +221,26 @@ void read_mem_cmd_block(uint32_t block_num, mem_header_t* header,
     /*
      * Reads the cmd log from flash memory. Each cmd log is 19 bytes
      */
-    // read the 19 bytes that constitute the cmd_log block
-    uint32_t start_address = (MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD)*block_num;
-    uint8_t bytes[MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD] = {0};
-    read_mem_section_bytes(&cmd_log_mem_section, start_address, bytes, MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD);
 
-    // deconstruct the 19 bytes into the specific components(header, cmd_num, arg1, and arg2)
-    for(uint8_t i=0; i<MEM_BYTES_PER_HEADER; i++){
-        header[i] = bytes[i];
-    }
-    *cmd_num = bytes[11];
-    *arg1 = (bytes[12] << 24) || (bytes[13] << 16) || (bytes[14] << 8) || (bytes[15]);
-    *arg2 = (bytes[16] << 24) || (bytes[17] << 16) || (bytes[18] << 8) || (bytes[19]);
+    // Read 10 byte header
+    read_mem_header(&cmd_log_mem_section, block_num, header);
+
+    // read the 9 bytes that constitute the cmd_log block
+    uint8_t bytes[MEM_BYTES_PER_CMD] = {0};
+    read_mem_section_bytes(&cmd_log_mem_section, mem_cmd_section_addr(block_num), bytes, MEM_BYTES_PER_CMD);
+
+    // deconstruct the 9 bytes into the specific components(cmd_num, arg1, and arg2)
+    *cmd_num = bytes[0];
+    *arg1 =
+        ((uint32_t) bytes[1] << 24) |
+        ((uint32_t) bytes[2] << 16) |
+        ((uint32_t) bytes[3] << 8) |
+        ((uint32_t) bytes[4]);
+    *arg2 =
+        ((uint32_t) bytes[5] << 24) |
+        ((uint32_t) bytes[6] << 16) |
+        ((uint32_t) bytes[7] << 8) |
+        ((uint32_t) bytes[8]);
 }
 
 
@@ -255,7 +263,7 @@ void write_mem_header(mem_section_t* section, uint32_t block_num,
         header->time.hh, header->time.mm, header->time.ss
     };
 
-    write_mem_bytes(mem_block_addr(section, block_num), bytes, MEM_BYTES_PER_HEADER);
+    write_mem_section_bytes(section, mem_block_section_addr(section, block_num), bytes, MEM_BYTES_PER_HEADER);
 }
 
 
@@ -269,7 +277,7 @@ void read_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header) {
 
     uint8_t bytes[MEM_BYTES_PER_HEADER];
-    read_mem_bytes(mem_block_addr(section, block_num), bytes,
+    read_mem_section_bytes(section, mem_block_section_addr(section, block_num), bytes,
         MEM_BYTES_PER_HEADER);
 
     header->block_num =
@@ -298,7 +306,7 @@ void write_mem_field(mem_section_t* section, uint32_t block_num,
     data - the least significant 24 bits will be written to memory
 */
 
-    uint32_t address = mem_field_addr(section, block_num, field_num);
+    uint32_t address = mem_field_section_addr(section, block_num, field_num);
 
     // Split the data into 3 bytes
     uint8_t data_bytes[MEM_BYTES_PER_FIELD] = {
@@ -307,7 +315,7 @@ void write_mem_field(mem_section_t* section, uint32_t block_num,
         data & 0xFF
     };
 
-    write_mem_bytes(address, data_bytes, MEM_BYTES_PER_FIELD);
+    write_mem_section_bytes(section, address, data_bytes, MEM_BYTES_PER_FIELD);
 }
 
 uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
@@ -316,10 +324,10 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
     Reads and returns the 24-bit data for the specified section, block, and field
 */
 
-    uint32_t address = mem_field_addr(section, block_num, field_num);
+    uint32_t address = mem_field_section_addr(section, block_num, field_num);
 
     uint8_t data_bytes[MEM_BYTES_PER_FIELD];
-    read_mem_bytes(address, data_bytes, MEM_BYTES_PER_FIELD);
+    read_mem_section_bytes(section, address, data_bytes, MEM_BYTES_PER_FIELD);
 
     uint32_t data = 0;
     for (uint8_t i = 0; i < MEM_BYTES_PER_FIELD; ++i) {
@@ -332,27 +340,49 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
 
 
 
+/*
+Calculates the number of bytes per block for the section.
+*/
+uint32_t mem_block_size(mem_section_t* section) {
+    if (section == &cmd_log_mem_section) {
+        return MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD;
+    } else {
+        return MEM_BYTES_PER_HEADER +
+            (((uint32_t) section->fields_per_block) * MEM_BYTES_PER_FIELD);
+    }
+}
 
 /*
 Calculates and returns the address of the start of a block (where the header starts).
+This is an offset from the beginning of the section.
 */
-uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num) {
-    uint32_t bytes_per_block = MEM_BYTES_PER_HEADER +
-        (((uint32_t) section->fields_per_block) * MEM_BYTES_PER_FIELD);
-    uint32_t block_address = section->start_addr + (block_num * bytes_per_block);
+uint32_t mem_block_section_addr(mem_section_t* section, uint32_t block_num) {
+    uint32_t block_address = block_num * mem_block_size(section);
     return block_address;
 }
 
 
 /*
 Calculates and returns the address of the start of a field in a block (after the header).
+Only applies to data sections.
 */
-uint32_t mem_field_addr(mem_section_t* section, uint32_t block_num,
+uint32_t mem_field_section_addr(mem_section_t* section, uint32_t block_num,
         uint32_t field_num) {
-    uint32_t block_address = mem_block_addr(section, block_num);
+    uint32_t block_address = mem_block_section_addr(section, block_num);
     uint32_t field_address = block_address +
         MEM_BYTES_PER_HEADER + (field_num * MEM_BYTES_PER_FIELD);
     return field_address;
+}
+
+/*
+Calculates and returns the address of the start of a command in a block (after the header).
+Only applies to the command section.
+*/
+uint32_t mem_cmd_section_addr(uint32_t block_num) {
+    uint32_t cmd_address =
+        mem_block_section_addr(&cmd_log_mem_section, block_num) +
+        MEM_BYTES_PER_HEADER;
+    return cmd_address;
 }
 
 

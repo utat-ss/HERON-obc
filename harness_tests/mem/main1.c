@@ -242,7 +242,7 @@ void mem_block_test_1(void){
         (write_header[i]).date = read_rtc_date();
         (write_header[i]).time = read_rtc_time();
         uint32_t prev_block = section->curr_block;
-        write_mem_block(section, block_num[i], &(write_header[i]), write_test_fields[i]);
+        write_mem_data_block(section, block_num[i], &(write_header[i]), write_test_fields[i]);
         ASSERT_EQ(prev_block, block_num[i]);///////////////
     }
 
@@ -259,7 +259,7 @@ void mem_block_test_1(void){
         mem_section_t* section = all_mem_sections[i];
         section->curr_block = 1;////////////////////
         read_block_num[i] = section->curr_block;
-        read_mem_block(section, read_block_num[i], &(read_header[i]), read_test_fields[i]);
+        read_mem_data_block(section, read_block_num[i], &(read_header[i]), read_test_fields[i]);
     }
 
     for (int i=0; i<3; i++){
@@ -323,9 +323,9 @@ void mem_block_test_2(void){
     write_header.date = read_rtc_date();
     write_header.time = read_rtc_time();
 
-    write_mem_block(section, block_num, &write_header, write_fields_1);
+    write_mem_data_block(section, block_num, &write_header, write_fields_1);
     ASSERT_EQ(block_num,0);
-    read_mem_block(section, block_num, &read_header, read_fields_1);
+    read_mem_data_block(section, block_num, &read_header, read_fields_1);
     ASSERT_EQ(block_num,0);
 
     ASSERT_EQ(write_header.block_num, read_header.block_num);
@@ -345,9 +345,9 @@ void mem_block_test_2(void){
     write_header.date = read_rtc_date();
     write_header.time = read_rtc_time();
 
-    write_mem_block(section, block_num, &write_header, write_fields_2);
+    write_mem_data_block(section, block_num, &write_header, write_fields_2);
     ASSERT_EQ(block_num,0);
-    read_mem_block(section, block_num, &read_header, read_fields_2);
+    read_mem_data_block(section, block_num, &read_header, read_fields_2);
     ASSERT_EQ(block_num,0);
 
     ASSERT_EQ(write_header.block_num, read_header.block_num);
@@ -367,9 +367,9 @@ void mem_block_test_2(void){
     write_header.date = read_rtc_date();
     write_header.time = read_rtc_time();
 
-    write_mem_block(section, block_num, &write_header, write_fields_3);
+    write_mem_data_block(section, block_num, &write_header, write_fields_3);
     ASSERT_EQ(block_num,0);
-    read_mem_block(section, block_num, &read_header, read_fields_3);
+    read_mem_data_block(section, block_num, &read_header, read_fields_3);
     ASSERT_EQ(block_num,0);
 
     ASSERT_EQ(write_header.block_num, read_header.block_num);
