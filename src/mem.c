@@ -14,6 +14,9 @@ Addresses are composed as follows (as uint32_t):
 
 #include "mem.h"
 
+// Useful to comment/uncomment for debugging
+// #define MEM_DEBUG
+
 
 // Chip selects for each of the memory chips
 pin_info_t mem_cs[MEM_NUM_CHIPS] = {
@@ -130,8 +133,7 @@ reads the current block number from its designated address in EEPROM and stores 
 */
 void read_mem_section_eeprom(mem_section_t* section) {
     section->curr_block = eeprom_read_dword (section->curr_block_eeprom_addr);
-    // TODO - constant
-    if (section->curr_block == 0xFFFFFFFF) {
+    if (section->curr_block == EEPROM_DEF_DWORD) {
         section->curr_block = 0;
     }
 }
@@ -451,8 +453,12 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
         to be modified in the event of changes to the board design
 */
 
-    // print("%s: ", __FUNCTION__);
-    // print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+#ifdef MEM_DEBUG
+    print("%s: ", __FUNCTION__);
+    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+    print("data = ");
+    print_bytes(data, data_len);
+#endif
 
     uint8_t chip_num;
     uint8_t addr1;
@@ -505,8 +511,6 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
     wait_for_mem_not_busy(chip_num);
 
     send_short_mem_command(MEM_WR_DISABLE, chip_num);
-
-    // print_bytes(data, data_len);
 }
 
 
@@ -520,9 +524,6 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
         reads continously across chips (ie behaves as a continous address space)
 */
-
-    // print("%s: ", __FUNCTION__);
-    // print("address = 0x%.8lX, data_len = %u\n", address, data_len);
 
     uint8_t chip_num;
     uint8_t addr1;
@@ -566,7 +567,12 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
     set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 
-    // print_bytes(data, data_len);
+#ifdef MEM_DEBUG
+    print("%s: ", __FUNCTION__);
+    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+    print("data = ");
+    print_bytes(data, data_len);
+#endif
 }
 
 /*
@@ -614,9 +620,11 @@ void wait_for_mem_not_busy(uint8_t chip_num) {
         busy = read_mem_status(chip_num) & 0x01;
     }
 
-    // if (timeout == 0) {
-    //     print("MEM TIMEOUT\n");
-    // }
+#ifdef MEM_DEBUG
+    if (timeout == 0) {
+        print("MEM TIMEOUT\n");
+    }
+#endif
 }
 
 uint8_t read_mem_status(uint8_t chip){

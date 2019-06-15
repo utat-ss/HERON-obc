@@ -23,6 +23,15 @@
     ASSERT_EQ(time1.mm, time2.mm); \
     ASSERT_EQ(time1.ss, time2.ss);
 
+#define ASSERT_EQ_ARRAY(array1, array2, count) \
+    for (uint8_t i = 0; i < count; i++) { \
+        ASSERT_EQ(array1[i], array2[i]); \
+    }
+
+#define ASSERT_NEQ_ARRAY(array1, array2, count) \
+    for (uint8_t i = 0; i < count; i++) { \
+        ASSERT_NEQ(array1[i], array2[i]); \
+    }
 
 //Test single write/read for consistency
 void single_write_read_test(void) {
@@ -54,19 +63,19 @@ void multiple_write_read_test(void) {
 void multiple_write_read_test_2(void) {
 	uint32_t address = 0x300000;
 
-	uint8_t data[20];
+	uint8_t write[20];
 	for(uint8_t i=0; i<20; i++)
-		data[i] = i%16;
+		write[i] = i%16;
 
 	uint8_t read[20];
 	for(uint8_t i=0; i<20; i++)
-		data[i] = 0x00;
+		read[i] = 0x00;
 
-	write_mem_bytes(address, data, 20);
+	write_mem_bytes(address, write, 20);
 	read_mem_bytes(address, read, 15);
 
 	for(uint8_t i=0; i<15; i++){
-		ASSERT_EQ(data[i], read[i]);
+		ASSERT_EQ(write[i], read[i]);
 	}
 
 	//read shouldn't touch the last 5 bytes in the read array
@@ -380,6 +389,88 @@ void mem_block_test_2(void){
     }
 }
 
+void section_byte_isolation_test(void) {
+    uint8_t zeros[10] = {0x00};
+
+    // Write PAY_HK
+
+    uint8_t write_pay_hk[5] = {0x00};
+    for (uint8_t i = 0; i < 5; i++) {
+        write_pay_hk[i] = i + 50;
+    }
+    uint8_t read_pay_hk[5] = {0x00};
+
+    ASSERT_TRUE(write_mem_section_bytes(&pay_hk_mem_section, 0, zeros, 5));
+    read_mem_section_bytes(&pay_hk_mem_section, 0, read_pay_hk, 5);
+    ASSERT_EQ_ARRAY(read_pay_hk, zeros, 5);
+    ASSERT_TRUE(write_mem_section_bytes(&pay_hk_mem_section, 0, write_pay_hk, 5));
+    read_mem_section_bytes(&pay_hk_mem_section, 0, read_pay_hk, 5);
+    ASSERT_EQ_ARRAY(read_pay_hk, write_pay_hk, 5);
+
+
+    // Write EPS_HK, don't overwrite PAY_HK
+
+    uint32_t eps_hk_addr = 0x1FFFFBUL;
+    uint8_t write_eps_hk[10] = {0x00};
+    for (uint8_t i = 0; i < 10; i++) {
+        write_eps_hk[i] = i + 13;
+    }
+    uint8_t read_eps_hk[10] = {0x00};
+
+    ASSERT_TRUE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, zeros, 5));
+    read_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, read_eps_hk, 5);
+    ASSERT_EQ_ARRAY(read_eps_hk, zeros, 5);
+    ASSERT_FALSE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, write_eps_hk, 10));
+    ASSERT_FALSE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, write_eps_hk, 6));
+    ASSERT_TRUE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, write_eps_hk, 5));
+    read_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, read_eps_hk, 5);
+    ASSERT_EQ_ARRAY(read_eps_hk, write_eps_hk, 5);
+
+    // Check that PAY_HK is unchanged
+    read_mem_section_bytes(&pay_hk_mem_section, 0, read_pay_hk, 5);
+    ASSERT_EQ_ARRAY(read_pay_hk, write_pay_hk, 5);
+}
+
+void cmd_block_test(void) {
+    // eps_hk_mem_section
+	mem_header_t write_header = {
+        .block_num = cmd_log_mem_section.curr_block,
+        .error = 0x00,
+        .date = read_rtc_date(),
+        .time = read_rtc_time()
+    };
+    mem_header_t read_header;
+
+    uint32_t block_num;
+
+    uint8_t write_cmd_num;
+    uint32_t write_arg1;
+    uint32_t write_arg2;
+
+    uint8_t read_cmd_num;
+    uint32_t read_arg1;
+    uint32_t read_arg2;
+
+    block_num = 13542;
+    write_cmd_num = 5;
+    write_arg1 = 1000000000;
+    write_arg2 = 132497;
+    ASSERT_TRUE(write_mem_cmd_block(block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
+
+    read_mem_cmd_block(block_num, &read_header, &read_cmd_num, &read_arg1, &read_arg2);
+    ASSERT_EQ(write_header.block_num, read_header.block_num);
+    ASSERT_EQ(write_header.error, read_header.error);
+    ASSERT_EQ_DATE(write_header.date, read_header.date);
+    ASSERT_EQ_TIME(write_header.time, read_header.time);
+    ASSERT_EQ(write_cmd_num, read_cmd_num);
+    ASSERT_EQ(write_arg1, read_arg1);
+    ASSERT_EQ(write_arg2, read_arg2);
+
+    block_num = 1000000;
+    ASSERT_FALSE(write_mem_cmd_block(block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
+}
+
+
 
 test_t t1 = { .name = "single write read test", .fn = single_write_read_test };
 test_t t2 = { .name = "multiple write read test", .fn = multiple_write_read_test };
@@ -392,8 +483,10 @@ test_t t8 = { .name = "mem header test", .fn = mem_header_test };
 test_t t9 = { .name = "mem field test", .fn = mem_field_test };
 test_t t10 = { .name = "mem block test 1", .fn = mem_block_test_1 };
 test_t t11 = { .name = "mem block test 2", .fn = mem_block_test_2 };
+test_t t12 = { .name = "section byte isolation test", .fn = section_byte_isolation_test };
+test_t t13 = { .name = "cmd block test", .fn = cmd_block_test };
 
-test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11 };
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11, &t12, &t13 };
 
 int main() {
     init_uart();
