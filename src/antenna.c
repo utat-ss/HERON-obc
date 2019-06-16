@@ -32,16 +32,16 @@ void deploy_antenna(void) {
     // TODO - read status of each door and deploy any that failed
     print("Deploying antenna...\n");
 
-    for (uint8_t i = 0; i < 5; i++) {
+    for (uint8_t i = 0; i < 25; i++) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
         print("Loop %u\n", i);
 
-        uint8_t data[1] = {0x00};
+        uint8_t data[3] = {0x7F, 0x09, 0xF3};
         uint8_t status = 0;
 
-        write_i2c(0x00, data, 1, &status);
-        read_i2c(0x00, data, 1, &status);
-        _delay_ms(5000);
+        write_i2c(0x00, data, 3, &status);
+        read_i2c(0x00, data, 3, &status);
+        _delay_ms(1000);
     }
     
     print("Done deploying antenna\n");
