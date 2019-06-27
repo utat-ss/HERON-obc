@@ -10,6 +10,9 @@ https://utat-ss.readthedocs.io/en/master/our-protocols/obc-mem.html
 
 Addresses are composed as follows (as uint32_t):
 { 0 (9 bits), chip_num (2 bits), chip_addr (21 bits)}
+
+NOTES ON FLASH MEMORY ARCHITECTURE:
+Flash is designed so that you can erase large sections at once, which means setting all bits to 1s. If you do a write, it changes some of the bits to 0s. This can only change 1s to 0s, not 0s to 1s. If you try to write a second time, it only changes some of the bits - 1s change to 0s, but 0s don't change back to 1s. Therefore, writing to it a second time may produce a value that is very different from what you tried to write. You can’t change 0s back to 1s with a write - this can only be accomplished by doing an erase before writing.
 */
 
 #include "mem.h"
@@ -421,7 +424,7 @@ uint8_t write_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_
     if(address < 0 || data_len <= 0)
         return 0;
 
-    if((section->start_addr + address + data_len) <= section->end_addr ){
+    if((section->start_addr + address + data_len - 1) <= section->end_addr ){
         write_mem_bytes(address + section->start_addr, data, data_len);
         return 1;
     } else {
