@@ -75,7 +75,7 @@
 #define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x20)
 #define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x24)
 #define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x28)
-#define MEM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x32)
+#define MEM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x2C)
 
 
 // Sections in memory
