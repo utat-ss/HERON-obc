@@ -327,7 +327,7 @@ void read_mem_block_fn(void) {
                 }
             }
             else {
-                read_mem_block(&eps_hk_mem_section, current_cmd_arg2,
+                read_mem_data_block(&eps_hk_mem_section, current_cmd_arg2,
                     &eps_hk_header, eps_hk_fields);
             }
             break;
@@ -347,7 +347,7 @@ void read_mem_block_fn(void) {
                 }
             }
             else {
-                read_mem_block(&pay_hk_mem_section, current_cmd_arg2,
+                read_mem_data_block(&pay_hk_mem_section, current_cmd_arg2,
                     &pay_hk_header, pay_hk_fields);
             }
             break;
@@ -367,7 +367,7 @@ void read_mem_block_fn(void) {
                 }
             }
             else {
-                read_mem_block(&pay_opt_mem_section, current_cmd_arg2,
+                read_mem_data_block(&pay_opt_mem_section, current_cmd_arg2,
                     &pay_opt_header, pay_opt_fields);
             }
             break;

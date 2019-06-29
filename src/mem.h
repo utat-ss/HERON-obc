@@ -48,33 +48,48 @@
 // Chips are numbered 0-2
 #define MEM_NUM_CHIPS           3
 // The number of bits used to address all bytes in one chip
-// Because one chip is 2MB and each adddress is for one byte
+// Because one chip is 2MB and each address is for one byte
 #define MEM_CHIP_ADDR_WIDTH     21
 // Number of sections in memory layout
-#define MEM_NUM_SECTIONS        3
+#define MEM_NUM_SECTIONS        4
 // Number of bytes in a header
 #define MEM_BYTES_PER_HEADER    10
 // Number of bytes in one field (one measurement)
 #define MEM_BYTES_PER_FIELD     3
+// Number of bytes in one command log
+#define MEM_BYTES_PER_CMD       9
+
 
 #define MEM_EPS_HK_START_ADDR   0x000000UL
-#define MEM_PAY_HK_START_ADDR   0x200000UL
-#define MEM_PAY_OPT_START_ADDR  0x300000UL
+#define MEM_EPS_HK_END_ADDR     0x1FFFFFUL
 
+#define MEM_PAY_HK_START_ADDR   0x200000UL
+#define MEM_PAY_HK_END_ADDR     0x2FFFFFUL
+
+#define MEM_PAY_OPT_START_ADDR  0x300000UL
+#define MEM_PAY_OPT_END_ADDR    0x3FFFFFUL
+
+#define MEM_CMD_LOG_START_ADDR  0x400000UL
+#define MEM_CMD_LOG_END_ADDR    0x5FFFFFUL
+    
 #define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x20)
 #define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x24)
 #define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x28)
+#define MEM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x2C)
 
 
 // Sections in memory
 typedef struct {
     // Start address of section in memory
     uint32_t start_addr;
+    // End address of section in memory
+    uint32_t end_addr;
     // Current block number being written to in this section of memory (starting from 0, increasing by 1)
     uint32_t curr_block;
     // Address in EEPROM that stores the current block number
     uint32_t* curr_block_eeprom_addr;
     // Number of fields in one block (NOT including the header)
+    // This does not matter for the cmd_log section
     uint8_t fields_per_block;
 } mem_section_t;
 
@@ -94,6 +109,7 @@ typedef struct {
 extern mem_section_t eps_hk_mem_section;
 extern mem_section_t pay_hk_mem_section;
 extern mem_section_t pay_opt_mem_section;
+extern mem_section_t cmd_log_mem_section;
 extern mem_section_t* all_mem_sections[];
 
 
@@ -108,10 +124,14 @@ void read_all_mem_sections_eeprom(void);
 void inc_mem_section_curr_block(mem_section_t* section);
 
 // High-level operations - blocks
-void write_mem_block(mem_section_t* section, uint32_t block_num,
+void write_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
-void read_mem_block(mem_section_t* section, uint32_t block_num,
+void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
+uint8_t write_mem_cmd_block(uint32_t block_num, mem_header_t* header,
+    uint8_t cmd_num, uint32_t arg1, uint32_t arg2);
+void read_mem_cmd_block(uint32_t block_num, mem_header_t* header,
+    uint8_t* cmd_num, uint32_t* arg1, uint32_t* arg2);
 
 // High-level operations - headers and fields
 void write_mem_header(mem_section_t* section, uint32_t block_num,
@@ -124,13 +144,19 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
     uint8_t field_num);
 
 // Address calculations
-uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num);
-uint32_t mem_field_addr(mem_section_t* section, uint32_t block_num,
+uint32_t mem_block_size(mem_section_t* section);
+uint32_t mem_block_section_addr(mem_section_t* section, uint32_t block_num);
+uint32_t mem_field_section_addr(mem_section_t* section, uint32_t block_num,
     uint32_t field_num);
+uint32_t mem_cmd_section_addr(uint32_t block_num);
 void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1,
     uint8_t* addr2, uint8_t* addr3);
 
-// Low-level operations - bytes
+// Section operations
+uint8_t write_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* data, uint8_t data_len);
+void read_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* data, uint8_t data_len);
+
+// Low-level operations - raw bytes
 void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
 void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
 void erase_mem(void);

@@ -10,9 +10,15 @@ https://utat-ss.readthedocs.io/en/master/our-protocols/obc-mem.html
 
 Addresses are composed as follows (as uint32_t):
 { 0 (9 bits), chip_num (2 bits), chip_addr (21 bits)}
+
+NOTES ON FLASH MEMORY ARCHITECTURE:
+Flash is designed so that you can erase large sections at once, which means setting all bits to 1s. If you do a write, it changes some of the bits to 0s. This can only change 1s to 0s, not 0s to 1s. If you try to write a second time, it only changes some of the bits - 1s change to 0s, but 0s don't change back to 1s. Therefore, writing to it a second time may produce a value that is very different from what you tried to write. You can’t change 0s back to 1s with a write - this can only be accomplished by doing an erase before writing.
 */
 
 #include "mem.h"
+
+// Useful to comment/uncomment for debugging
+// #define MEM_DEBUG
 
 
 // Chip selects for each of the memory chips
@@ -39,6 +45,7 @@ pin_info_t mem_cs[MEM_NUM_CHIPS] = {
 
 mem_section_t eps_hk_mem_section = {
     .start_addr = MEM_EPS_HK_START_ADDR,
+    .end_addr = MEM_EPS_HK_END_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_EPS_HK_FIELD_COUNT
@@ -46,6 +53,7 @@ mem_section_t eps_hk_mem_section = {
 
 mem_section_t pay_hk_mem_section = {
     .start_addr = MEM_PAY_HK_START_ADDR,
+    .end_addr = MEM_PAY_HK_END_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_PAY_HK_FIELD_COUNT
@@ -53,16 +61,26 @@ mem_section_t pay_hk_mem_section = {
 
 mem_section_t pay_opt_mem_section = {
     .start_addr = MEM_PAY_OPT_START_ADDR,
+    .end_addr = MEM_PAY_OPT_END_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_PAY_OPT_FIELD_COUNT
+};
+
+mem_section_t cmd_log_mem_section = {
+    .start_addr = MEM_CMD_LOG_START_ADDR,
+    .end_addr = MEM_CMD_LOG_END_ADDR,
+    .curr_block = 0,
+    .curr_block_eeprom_addr = MEM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR,
+    .fields_per_block = 1
 };
 
 // All memory sections
 mem_section_t* all_mem_sections[MEM_NUM_SECTIONS] = {
     &eps_hk_mem_section,
     &pay_hk_mem_section,
-    &pay_opt_mem_section
+    &pay_opt_mem_section,
+    &cmd_log_mem_section
 };
 
 
@@ -118,8 +136,7 @@ reads the current block number from its designated address in EEPROM and stores 
 */
 void read_mem_section_eeprom(mem_section_t* section) {
     section->curr_block = eeprom_read_dword (section->curr_block_eeprom_addr);
-    // TODO - constant
-    if (section->curr_block == 0xFFFFFFFF) {
+    if (section->curr_block == EEPROM_DEF_DWORD) {
         section->curr_block = 0;
     }
 }
@@ -143,7 +160,7 @@ void inc_mem_section_curr_block(mem_section_t* section) {
 
 
 
-void write_mem_block(mem_section_t* section, uint32_t block_num,
+void write_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
     // print("%s: ", __FUNCTION__);
@@ -159,7 +176,7 @@ void write_mem_block(mem_section_t* section, uint32_t block_num,
     }
 }
 
-void read_mem_block(mem_section_t* section, uint32_t block_num,
+void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 
     // print("%s: ", __FUNCTION__);
@@ -174,6 +191,62 @@ void read_mem_block(mem_section_t* section, uint32_t block_num,
     }
 }
 
+uint8_t write_mem_cmd_block(uint32_t block_num, mem_header_t* header,
+    uint8_t cmd_num, uint32_t arg1, uint32_t arg2) {
+    /*
+     * Writes to cmd_log section in the flash memory. Each entry is 19 bytes. 10 bytes for 
+     * the header, 1 byte for command type, 4 bytes for arg 1, and 4 bytes for arg 2.
+     * This format differs from the rest of the memory sections, which has standardized 3 bytes/field and multiple
+     * fields forming a block
+     * Returns a 1 if write was successful, 0 if not
+     */
+
+    write_mem_header(&cmd_log_mem_section, block_num, header);
+
+    // calculate the address based on block number. This is the offset address from the start of the section
+    uint32_t start_address = mem_cmd_section_addr(block_num);
+
+    // write the 19 bytes of information and check if write was successful
+    uint8_t bytes[MEM_BYTES_PER_CMD] = {
+        cmd_num, 
+        (arg1 >> 24) & 0xFF, (arg1 >> 16) & 0xFF, (arg1 >> 8) & 0xFF, arg1 & 0xFF,
+        (arg2 >> 24) & 0xFF, (arg2 >> 16) & 0xFF, (arg2 >> 8) & 0xFF, arg2 & 0xFF
+    };
+    if (write_mem_section_bytes(&cmd_log_mem_section, start_address,
+        bytes, MEM_BYTES_PER_CMD)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+
+void read_mem_cmd_block(uint32_t block_num, mem_header_t* header,
+    uint8_t* cmd_num, uint32_t* arg1, uint32_t* arg2){
+    /*
+     * Reads the cmd log from flash memory. Each cmd log is 19 bytes
+     */
+
+    // Read 10 byte header
+    read_mem_header(&cmd_log_mem_section, block_num, header);
+
+    // read the 9 bytes that constitute the cmd_log block
+    uint8_t bytes[MEM_BYTES_PER_CMD] = {0};
+    read_mem_section_bytes(&cmd_log_mem_section, mem_cmd_section_addr(block_num), bytes, MEM_BYTES_PER_CMD);
+
+    // deconstruct the 9 bytes into the specific components(cmd_num, arg1, and arg2)
+    *cmd_num = bytes[0];
+    *arg1 =
+        ((uint32_t) bytes[1] << 24) |
+        ((uint32_t) bytes[2] << 16) |
+        ((uint32_t) bytes[3] << 8) |
+        ((uint32_t) bytes[4]);
+    *arg2 =
+        ((uint32_t) bytes[5] << 24) |
+        ((uint32_t) bytes[6] << 16) |
+        ((uint32_t) bytes[7] << 8) |
+        ((uint32_t) bytes[8]);
+}
 
 
 
@@ -195,7 +268,7 @@ void write_mem_header(mem_section_t* section, uint32_t block_num,
         header->time.hh, header->time.mm, header->time.ss
     };
 
-    write_mem_bytes(mem_block_addr(section, block_num), bytes, MEM_BYTES_PER_HEADER);
+    write_mem_section_bytes(section, mem_block_section_addr(section, block_num), bytes, MEM_BYTES_PER_HEADER);
 }
 
 
@@ -209,7 +282,7 @@ void read_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header) {
 
     uint8_t bytes[MEM_BYTES_PER_HEADER];
-    read_mem_bytes(mem_block_addr(section, block_num), bytes,
+    read_mem_section_bytes(section, mem_block_section_addr(section, block_num), bytes,
         MEM_BYTES_PER_HEADER);
 
     header->block_num =
@@ -238,7 +311,7 @@ void write_mem_field(mem_section_t* section, uint32_t block_num,
     data - the least significant 24 bits will be written to memory
 */
 
-    uint32_t address = mem_field_addr(section, block_num, field_num);
+    uint32_t address = mem_field_section_addr(section, block_num, field_num);
 
     // Split the data into 3 bytes
     uint8_t data_bytes[MEM_BYTES_PER_FIELD] = {
@@ -247,9 +320,8 @@ void write_mem_field(mem_section_t* section, uint32_t block_num,
         data & 0xFF
     };
 
-    write_mem_bytes(address, data_bytes, MEM_BYTES_PER_FIELD);
+    write_mem_section_bytes(section, address, data_bytes, MEM_BYTES_PER_FIELD);
 }
-
 
 uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
         uint8_t field_num) {
@@ -257,10 +329,10 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
     Reads and returns the 24-bit data for the specified section, block, and field
 */
 
-    uint32_t address = mem_field_addr(section, block_num, field_num);
+    uint32_t address = mem_field_section_addr(section, block_num, field_num);
 
     uint8_t data_bytes[MEM_BYTES_PER_FIELD];
-    read_mem_bytes(address, data_bytes, MEM_BYTES_PER_FIELD);
+    read_mem_section_bytes(section, address, data_bytes, MEM_BYTES_PER_FIELD);
 
     uint32_t data = 0;
     for (uint8_t i = 0; i < MEM_BYTES_PER_FIELD; ++i) {
@@ -273,27 +345,49 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
 
 
 
+/*
+Calculates the number of bytes per block for the section.
+*/
+uint32_t mem_block_size(mem_section_t* section) {
+    if (section == &cmd_log_mem_section) {
+        return MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD;
+    } else {
+        return MEM_BYTES_PER_HEADER +
+            (((uint32_t) section->fields_per_block) * MEM_BYTES_PER_FIELD);
+    }
+}
 
 /*
 Calculates and returns the address of the start of a block (where the header starts).
+This is an offset from the beginning of the section.
 */
-uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num) {
-    uint32_t bytes_per_block = MEM_BYTES_PER_HEADER +
-        (((uint32_t) section->fields_per_block) * MEM_BYTES_PER_FIELD);
-    uint32_t block_address = section->start_addr + (block_num * bytes_per_block);
+uint32_t mem_block_section_addr(mem_section_t* section, uint32_t block_num) {
+    uint32_t block_address = block_num * mem_block_size(section);
     return block_address;
 }
 
 
 /*
 Calculates and returns the address of the start of a field in a block (after the header).
+Only applies to data sections.
 */
-uint32_t mem_field_addr(mem_section_t* section, uint32_t block_num,
+uint32_t mem_field_section_addr(mem_section_t* section, uint32_t block_num,
         uint32_t field_num) {
-    uint32_t block_address = mem_block_addr(section, block_num);
+    uint32_t block_address = mem_block_section_addr(section, block_num);
     uint32_t field_address = block_address +
         MEM_BYTES_PER_HEADER + (field_num * MEM_BYTES_PER_FIELD);
     return field_address;
+}
+
+/*
+Calculates and returns the address of the start of a command in a block (after the header).
+Only applies to the command section.
+*/
+uint32_t mem_cmd_section_addr(uint32_t block_num) {
+    uint32_t cmd_address =
+        mem_block_section_addr(&cmd_log_mem_section, block_num) +
+        MEM_BYTES_PER_HEADER;
+    return cmd_address;
 }
 
 
@@ -322,6 +416,28 @@ void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1,
     }
 }
 
+uint8_t write_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* data, uint8_t data_len){
+/*
+    writes an array of bytes to the specific section where address is the offset from the start of
+    the section. Data will only be written if the array fits into the section. Returns 1 if write was success.
+*/
+    if(address < 0 || data_len <= 0)
+        return 0;
+
+    if((section->start_addr + address + data_len - 1) <= section->end_addr ){
+        write_mem_bytes(address + section->start_addr, data, data_len);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void read_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* data, uint8_t data_len){
+/*
+    reads an array of bytes from a section where address is the offset from the start of the section
+*/
+    read_mem_bytes(address + section->start_addr, data, data_len);
+}
 
 void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 /*
@@ -340,8 +456,12 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
         to be modified in the event of changes to the board design
 */
 
-    // print("%s: ", __FUNCTION__);
-    // print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+#ifdef MEM_DEBUG
+    print("%s: ", __FUNCTION__);
+    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+    print("data = ");
+    print_bytes(data, data_len);
+#endif
 
     uint8_t chip_num;
     uint8_t addr1;
@@ -394,8 +514,6 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
     wait_for_mem_not_busy(chip_num);
 
     send_short_mem_command(MEM_WR_DISABLE, chip_num);
-
-    // print_bytes(data, data_len);
 }
 
 
@@ -409,9 +527,6 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
         reads continously across chips (ie behaves as a continous address space)
 */
-
-    // print("%s: ", __FUNCTION__);
-    // print("address = 0x%.8lX, data_len = %u\n", address, data_len);
 
     uint8_t chip_num;
     uint8_t addr1;
@@ -455,7 +570,12 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
     set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 
-    // print_bytes(data, data_len);
+#ifdef MEM_DEBUG
+    print("%s: ", __FUNCTION__);
+    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+    print("data = ");
+    print_bytes(data, data_len);
+#endif
 }
 
 /*
@@ -503,9 +623,11 @@ void wait_for_mem_not_busy(uint8_t chip_num) {
         busy = read_mem_status(chip_num) & 0x01;
     }
 
-    // if (timeout == 0) {
-    //     print("MEM TIMEOUT\n");
-    // }
+#ifdef MEM_DEBUG
+    if (timeout == 0) {
+        print("MEM TIMEOUT\n");
+    }
+#endif
 }
 
 uint8_t read_mem_status(uint8_t chip){
