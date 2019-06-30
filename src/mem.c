@@ -194,7 +194,7 @@ void read_mem_data_block(mem_section_t* section, uint32_t block_num,
 uint8_t write_mem_cmd_block(uint32_t block_num, mem_header_t* header,
     uint8_t cmd_num, uint32_t arg1, uint32_t arg2) {
     /*
-     * Writes to cmd_log section in the flash memory. Each entry is 19 bytes. 10 bytes for 
+     * Writes to cmd_log section in the flash memory. Each entry is 19 bytes. 10 bytes for
      * the header, 1 byte for command type, 4 bytes for arg 1, and 4 bytes for arg 2.
      * This format differs from the rest of the memory sections, which has standardized 3 bytes/field and multiple
      * fields forming a block
@@ -208,7 +208,7 @@ uint8_t write_mem_cmd_block(uint32_t block_num, mem_header_t* header,
 
     // write the 19 bytes of information and check if write was successful
     uint8_t bytes[MEM_BYTES_PER_CMD] = {
-        cmd_num, 
+        cmd_num,
         (arg1 >> 24) & 0xFF, (arg1 >> 16) & 0xFF, (arg1 >> 8) & 0xFF, arg1 & 0xFF,
         (arg2 >> 24) & 0xFF, (arg2 >> 16) & 0xFF, (arg2 >> 8) & 0xFF, arg2 & 0xFF
     };
@@ -667,30 +667,25 @@ void send_short_mem_command(uint8_t command, uint8_t chip){
     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
 }
 
+ void erase_mem_sector(uint8_t sector, uint8_t chip){
+     /*
+     erase a specific sector in memory, on indicated chip
+     functionality not used in the higher-level implementation
+     UNTESTED!!
+     */
+     /* This function only supports 4kb sectors and not overlayed blocks */
 
+     uint32_t address = sector * MEM_BYTES_PER_SECTOR;
 
+     send_short_mem_command(MEM_WR_ENABLE, chip);
 
+     set_cs_low(mem_cs[chip].pin, mem_cs[chip].port);
+     send_spi(MEM_SECTOR_ERASE);
+     send_spi((address >> 16) & 0xFF);
+     send_spi((address >> 8) & 0xFF);
+     send_spi(address & 0xFF);
+     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
 
-
-
-
-// void erase_mem_sector(uint8_t sector, uint8_t chip){
-//     /*
-//     erase a specific sector in memory, on indicated chip
-//     functionality not used in the higher-level implementation
-//     UNTESTED!!
-//     */
-//
-//     uint32_t address = sector * 4096;
-//
-//     send_short_mem_command(MEM_WR_ENABLE, chip);
-//
-//     set_cs_low(mem_cs[chip].pin, mem_cs[chip].port);
-//     send_spi(MEM_SECTOR_ERASE);
-//     send_spi((address >> 16) & 0xFF);
-//     send_spi((address >> 8) & 0xFF);
-//     send_spi(address & 0xFF);
-//     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
-//
-//     send_short_mem_command(MEM_WR_DISABLE, chip);
-// }
+     send_short_mem_command(MEM_WR_DISABLE, chip);
+     wait_for_mem_not_busy(chip);
+ }

@@ -58,6 +58,10 @@
 #define MEM_BYTES_PER_FIELD     3
 // Number of bytes in one command log
 #define MEM_BYTES_PER_CMD       9
+// Number of bytes per memory sector
+#define MEM_BYTES_PER_SECTOR    4096
+// Number of 4kb sectors
+#define MEM_NUM_SECTORS         512
 
 
 #define MEM_EPS_HK_START_ADDR   0x000000UL
@@ -71,7 +75,7 @@
 
 #define MEM_CMD_LOG_START_ADDR  0x400000UL
 #define MEM_CMD_LOG_END_ADDR    0x5FFFFFUL
-    
+
 #define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x20)
 #define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x24)
 #define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x28)

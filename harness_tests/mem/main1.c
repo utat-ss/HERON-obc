@@ -3,9 +3,9 @@
  *
  * Tests functionality of writing and reading memory at the byte level, writing to and reading from eeprom,
  * writing and reading headers and fields from memory sections.
- * 
+ *
  * NOTE: See mem.c notes on flash memory architecture - generally need to do an erase before every test function
- * 
+ *
  * Most tests check that the memory is all 1s before doing a write - make sure the data isn't just left over from a previous run of the test
  */
 
@@ -99,7 +99,7 @@ void single_write_read_test(void) {
     populate_ones(ones, 1);
     read_mem_bytes(address, read, 1);
 	ASSERT_EQ_ARRAY(ones, read, 1);
-	
+
     write_mem_bytes(address, write, 1);
 	read_mem_bytes(address, read, 1);
 	ASSERT_EQ_ARRAY(write, read, 1);
@@ -139,7 +139,7 @@ void multiple_write_read_test_2(void) {
 	uint8_t read[20];
 	for(uint8_t i=0; i<20; i++)
 		read[i] = 0x00;
-    
+
     uint8_t ones[20];
     populate_ones(ones, 20);
     read_mem_bytes(address, read, 20);
@@ -276,7 +276,7 @@ void mem_field_test_individual( mem_section_t* section) {
     // Random 24-bit number
 	uint32_t write = (random() % 0xFFFFFF) + 1;
 	uint32_t read = 0x00000000;
-    
+
     read = read_mem_field(section, section->curr_block, field_num);
 	ASSERT_EQ(0xFFFFFF, read);
 
@@ -550,6 +550,29 @@ void cmd_block_test(void) {
     ASSERT_FALSE(write_mem_cmd_block(block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
 }
 
+#define DATA_LENGTH 5
+void mem_sector_erase_test(void){
+    /* Generate random sector in flash by seeding and calling random() */
+    srandom(ERASE_SEED);
+    uint8_t data[DATA_LENGTH] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
+
+    uint8_t sector = random() % MEM_NUM_SECTORS;
+    /* Ensure that we do not overflow the sector */
+    uint8_t offset = random() % (MEM_BYTES_PER_SECTOR - DATA_LENGTH);
+    uint32_t address = sector * MEM_BYTES_PER_SECTOR + offset;
+    uint8_t chip = random() % MEM_NUM_CHIPS;
+    uint8_t read[1] = {0};
+    /* Write to location in sector */
+    write_mem_bytes(address, data, DATA_LENGTH);
+    /* Erase sector */
+    erase_mem_sector(sector, chip);
+    /* Read written bits in sector and verify that bits are all one */
+    for (uint8_t i = address; i < address + DATA_LENGTH; i++){
+        read_mem_bytes(i, read, 1);
+        ASSERT_EQ(read[0], 0xFF);
+    }
+}
+
 
 
 test_t t1 = { .name = "erase mem test", .fn = erase_mem_test };
@@ -565,10 +588,11 @@ test_t t10 = { .name = "mem block test 1", .fn = mem_block_test_1 };
 test_t t11 = { .name = "mem block test 2", .fn = mem_block_test_2 };
 test_t t12 = { .name = "section byte isolation test", .fn = section_byte_isolation_test };
 test_t t13 = { .name = "cmd block test", .fn = cmd_block_test };
+test_t t14 = { .name = "sector erase test", .fn = mem_sector_erase_test };
 
-test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11, &t12, &t13 };
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11, &t12, &t13, &t14 };
 
-int main() {
+int main(void) {
     init_uart();
     init_spi();
     init_mem();
