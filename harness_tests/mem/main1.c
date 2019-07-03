@@ -16,6 +16,19 @@
 #include <spi/spi.h>
 #include "../../src/mem.h"
 
+// NOTE: should change ERASE_SEED periodically
+#define ERASE_SEED              0x162FAF13
+#define ERASE_ADDR_COUNT        20
+#define DATA_LENGTH             5
+#define RANDOM_SEED             0x5729AB7D
+#define RANDOM_MAX_LEN          255
+#define ROLLOVER_ADDR_1         0x1FFFFC
+#define ROLLOVER_ADDR_2         0x3FFFFB
+#define NUM_ROLLOVER            2
+#define ROLLOVER_DATA           {0xDE, 0xAD, 0xBE, 0xEF, 0xBA, 0xF0, 0x0D, 0x12}
+#define ROLLOVER_DATA_LEN       8
+#define FIELD_TEST_RANDOM_SEED  0x4357D43A
+
 // Macros to compare structs without having to do it for each of the fields every time
 #define ASSERT_EQ_DATE(date1, date2) \
     ASSERT_EQ(date1.yy, date2.yy); \
@@ -66,9 +79,6 @@ void populate_ones(uint8_t* array, uint8_t len) {
 
 
 // Test the erase_mem()
-// NOTE: should change this seed periodically
-#define ERASE_SEED          0x162FAF13
-#define ERASE_ADDR_COUNT    20
 
 void erase_mem_test(void) {
 	erase_mem();
@@ -155,8 +165,6 @@ void multiple_write_read_test_2(void) {
 
 
 // Test random read and write capabilities
-#define RANDOM_SEED 0x5729AB7D
-#define RANDOM_MAX_LEN 255
 
 void random_read_write_test(void) {
     erase_mem();
@@ -190,11 +198,6 @@ void random_read_write_test(void) {
 
 // Test memory roll over capabilities. Board has three memory chips, so two roll overs
 // TODO - test what happens at the end of chip 3
-#define ROLLOVER_ADDR_1 0x1FFFFC
-#define ROLLOVER_ADDR_2 0x3FFFFB
-#define NUM_ROLLOVER 2
-#define ROLLOVER_DATA {0xDE, 0xAD, 0xBE, 0xEF, 0xBA, 0xF0, 0x0D, 0x12}
-#define ROLLOVER_DATA_LEN 8
 
 void roll_over_test(void) {
     erase_mem();
@@ -267,8 +270,6 @@ void mem_header_test(void){
 
 
 //Test field (metadata)
-#define FIELD_TEST_RANDOM_SEED 0x4357D43A
-
 void mem_field_test_individual( mem_section_t* section) {
     erase_mem();
 
@@ -550,22 +551,44 @@ void cmd_block_test(void) {
     ASSERT_FALSE(write_mem_cmd_block(block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
 }
 
-#define DATA_LENGTH 5
 void mem_sector_erase_test(void){
-    /* Generate random sector in flash by seeding and calling random() */
-    srandom(ERASE_SEED);
     uint8_t data[DATA_LENGTH] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
+    uint8_t read[1] = {0};
 
+    /* Generate random address by seeding and calling random */
+    srandom(ERASE_SEED);
     uint8_t sector = random() % MEM_NUM_SECTORS;
     /* Ensure that we do not overflow the sector */
     uint8_t offset = random() % (MEM_BYTES_PER_SECTOR - DATA_LENGTH);
     uint32_t address = sector * MEM_BYTES_PER_SECTOR + offset;
     uint8_t chip = random() % MEM_NUM_CHIPS;
-    uint8_t read[1] = {0};
     /* Write to location in sector */
     write_mem_bytes(address, data, DATA_LENGTH);
     /* Erase sector */
-    erase_mem_sector(sector, chip);
+    erase_mem_sector(address, chip);
+    /* Read written bits in sector and verify that bits are all one */
+    for (uint8_t i = address; i < address + DATA_LENGTH; i++){
+        read_mem_bytes(i, read, 1);
+        ASSERT_EQ(read[0], 0xFF);
+    }
+}
+
+void mem_block_erase_test(void){
+    uint8_t data[DATA_LENGTH] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
+    uint8_t read[1] = {0};
+
+    /* Generate random address by seeding and calling random */
+    srandom(ERASE_SEED);
+    uint8_t sector = random() % MEM_NUM_SECTORS;
+    /* Ensure that we do not overflow the sector */
+    uint8_t offset = random() % (MEM_BYTES_PER_SECTOR - DATA_LENGTH);
+    uint32_t address = sector * MEM_BYTES_PER_SECTOR + offset;
+    uint8_t chip = random() % MEM_NUM_CHIPS;
+
+    /* Write to location in sector */
+    write_mem_bytes(address, data, DATA_LENGTH);
+    /* Erase sector */
+    erase_mem_block(address, chip);
     /* Read written bits in sector and verify that bits are all one */
     for (uint8_t i = address; i < address + DATA_LENGTH; i++){
         read_mem_bytes(i, read, 1);
@@ -589,8 +612,9 @@ test_t t11 = { .name = "mem block test 2", .fn = mem_block_test_2 };
 test_t t12 = { .name = "section byte isolation test", .fn = section_byte_isolation_test };
 test_t t13 = { .name = "cmd block test", .fn = cmd_block_test };
 test_t t14 = { .name = "sector erase test", .fn = mem_sector_erase_test };
+test_t t15 = { .name = "block erase test", .fn = mem_block_erase_test };
 
-test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11, &t12, &t13, &t14 };
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11, &t12, &t13, &t14, &t15 };
 
 int main(void) {
     init_uart();

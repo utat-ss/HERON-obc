@@ -34,6 +34,7 @@
 #define MEM_FAST_READ           0x0B
 #define MEM_ALL_SECTORS         0x3C
 #define MEM_UNLOCK              0x98
+#define MEM_BLOCK_ERASE         0xD8
 
 // Status bits
 #define MEM_BUSY    0

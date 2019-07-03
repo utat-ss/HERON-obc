@@ -667,20 +667,16 @@ void send_short_mem_command(uint8_t command, uint8_t chip){
     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
 }
 
- void erase_mem_sector(uint8_t sector, uint8_t chip){
-     /*
-     erase a specific sector in memory, on indicated chip
-     functionality not used in the higher-level implementation
-     UNTESTED!!
-     */
-     /* This function only supports 4kb sectors and not overlayed blocks */
-
-     uint32_t address = sector * MEM_BYTES_PER_SECTOR;
-
+/* Untested */
+/* Takes an address and chip as input and deletes the appropriate sector */
+/* Each sector is 4kb, see pg. 24 for more info on sector erase */
+ void erase_mem_sector(uint32_t address, uint8_t chip){
      send_short_mem_command(MEM_WR_ENABLE, chip);
 
      set_cs_low(mem_cs[chip].pin, mem_cs[chip].port);
      send_spi(MEM_SECTOR_ERASE);
+     /* Remaining bits after sector address can be either high or low, so
+        the entire address can be sent as bit 23 is the MSB */
      send_spi((address >> 16) & 0xFF);
      send_spi((address >> 8) & 0xFF);
      send_spi(address & 0xFF);
@@ -688,4 +684,25 @@ void send_short_mem_command(uint8_t command, uint8_t chip){
 
      send_short_mem_command(MEM_WR_DISABLE, chip);
      wait_for_mem_not_busy(chip);
+ }
+
+/* Untested */
+/* Takes an address and chip as input and deletes the appropriate block.
+   The block size can range from 8kb to 64kb */
+/* See pg. 5 of data sheet for memory map and pg. 25 for more details on block erase*/
+ void erase_mem_block(uint32_t address, uint8_t chip){
+     send_short_mem_command(MEM_WR_ENABLE, chip);
+
+     set_cs_low(mem_cs[chip].pin, mem_cs[chip].port);
+     send_spi(MEM_BLOCK_ERASE);
+     /* Remaining bits after block address can be either high or low, so
+        the entire address can be sent as bit 23 is the MSB*/
+     send_spi((address >> 16) & 0xFF);
+     send_spi((address >> 8) & 0xFF);
+     send_spi(address & 0xFF);
+     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
+
+     send_short_mem_command(MEM_WR_DISABLE, chip);
+     wait_for_mem_not_busy(chip);
+
  }
