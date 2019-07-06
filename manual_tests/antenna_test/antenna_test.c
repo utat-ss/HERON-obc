@@ -53,4 +53,5 @@ int main(void) {
     // test_i2c_write();
 
     deploy_antenna();
+    WDT_OFF();
 }
