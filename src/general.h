@@ -12,12 +12,13 @@
 #include "antenna.h"
 #include "can_interface.h"
 #include "commands.h"
+#include "i2c.h"
 #include "mem.h"
 #include "rtc.h"
 #include "transceiver.h"
 
 
-extern rtc_date_t restart_date;		
+extern rtc_date_t restart_date;
 extern rtc_time_t restart_time;
 
 

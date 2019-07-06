@@ -1,7 +1,7 @@
 #include "general.h"
 
-// Date and time of the most recent restart		
-rtc_date_t restart_date = { .yy = 0, .mm = 0, .dd  = 0 };		
+// Date and time of the most recent restart
+rtc_date_t restart_date = { .yy = 0, .mm = 0, .dd  = 0 };
 rtc_time_t restart_time = { .hh = 0, .mm = 0, .ss  = 0 };
 
 
@@ -11,6 +11,7 @@ void init_obc_core(void) {
     init_uart();
 
     init_spi();
+    init_i2c();
 
     init_rtc();
 
