@@ -79,13 +79,6 @@ void init_i2c(void) {
     // Need to delay before writing any registers or else it doesn't work
     // 1ms just from experimentation
     _delay_ms(1);
-
-    // Use the lowest clock frequency by default (7.2 kHz, p. 9)
-    write_i2c_reg(I2C_CLOCK, 255);
-    // Set the timeout value and enable the timeout function
-    // (0xFF would be 65,535 cycles of a 57.6 kHz clock, so about 1 second, p. 9)
-    // 0x3F register -> 0x3FFF counter -> 2^14 / 57,600 = about 278 ms
-    write_i2c_reg(I2C_TO, 0x3F);
 }
 
 void init_i2c_pins(void) {
