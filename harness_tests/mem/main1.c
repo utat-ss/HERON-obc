@@ -551,46 +551,50 @@ void cmd_block_test(void) {
     ASSERT_FALSE(write_mem_cmd_block(block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
 }
 
+/* Test the ability to erase a 4kb sector of memory given an address */
 void mem_sector_erase_test(void){
     uint8_t data[DATA_LENGTH] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
     uint8_t read[1] = {0};
 
     /* Generate random address by seeding and calling random */
     srandom(ERASE_SEED);
-    uint8_t sector = random() % MEM_NUM_SECTORS;
-    /* Ensure that we do not overflow the sector */
-    uint8_t offset = random() % (MEM_BYTES_PER_SECTOR - DATA_LENGTH);
-    uint32_t address = sector * MEM_BYTES_PER_SECTOR + offset;
-    uint8_t chip = random() % MEM_NUM_CHIPS;
-    /* Write to location in sector */
+    uint32_t address = random() % MEM_NUM_ADDRESSES;
+    /* Write to location in sector and verify that write worked */
     write_mem_bytes(address, data, DATA_LENGTH);
+    for (uint32_t i = address; i < address + DATA_LENGTH; i++){
+        read_mem_bytes(i, read, 1);
+        ASSERT_EQ(read[0], data[i-address]);
+    }
+
     /* Erase sector */
-    erase_mem_sector(address, chip);
+    erase_mem_sector(address);
     /* Read written bits in sector and verify that bits are all one */
-    for (uint8_t i = address; i < address + DATA_LENGTH; i++){
+    for (uint32_t i = address; i < address + DATA_LENGTH; i++){
         read_mem_bytes(i, read, 1);
         ASSERT_EQ(read[0], 0xFF);
     }
 }
 
+/* Test the ability to erase a block of memory given an address */
 void mem_block_erase_test(void){
     uint8_t data[DATA_LENGTH] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
     uint8_t read[1] = {0};
 
     /* Generate random address by seeding and calling random */
     srandom(ERASE_SEED);
-    uint8_t sector = random() % MEM_NUM_SECTORS;
-    /* Ensure that we do not overflow the sector */
-    uint8_t offset = random() % (MEM_BYTES_PER_SECTOR - DATA_LENGTH);
-    uint32_t address = sector * MEM_BYTES_PER_SECTOR + offset;
-    uint8_t chip = random() % MEM_NUM_CHIPS;
+    uint32_t address = random() % MEM_NUM_ADDRESSES;
 
-    /* Write to location in sector */
+    /* Write to location in block and verify that write worked */
     write_mem_bytes(address, data, DATA_LENGTH);
-    /* Erase sector */
-    erase_mem_block(address, chip);
-    /* Read written bits in sector and verify that bits are all one */
-    for (uint8_t i = address; i < address + DATA_LENGTH; i++){
+    for (uint32_t i = address; i < address + DATA_LENGTH; i++){
+        read_mem_bytes(i, read, 1);
+        ASSERT_EQ(read[0], data[i-address]);
+    }
+
+    /* Erase block */
+    erase_mem_block(address);
+    /* Read written bits in block and verify that bits are all one */
+    for (uint32_t i = address; i < address + DATA_LENGTH; i++){
         read_mem_bytes(i, read, 1);
         ASSERT_EQ(read[0], 0xFF);
     }

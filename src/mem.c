@@ -667,42 +667,52 @@ void send_short_mem_command(uint8_t command, uint8_t chip){
     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
 }
 
-/* Untested */
-/* Takes an address and chip as input and deletes the appropriate sector */
+/* Takes an address and chip as input and erases the appropriate sector */
 /* Each sector is 4kb, see pg. 24 for more info on sector erase */
- void erase_mem_sector(uint32_t address, uint8_t chip){
-     send_short_mem_command(MEM_WR_ENABLE, chip);
+ void erase_mem_sector(uint32_t address){
+     uint8_t chip_num;
+     uint8_t addr1;
+     uint8_t addr2;
+     uint8_t addr3;
+     process_mem_addr(address, &chip_num, &addr1, &addr2, &addr3);
 
-     set_cs_low(mem_cs[chip].pin, mem_cs[chip].port);
+     send_short_mem_command(MEM_WR_ENABLE, chip_num);
+
+     set_cs_low(mem_cs[chip_num].pin, mem_cs[chip_num].port);
      send_spi(MEM_SECTOR_ERASE);
      /* Remaining bits after sector address can be either high or low, so
         the entire address can be sent as bit 23 is the MSB */
-     send_spi((address >> 16) & 0xFF);
-     send_spi((address >> 8) & 0xFF);
-     send_spi(address & 0xFF);
-     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
+    send_spi(addr1);
+    send_spi(addr2);
+    send_spi(addr3);
+     set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 
-     send_short_mem_command(MEM_WR_DISABLE, chip);
-     wait_for_mem_not_busy(chip);
+     send_short_mem_command(MEM_WR_DISABLE, chip_num);
+     wait_for_mem_not_busy(chip_num);
  }
 
-/* Untested */
 /* Takes an address and chip as input and deletes the appropriate block.
    The block size can range from 8kb to 64kb */
 /* See pg. 5 of data sheet for memory map and pg. 25 for more details on block erase*/
- void erase_mem_block(uint32_t address, uint8_t chip){
-     send_short_mem_command(MEM_WR_ENABLE, chip);
+ void erase_mem_block(uint32_t address){
+     uint8_t chip_num;
+     uint8_t addr1;
+     uint8_t addr2;
+     uint8_t addr3;
+     process_mem_addr(address, &chip_num, &addr1, &addr2, &addr3);
 
-     set_cs_low(mem_cs[chip].pin, mem_cs[chip].port);
+     send_short_mem_command(MEM_WR_ENABLE, chip_num);
+
+     set_cs_low(mem_cs[chip_num].pin, mem_cs[chip_num].port);
      send_spi(MEM_BLOCK_ERASE);
      /* Remaining bits after block address can be either high or low, so
         the entire address can be sent as bit 23 is the MSB*/
-     send_spi((address >> 16) & 0xFF);
-     send_spi((address >> 8) & 0xFF);
-     send_spi(address & 0xFF);
-     set_cs_high(mem_cs[chip].pin, mem_cs[chip].port);
+     send_spi(addr1);
+     send_spi(addr2);
+     send_spi(addr3);
+     set_cs_high(mem_cs[chip_num].pin, mem_cs[chip_num].port);
 
-     send_short_mem_command(MEM_WR_DISABLE, chip);
-     wait_for_mem_not_busy(chip);
+     send_short_mem_command(MEM_WR_DISABLE, chip_num);
+     wait_for_mem_not_busy(chip_num);
 
  }
