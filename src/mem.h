@@ -34,6 +34,7 @@
 #define MEM_FAST_READ           0x0B
 #define MEM_ALL_SECTORS         0x3C
 #define MEM_UNLOCK              0x98
+#define MEM_BLOCK_ERASE         0xD8
 
 // Status bits
 #define MEM_BUSY    0
@@ -58,6 +59,8 @@
 #define MEM_BYTES_PER_FIELD     3
 // Number of bytes in one command log
 #define MEM_BYTES_PER_CMD       9
+// Number of bytes per memory sector
+#define MEM_BYTES_PER_SECTOR    4096
 
 
 #define MEM_EPS_HK_START_ADDR   0x000000UL
@@ -71,7 +74,9 @@
 
 #define MEM_CMD_LOG_START_ADDR  0x400000UL
 #define MEM_CMD_LOG_END_ADDR    0x5FFFFFUL
-    
+
+#define MEM_NUM_ADDRESSES       0x600000UL
+
 #define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x20)
 #define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x24)
 #define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x28)
@@ -171,5 +176,9 @@ void write_mem_status(uint8_t status, uint8_t chip);
 // Commands
 uint8_t send_mem_command(uint8_t command, uint8_t data, uint8_t chip);
 void send_short_mem_command(uint8_t command, uint8_t chip);
+
+// Block and sector erase
+void erase_mem_block(uint32_t address);
+void erase_mem_sector(uint32_t address);
 
 #endif
