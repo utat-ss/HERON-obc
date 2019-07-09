@@ -37,17 +37,17 @@ void handle_rx_msg(void) {
         uint8_t message_type = data[1];
 
         //General CAN command-Send back data
-        if ((current_cmd == &send_eps_can_cmd) ||
-            (current_cmd == &send_pay_can_cmd)) {
-                ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                    start_trans_tx_dec_msg();
-                    for (uint8_t i = 0; i < 8; i++) {
-                        append_to_trans_tx_dec_msg(data[i]);
-                    }
-                    finish_trans_tx_dec_msg();
+        if ((current_cmd == &eps_can_cmd) ||
+                (current_cmd == &pay_can_cmd)) {
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                start_trans_tx_dec_msg();
+                for (uint8_t i = 0; i < 8; i++) {
+                    append_to_trans_tx_dec_msg(data[i]);
                 }
-                finish_current_cmd(true);
+                finish_trans_tx_dec_msg();
             }
+            finish_current_cmd(true);
+        }
         else {
             switch (message_type) {
                 case CAN_EPS_HK:
@@ -93,7 +93,7 @@ void handle_eps_hk(const uint8_t* data){
 
     // If we have received all the fields
     if ((field_num == CAN_EPS_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &collect_block_cmd) &&
+        (current_cmd == &col_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_EPS_HK)) {
 
         if (!sim_local_actions) {
@@ -109,19 +109,14 @@ void handle_eps_hk(const uint8_t* data){
 }
 
 void handle_eps_ctrl(const uint8_t* data){
-    uint8_t field_num = data[2];
+    // uint8_t field_num = data[2];
+    // TODO - fix 32-bit data
+    // uint32_t raw_data =
+    //     (((uint32_t) data[3]) << 16) |
+    //     (((uint32_t) data[4]) << 8) |
+    //     ((uint32_t) data[5]);
 
-    if ((field_num == CAN_EPS_CTRL_HEAT_SP1 ||
-        field_num == CAN_EPS_CTRL_HEAT_SP2) &&
-        current_cmd == &set_eps_heater_sp_cmd) {
-
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
-            finish_trans_tx_dec_msg();
-        }
-
-        finish_current_cmd(true);
-    }
+    // TODO - anything to do here?
 }
 
 void handle_pay_hk(const uint8_t* data){
@@ -143,7 +138,7 @@ void handle_pay_hk(const uint8_t* data){
 
     // If we have received all the fields
     if ((field_num == CAN_PAY_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &collect_block_cmd) &&
+        (current_cmd == &col_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_PAY_HK)) {
 
         if (!sim_local_actions) {
@@ -177,7 +172,7 @@ void handle_pay_opt(const uint8_t* data){
 
     // If we have received all the fields
     if ((field_num == CAN_PAY_OPT_FIELD_COUNT - 1) &&
-        (current_cmd == &collect_block_cmd) &&
+        (current_cmd == &col_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_PAY_OPT)) {
 
         if (!sim_local_actions) {
@@ -194,22 +189,14 @@ void handle_pay_opt(const uint8_t* data){
 
 void handle_pay_ctrl(const uint8_t* data) {
     uint8_t field_num = data[2];
+    // uint32_t raw_data =
+    //     (((uint32_t) data[3]) << 16) |
+    //     (((uint32_t) data[4]) << 8) |
+    //     ((uint32_t) data[5]);
 
-    if ((field_num == CAN_PAY_CTRL_HEAT_SP1 ||
-        field_num == CAN_PAY_CTRL_HEAT_SP2) &&
-        current_cmd == &set_pay_heater_sp_cmd) {
-
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
-            finish_trans_tx_dec_msg();
-        }
-
-        finish_current_cmd(true);
-    }
-
-    else if ((field_num == CAN_PAY_CTRL_ACT_UP ||
+    if ((field_num == CAN_PAY_CTRL_ACT_UP ||
         field_num == CAN_PAY_CTRL_ACT_DOWN) &&
-        current_cmd == &actuate_pay_motors_cmd) {
+        current_cmd == &pay_act_motors_cmd) {
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             start_trans_tx_dec_msg();

@@ -2,25 +2,29 @@
 
 void nop_fn(void);
 void ping_fn(void);
-void get_restart_uptime_fn(void);
+void get_subsys_status_fn(void);
 void get_rtc_fn(void);
 void set_rtc_fn(void);
-void read_mem_fn(void);
-void erase_mem_fn(void);
-void collect_block_fn(void);
-void read_local_block_fn(void);
+void read_mem_bytes_fn(void);
+void erase_mem_phy_sector_fn(void);
+void col_block_fn(void);
+void read_loc_block_fn(void);
 void read_mem_block_fn(void);
-void set_auto_data_col_enable_fn(void);
-void set_auto_data_col_period_fn(void);
-void resync_auto_data_col_fn(void);
-void set_eps_heater_sp_fn(void);
-void set_pay_heater_sp_fn(void);
-void actuate_motors_fn(void);
-void reset_fn(void);
-void send_eps_can_fn(void);
-void send_pay_can_fn(void);
+void auto_data_col_enable_fn(void);
+void auto_data_col_period_fn(void);
+void auto_data_col_resync_fn(void);
+void pay_act_motors_fn(void);
+void reset_subsys_fn(void);
+void eps_can_fn(void);
+void pay_can_fn(void);
 void read_eeprom_fn(void);
-void get_curr_block_num_fn(void);
+void get_cur_block_num_fn(void);
+void set_cur_block_num_fn(void);
+void set_mem_sec_start_addr_fn(void);
+void set_mem_sec_end_addr_fn(void);
+void erase_eeprom_fn(void);
+void erase_all_mem_fn(void);
+void erase_mem_phy_block_fn(void);
 
 // If true, the program will simulate local actions (i.e. simulates any
 // operations with peripherals besides the microcontroller and CAN)
@@ -58,6 +62,7 @@ volatile uint32_t current_cmd_arg2 = 0;
 // true if the previous command succeeded or false if it failed
 volatile bool prev_cmd_succeeded = false;
 
+// TODO - put command number in struct?
 // All possible commands
 // Default no-op command
 cmd_t nop_cmd = {
@@ -67,7 +72,7 @@ cmd_t ping_cmd = {
     .fn = ping_fn
 };
 cmd_t get_restart_uptime_cmd = {
-    .fn = get_restart_uptime_fn
+    .fn = get_subsys_status_fn
 };
 cmd_t get_rtc_cmd = {
     .fn = get_rtc_fn
@@ -75,53 +80,65 @@ cmd_t get_rtc_cmd = {
 cmd_t set_rtc_cmd = {
     .fn = set_rtc_fn
 };
-cmd_t read_mem_cmd = {
-    .fn = read_mem_fn
+cmd_t read_mem_bytes_cmd = {
+    .fn = read_mem_bytes_fn
 };
-cmd_t erase_mem_cmd = {
-    .fn = erase_mem_fn
+cmd_t erase_mem_sector_cmd = {
+    .fn = erase_mem_phy_sector_fn
 };
-cmd_t collect_block_cmd = {
-    .fn = collect_block_fn
+cmd_t col_block_cmd = {
+    .fn = col_block_fn
 };
-cmd_t read_local_block_cmd = {
-    .fn = read_local_block_fn
+cmd_t read_loc_block_cmd = {
+    .fn = read_loc_block_fn
 };
 cmd_t read_mem_block_cmd = {
     .fn = read_mem_block_fn
 };
-cmd_t set_auto_data_col_enable_cmd = {
-    .fn = set_auto_data_col_enable_fn
+cmd_t auto_data_col_enable_cmd = {
+    .fn = auto_data_col_enable_fn
 };
-cmd_t set_auto_data_col_period_cmd = {
-    .fn = set_auto_data_col_period_fn
+cmd_t auto_data_col_period_cmd = {
+    .fn = auto_data_col_period_fn
 };
-cmd_t resync_auto_data_col_cmd = {
-    .fn = resync_auto_data_col_fn
+cmd_t auto_data_col_resync_cmd = {
+    .fn = auto_data_col_resync_fn
 };
-cmd_t set_eps_heater_sp_cmd = {
-    .fn = set_eps_heater_sp_fn
+cmd_t pay_act_motors_cmd = {
+    .fn = pay_act_motors_fn
 };
-cmd_t set_pay_heater_sp_cmd = {
-    .fn = set_pay_heater_sp_fn
+cmd_t reset_subsys_cmd = {
+    .fn = reset_subsys_fn
 };
-cmd_t actuate_pay_motors_cmd = {
-    .fn = actuate_motors_fn
+cmd_t eps_can_cmd = {
+    .fn = eps_can_fn
 };
-cmd_t reset_cmd = {
-    .fn = reset_fn
-};
-cmd_t send_eps_can_cmd = {
-    .fn = send_eps_can_fn
-};
-cmd_t send_pay_can_cmd = {
-    .fn = send_pay_can_fn
+cmd_t pay_can_cmd = {
+    .fn = pay_can_fn
 };
 cmd_t read_eeprom_cmd = {
     .fn = read_eeprom_fn
 };
-cmd_t get_curr_block_num_cmd = {
-    .fn = get_curr_block_num_fn
+cmd_t get_cur_block_num_cmd = {
+    .fn = get_cur_block_num_fn
+};
+cmd_t set_cur_block_num_cmd = {
+    .fn = set_cur_block_num_fn
+};
+cmd_t set_mem_sec_start_addr_cmd = {
+    .fn = set_mem_sec_start_addr_fn
+};
+cmd_t set_mem_sec_end_addr_cmd = {
+    .fn = set_mem_sec_end_addr_fn
+};
+cmd_t erase_eeprom_cmd = {
+    .fn = erase_eeprom_fn
+};
+cmd_t erase_all_mem_cmd = {
+    .fn = erase_all_mem_fn
+};
+cmd_t erase_mem_phy_block_cmd = {
+    .fn = erase_mem_phy_block_fn
 };
 
 
@@ -142,8 +159,9 @@ void ping_fn(void) {
     finish_current_cmd(true);
 }
 
-void get_restart_uptime_fn(void) {
+void get_subsys_status_fn(void) {
     can_countdown = 30;
+
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
         append_to_trans_tx_dec_msg((restart_count >> 24) & 0xFF);
@@ -162,7 +180,9 @@ void get_restart_uptime_fn(void) {
         append_to_trans_tx_dec_msg(uptime_s & 0xFF);
         finish_trans_tx_dec_msg();
     }
+
     finish_current_cmd(true);
+
 }
 
 void get_rtc_fn(void) {
@@ -208,17 +228,16 @@ void set_rtc_fn(void) {
     finish_current_cmd(true);
 }
 
-void read_mem_fn(void) {
+void read_mem_bytes_fn(void) {
     can_countdown = 30;
-    // Currently max 64 bytes
-    // TODO - decide and document max count
-    if (current_cmd_arg2 > 64) {
+
+    // Enforce max number of bytes
+    if (current_cmd_arg2 > CMD_READ_MEM_MAX_COUNT) {
         finish_current_cmd(false);
         return;
     }
 
-    // TODO - constant
-    uint8_t data[64] = { 0x00 };
+    uint8_t data[CMD_READ_MEM_MAX_COUNT] = { 0x00 };
     read_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -232,18 +251,10 @@ void read_mem_fn(void) {
     finish_current_cmd(true);
 }
 
-void erase_mem_fn(void) {
+void erase_mem_phy_sector_fn(void) {
     can_countdown = 30;
-    // Currently max 64 bytes
-    // TODO - decide and document max count
-    if (current_cmd_arg2 > 64) {
-        finish_current_cmd(false);
-        return;
-    }
 
-    // TODO - constant
-    uint8_t data[64] = { 0xFF };
-    write_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
+    erase_mem_sector(current_cmd_arg1);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
@@ -254,7 +265,8 @@ void erase_mem_fn(void) {
 }
 
 // Starts requesting block data (field 0)
-void collect_block_fn(void) {
+// TODO - set error byte to error by default at beginning, clear error after receiving last field of data
+void col_block_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
@@ -279,7 +291,7 @@ void collect_block_fn(void) {
     // Will continue from CAN callbacks
 }
 
-void read_local_block_fn(void) {
+void read_loc_block_fn(void) {
     can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
@@ -378,10 +390,12 @@ void read_mem_block_fn(void) {
     }
 
     // TODO - will this give the correct behavaiour? maybe refactor both with common functionality?
-    read_local_block_fn();
+    read_loc_block_fn();
+
+    // TODO - finish_current_cmd(true)?
 }
 
-void set_auto_data_col_enable_fn(void) {
+void auto_data_col_enable_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
@@ -406,7 +420,7 @@ void set_auto_data_col_enable_fn(void) {
     finish_current_cmd(true);
 }
 
-void set_auto_data_col_period_fn(void) {
+void auto_data_col_period_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
@@ -431,7 +445,7 @@ void set_auto_data_col_period_fn(void) {
     finish_current_cmd(true);
 }
 
-void resync_auto_data_col_fn(void) {
+void auto_data_col_resync_fn(void) {
     can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         eps_hk_auto_data_col.count = 0;
@@ -447,42 +461,9 @@ void resync_auto_data_col_fn(void) {
     finish_current_cmd(true);
 }
 
-void set_eps_heater_sp_fn(void) {
+void pay_act_motors_fn(void) {
     can_countdown = 30;
-    switch (current_cmd_arg1) {
-        case 0:
-            enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_HEAT_SP1, current_cmd_arg2);
-            break;
-        case 1:
-            enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_HEAT_SP2, current_cmd_arg2);
-            break;
-        default:
-            finish_current_cmd(false);
-            break;
-    }
-
-    // CAN callbacks
-}
-
-void set_pay_heater_sp_fn(void) {
-    can_countdown = 30;
-    switch (current_cmd_arg1) {
-        case 0:
-            enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_HEAT_SP1, current_cmd_arg2);
-            break;
-        case 1:
-            enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_HEAT_SP2, current_cmd_arg2);
-            break;
-        default:
-            finish_current_cmd(false);
-            break;
-    }
-
-    // CAN callbacks
-}
-
-void actuate_motors_fn(void) {
-    can_countdown = 30;
+    // TODO - temp low-power
     switch (current_cmd_arg1) {
         case 1:
             enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_ACT_UP, 0);
@@ -495,33 +476,70 @@ void actuate_motors_fn(void) {
             break;
     }
 
-    // CAN callbacks
+    // Continues from CAN callbacks
 }
 
-void reset_fn(void) {
-    // TODO
-    print("Reset TODO\n");
-}
-
-void send_eps_can_fn(void) {
+void reset_subsys_fn(void) {
     can_countdown = 30;
-    print("Sending EPS CAN\n");
+
+    if (current_cmd_arg1 == CMD_SUBSYS_OBC) {
+        reset_self_mcu(UPTIME_RESTART_REASON_RESET_CMD);
+        // Program should stop here and restart from the beginning
+
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_tx_dec_msg();
+            finish_trans_tx_dec_msg();
+        }
+        finish_current_cmd(true);
+    }
+    // PAY/EPS will not respond so don't expect a CAN message back
+    // Just finish the current command
+    else if (current_cmd_arg1 == CMD_SUBSYS_EPS) {
+        enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_RESET, 0);
+        finish_current_cmd(true);
+    }
+    else if (current_cmd_arg1 == CMD_SUBSYS_PAY) {
+        enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_RESET, 0);
+        finish_current_cmd(true);
+    }
+    else {
+        finish_current_cmd(false);
+    }
+}
+
+void eps_can_fn(void) {
+    can_countdown = 30;
     enqueue_eps_tx_msg(current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
 }
 
-void send_pay_can_fn(void) {
+void pay_can_fn(void) {
     can_countdown = 30;
-    print("Sending PAY CAN\n");
     enqueue_pay_tx_msg(current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
 }
 
 void read_eeprom_fn(void) {
-    // TODO
+    can_countdown = 30;
+
+    // Need to represent address as uint32_t* for EEPROM function
+    // Must first cast to uint16_t or else we get warning: cast to pointer
+    // from integer of different size -Wint-to-pointer-cast]
+    uint32_t data = eeprom_read_dword(
+        (uint32_t*) ((uint16_t) current_cmd_arg2));
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg((data >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((data >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((data >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(data & 0xFF);
+        finish_trans_tx_dec_msg();
+    }
+    finish_current_cmd(true);
 }
 
-void get_curr_block_num_fn(void) {
+void get_cur_block_num_fn(void) {
     can_countdown = 30;
 
     uint32_t block_num = 0;
@@ -551,6 +569,129 @@ void get_curr_block_num_fn(void) {
     finish_current_cmd(true);
 }
 
+void set_cur_block_num_fn(void) {
+    can_countdown = 30;
+
+    switch (current_cmd_arg1) {
+        case CMD_BLOCK_EPS_HK:
+            eps_hk_mem_section.curr_block = current_cmd_arg2;
+            break;
+        case CMD_BLOCK_PAY_HK:
+            pay_hk_mem_section.curr_block = current_cmd_arg2;
+            break;
+        case CMD_BLOCK_PAY_OPT:
+            pay_opt_mem_section.curr_block = current_cmd_arg2;
+            break;
+        default:
+            break;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
+    }
+    
+    finish_current_cmd(true);
+}
+
+void set_mem_sec_start_addr_fn(void) {
+    can_countdown = 30;
+
+    switch (current_cmd_arg1) {
+        case CMD_BLOCK_EPS_HK:
+            eps_hk_mem_section.start_addr = current_cmd_arg2;
+            break;
+        case CMD_BLOCK_PAY_HK:
+            pay_hk_mem_section.start_addr = current_cmd_arg2;
+            break;
+        case CMD_BLOCK_PAY_OPT:
+            pay_opt_mem_section.start_addr = current_cmd_arg2;
+            break;
+        default:
+            break;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
+    }
+    
+    finish_current_cmd(true);
+}
+
+void set_mem_sec_end_addr_fn(void) {
+    can_countdown = 30;
+
+    switch (current_cmd_arg1) {
+        case CMD_BLOCK_EPS_HK:
+            eps_hk_mem_section.end_addr = current_cmd_arg2;
+            break;
+        case CMD_BLOCK_PAY_HK:
+            pay_hk_mem_section.end_addr = current_cmd_arg2;
+            break;
+        case CMD_BLOCK_PAY_OPT:
+            pay_opt_mem_section.end_addr = current_cmd_arg2;
+            break;
+        default:
+            break;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
+    }
+    
+    finish_current_cmd(true);
+}
+
+void erase_eeprom_fn(void) {
+    can_countdown = 30;
+
+    // Need to represent address as uint32_t* for EEPROM function
+    // Must first cast to uint16_t or else we get warning: cast to pointer
+    // from integer of different size -Wint-to-pointer-cast]
+    eeprom_update_dword(
+        (uint32_t*) ((uint16_t) current_cmd_arg2), EEPROM_DEF_DWORD);
+    
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
+    }
+
+    finish_current_cmd(true);
+}
+
+void erase_all_mem_fn(void) {
+    can_countdown = 30;
+
+    erase_mem();
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
+    }
+
+    finish_current_cmd(true);
+}
+
+void erase_mem_phy_block_fn(void) {
+    can_countdown = 30;
+
+    erase_mem_block(current_cmd_arg1);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        finish_trans_tx_dec_msg();
+    }
+
+    finish_current_cmd(true);
+}
+
+
+
+
+
+
 // Finishes executing the current command and sets the succeeded flag
 void finish_current_cmd(bool succeeded) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -577,7 +718,7 @@ void auto_data_col_timer_cb(void) {
         if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
             print("Auto collecting EPS_HK\n");
             eps_hk_auto_data_col.count = 0;
-            enqueue_cmd(&collect_block_cmd, CMD_BLOCK_EPS_HK, 0);
+            enqueue_cmd(&col_block_cmd, CMD_BLOCK_EPS_HK, 0);
         }
     }
 
@@ -587,7 +728,7 @@ void auto_data_col_timer_cb(void) {
         if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
             print("Auto collecting PAY_HK\n");
             pay_hk_auto_data_col.count = 0;
-            enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_HK, 0);
+            enqueue_cmd(&col_block_cmd, CMD_BLOCK_PAY_HK, 0);
         }
     }
 
@@ -597,7 +738,7 @@ void auto_data_col_timer_cb(void) {
         if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
             print("Auto collecting PAY_OPT\n");
             pay_opt_auto_data_col.count = 0;
-            enqueue_cmd(&collect_block_cmd, CMD_BLOCK_PAY_OPT, 0);
+            enqueue_cmd(&col_block_cmd, CMD_BLOCK_PAY_OPT, 0);
         }
     }
 }
@@ -736,43 +877,54 @@ cmd_t* trans_msg_type_to_cmd(uint8_t msg_type) {
             return &get_rtc_cmd;
         case TRANS_CMD_SET_RTC:
             return &set_rtc_cmd;
-        case TRANS_CMD_READ_MEM:
-            return &read_mem_cmd;
-        case TRANS_CMD_ERASE_MEM:
-            return &erase_mem_cmd;
+        case TRANS_CMD_READ_MEM_BYTES:
+            return &read_mem_bytes_cmd;
+        case TRANS_CMD_ERASE_MEM_SECTOR:
+            return &erase_mem_sector_cmd;
         case TRANS_CMD_COL_BLOCK:
-            return &collect_block_cmd;
+            return &col_block_cmd;
         case TRANS_CMD_READ_LOC_BLOCK:
-            return &read_local_block_cmd;
+            return &read_loc_block_cmd;
         case TRANS_CMD_READ_MEM_BLOCK:
             return &read_mem_block_cmd;
         case TRANS_CMD_AUTO_DATA_COL_ENABLE:
-            return &set_auto_data_col_enable_cmd;
+            return &auto_data_col_enable_cmd;
         case TRANS_CMD_AUTO_DATA_COL_PERIOD:
-            return &set_auto_data_col_period_cmd;
+            return &auto_data_col_period_cmd;
         case TRANS_CMD_AUTO_DATA_COL_RESYNC:
-            return &resync_auto_data_col_cmd;
-        case TRANS_CMD_EPS_HEAT_SP:
-            return &set_eps_heater_sp_cmd;
-        case TRANS_CMD_PAY_HEAT_SP:
-            return &set_pay_heater_sp_cmd;
+            return &auto_data_col_resync_cmd;
         case TRANS_CMD_PAY_ACT_MOTORS:
-            return &actuate_pay_motors_cmd;
+            return &pay_act_motors_cmd;
+        case TRANS_CMD_RESET_SUBSYS:
+            return &reset_subsys_cmd;
         case TRANS_CMD_EPS_CAN:
-            return &send_eps_can_cmd;
+            return &eps_can_cmd;
         case TRANS_CMD_PAY_CAN:
-            return &send_pay_can_cmd;
+            return &pay_can_cmd;
         case TRANS_CMD_READ_EEPROM:
             return &read_eeprom_cmd;
-        case TRANS_CMD_GET_CURR_BLOCK_NUM:
-            return &get_curr_block_num_cmd;
+        case TRANS_CMD_GET_CUR_BLOCK_NUM:
+            return &get_cur_block_num_cmd;
+        case TRANS_CMD_SET_CUR_BLOCK_NUM:
+            return &set_cur_block_num_cmd;
+        case TRANS_CMD_SET_MEM_SEC_START_ADDR:
+            return &set_mem_sec_start_addr_cmd;
+        case TRANS_CMD_SET_MEM_SEC_END_ADDR:
+            return &set_mem_sec_end_addr_cmd;
+        case TRANS_CMD_ERASE_EEPROM:
+            return &erase_eeprom_cmd;
+        case TRANS_CMD_ERASE_ALL_MEM:
+            return &erase_all_mem_cmd;
+        case TRANS_CMD_ERASE_MEM_PHY_BLOCK:
+            return &erase_mem_phy_block_cmd;
         default:
+            // TODO - return NOP?
             return NULL;
     }
 }
 
 uint8_t trans_cmd_to_msg_type(cmd_t* cmd) {
-    // Can't use case for pointers
+    // Can't use switch/case structure for pointers
     if (cmd == &ping_cmd) {
         return TRANS_CMD_PING;
     } else if (cmd == &get_restart_uptime_cmd) {
@@ -781,37 +933,48 @@ uint8_t trans_cmd_to_msg_type(cmd_t* cmd) {
         return TRANS_CMD_GET_RTC;
     } else if (cmd == &set_rtc_cmd) {
         return TRANS_CMD_SET_RTC;
-    } else if (cmd == &read_mem_cmd) {
-        return TRANS_CMD_READ_MEM;
-    } else if (cmd == &erase_mem_cmd) {
-        return TRANS_CMD_ERASE_MEM;
-    } else if (cmd == &collect_block_cmd) {
+    } else if (cmd == &read_mem_bytes_cmd) {
+        return TRANS_CMD_READ_MEM_BYTES;
+    } else if (cmd == &erase_mem_sector_cmd) {
+        return TRANS_CMD_ERASE_MEM_SECTOR;
+    } else if (cmd == &col_block_cmd) {
         return TRANS_CMD_COL_BLOCK;
-    } else if (cmd == &read_local_block_cmd) {
+    } else if (cmd == &read_loc_block_cmd) {
         return TRANS_CMD_READ_LOC_BLOCK;
     } else if (cmd == &read_mem_block_cmd) {
         return TRANS_CMD_READ_MEM_BLOCK;
-    } else if (cmd == &set_auto_data_col_enable_cmd) {
+    } else if (cmd == &auto_data_col_enable_cmd) {
         return TRANS_CMD_AUTO_DATA_COL_ENABLE;
-    } else if (cmd == &set_auto_data_col_period_cmd) {
+    } else if (cmd == &auto_data_col_period_cmd) {
         return TRANS_CMD_AUTO_DATA_COL_PERIOD;
-    } else if (cmd == &resync_auto_data_col_cmd) {
+    } else if (cmd == &auto_data_col_resync_cmd) {
         return TRANS_CMD_AUTO_DATA_COL_RESYNC;
-    } else if (cmd == &set_eps_heater_sp_cmd) {
-        return TRANS_CMD_EPS_HEAT_SP;
-    } else if (cmd == &set_pay_heater_sp_cmd) {
-        return TRANS_CMD_PAY_HEAT_SP;
-    } else if (cmd == &actuate_pay_motors_cmd) {
+    } else if (cmd == &pay_act_motors_cmd) {
         return TRANS_CMD_PAY_ACT_MOTORS;
-    } else if (cmd == &send_eps_can_cmd) {
+    } else if (cmd == &reset_subsys_cmd) {
+        return TRANS_CMD_RESET_SUBSYS;
+    } else if (cmd == &eps_can_cmd) {
         return TRANS_CMD_EPS_CAN;
-    } else if (cmd == &send_pay_can_cmd) {
+    } else if (cmd == &pay_can_cmd) {
         return TRANS_CMD_PAY_CAN;
     } else if (cmd == &read_eeprom_cmd) {
         return TRANS_CMD_READ_EEPROM;
-    } else if (cmd == &get_curr_block_num_cmd) {
-        return TRANS_CMD_GET_CURR_BLOCK_NUM;
+    } else if (cmd == &get_cur_block_num_cmd) {
+        return TRANS_CMD_GET_CUR_BLOCK_NUM;
+    } else if (cmd == &set_cur_block_num_cmd) {
+        return TRANS_CMD_SET_CUR_BLOCK_NUM;
+    } else if (cmd == &set_mem_sec_start_addr_cmd) {
+        return TRANS_CMD_SET_MEM_SEC_START_ADDR;
+    } else if (cmd == &set_mem_sec_end_addr_cmd) {
+        return TRANS_CMD_SET_MEM_SEC_END_ADDR;
+    } else if (cmd == &erase_eeprom_cmd) {
+        return TRANS_CMD_ERASE_EEPROM;
+    } else if (cmd == &erase_all_mem_cmd) {
+        return TRANS_CMD_ERASE_ALL_MEM;
+    } else if (cmd == &erase_mem_phy_block_cmd) {
+        return TRANS_CMD_ERASE_MEM_PHY_BLOCK;
     } else {
+        // TODO - use NOP?
         return 0xFF;
     }
 }

@@ -114,35 +114,35 @@ uart_cmd_t all_cmds[] = {
     },
     {
         .description = "Request EPS HK",
-        .cmd = &collect_block_cmd,
+        .cmd = &col_block_cmd,
         .arg1 = CMD_BLOCK_EPS_HK,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Request PAY HK",
-        .cmd = &collect_block_cmd,
+        .cmd = &col_block_cmd,
         .arg1 = CMD_BLOCK_PAY_HK,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Request PAY OPT",
-        .cmd = &collect_block_cmd,
+        .cmd = &col_block_cmd,
         .arg1 = CMD_BLOCK_PAY_OPT,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Actuate motors up",
-        .cmd = &actuate_pay_motors_cmd,
+        .cmd = &pay_act_motors_cmd,
         .arg1 = CAN_PAY_CTRL_ACT_UP,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Actuate motors down",
-        .cmd = &actuate_pay_motors_cmd,
+        .cmd = &pay_act_motors_cmd,
         .arg1 = CAN_PAY_CTRL_ACT_DOWN,
         .arg2 = 0,
         .bypass_trans = false
