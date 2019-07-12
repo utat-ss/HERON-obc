@@ -4,18 +4,30 @@
  * verify that components are responding as expected */
 
 #include <stdlib.h>
-
 #include <test/test.h>
 #include <uart/uart.h>
 #include <spi/spi.h>
+#include <util/atomic.h>
+
 #include "../../src/mem.h"
 #include "../../src/rtc.h"
 
- #define TEST_SIZE        4
- #define DATA_LENGTH      5
- #define RANDOM_SEED      0x5729AB7D
- #define ERASE_SEED       0x162FAF13
- #define ERASE_ADDR_COUNT 3
+#define TEST_SIZE        4
+#define DATA_LENGTH      5
+#define RANDOM_SEED      0x5729AB7D
+#define ERASE_SEED       0x162FAF13
+#define ERASE_ADDR_COUNT 3
+
+/* Assertion macros to test equality of date and time structs */
+#define ASSERT_EQ_DATE(date1, date2) \
+    ASSERT_EQ(date1.yy, date2.yy); \
+    ASSERT_EQ(date1.mm, date2.mm); \
+    ASSERT_EQ(date1.dd, date2.dd);
+
+#define ASSERT_EQ_TIME(time1, time2) \
+    ASSERT_EQ(time1.hh, time2.hh); \
+    ASSERT_EQ(time1.mm, time2.mm); \
+    ASSERT_EQ(time1.ss, time2.ss);
 
 /* Write and read from each chip in flash memory to verify
   that all are working as expected */
@@ -64,18 +76,37 @@ void test_eeprom(void){
     ASSERT_EQ(pay_opt_block_prev + 1, eeprom_read_dword(pay_opt_mem_section.curr_block_eeprom_addr));
 }
 
-void rtc1_test(void){
+/* Test setting and reading a time on the RTC */
+void rtc_date_time_test(void){
+    rtc_time_t time_set = {.ss = 4, .mm = 8, .hh = 16};
+    rtc_date_t date_set = {.dd = 5, .mm = 10, .yy = 20};
 
+    rtc_time_t time_read;
+    rtc_date_t date_read;
+
+    set_rtc_time(time_set);
+    set_rtc_date(date_set);
+
+    for (uint8_t i = 0;i < 5; i++){
+        ATOMIC_BLOCK(ATOMIC_FORCEON){
+            time_read = read_rtc_time();
+            date_read = read_rtc_date();
+            ASSERT_EQ_TIME(time_set, time_read);
+            ASSERT_EQ_DATE(date_set, date_read);
+            _delay_ms(5000);
+            time_set.ss +=5;
+        }
+    }
 }
 
-void rtc2_test(void){
+void rtc_alarm_test(void){
 
 }
 
 test_t t1 = { .name = "read/write mem test", .fn = read_write_erase_mem_test };
 test_t t2 = { .name = "eeprom test", .fn = test_eeprom };
-test_t t3 = { .name = "rtc1 test", .fn = rtc1_test };
-test_t t4 = { .name = "rtc2 test", .fn = rtc2_test };
+test_t t3 = { .name = "rtc date/time test", .fn = rtc_date_time_test };
+test_t t4 = { .name = "rtc alarm test", .fn = rtc_alarm_test };
 
 test_t* suite[] = { &t1, &t2, &t3, &t4 };
 
@@ -83,6 +114,7 @@ int main(void) {
     init_uart();
     init_spi();
     init_mem();
+    init_rtc();
 
     run_tests(suite, TEST_SIZE);
     return 0;
