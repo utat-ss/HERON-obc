@@ -29,6 +29,11 @@
     ASSERT_EQ(time1.mm, time2.mm); \
     ASSERT_EQ(time1.ss, time2.ss);
 
+volatile uint8_t alarm_byte = 0x00;
+
+void rtc_alarm(void){
+    alarm_byte = 0xFF;
+}
 /* Write and read from each chip in flash memory to verify
   that all are working as expected */
 void read_write_erase_mem_test(void){
@@ -87,20 +92,34 @@ void rtc_date_time_test(void){
     set_rtc_time(time_set);
     set_rtc_date(date_set);
 
-    for (uint8_t i = 0;i < 5; i++){
-        ATOMIC_BLOCK(ATOMIC_FORCEON){
-            time_read = read_rtc_time();
-            date_read = read_rtc_date();
-            ASSERT_EQ_TIME(time_set, time_read);
-            ASSERT_EQ_DATE(date_set, date_read);
-            _delay_ms(5000);
-            time_set.ss +=5;
-        }
+    for (uint8_t i = 0;i < 3; i++){
+        time_read = read_rtc_time();
+        date_read = read_rtc_date();
+        ASSERT_EQ_TIME(time_set, time_read);
+        ASSERT_EQ_DATE(date_set, date_read);
+        _delay_ms(2000);
+        time_set.ss +=2;
     }
 }
 
+/* Set one alarm and verify that it changes alarm_byte when expected */
 void rtc_alarm_test(void){
+    rtc_time_t time_set = {.ss = 4, .mm = 9, .hh = 16};
+    rtc_date_t date_set = {.dd = 4, .mm = 10, .yy = 20};
+    rtc_time_t alarm_time_set = {.ss = 9, .mm = 9, .hh = 16};
 
+    set_rtc_time(time_set);
+    set_rtc_date(date_set);
+    set_rtc_alarm(alarm_time_set, date_set, RTC_ALARM_1, rtc_alarm);
+
+    while(!alarm_byte){
+        /* wait until alarm_byte is triggered by alarm */
+    }
+
+    rtc_time_t time_read = read_rtc_time();
+    rtc_date_t date_read = read_rtc_date();
+    ASSERT_EQ_TIME(alarm_time_set, time_read);
+    ASSERT_EQ_DATE(date_set, date_read);
 }
 
 test_t t1 = { .name = "read/write mem test", .fn = read_write_erase_mem_test };
