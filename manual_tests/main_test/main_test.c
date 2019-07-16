@@ -490,11 +490,12 @@ void delay_random_ms(uint16_t max_ms) {
     delay_ms(rand_in_range(1, max_ms));
 }
 
-// Splits up 24 bit data and populates msg[3], msg[4], and msg[5] with it
+// Splits up 32 bit data and populates msg[4], msg[5], msg[6], and msg[7] with it
 void populate_msg_data(uint8_t* msg, uint32_t data) {
-    msg[3] = (data >> 16) & 0xFF;
-    msg[4] = (data >> 8) & 0xFF;
-    msg[5] = data & 0xFF;
+    msg[4] = (data >> 24) & 0xFF;
+    msg[5] = (data >> 16) & 0xFF;
+    msg[6] = (data >> 8) & 0xFF;
+    msg[7] = data & 0xFF;
 }
 
 // Simulates sending an EPS TX message and getting a response back
@@ -509,12 +510,13 @@ void sim_send_next_eps_tx_msg(void) {
 
     // Construct the message EPS would send back
     uint8_t rx_msg[8] = {0x00};
-    rx_msg[0] = 0;
-    rx_msg[1] = tx_msg[1];
+    rx_msg[0] = 0x00;
+    rx_msg[1] = 0x00;
     rx_msg[2] = tx_msg[2];
+    rx_msg[3] = tx_msg[3];
 
-    uint8_t msg_type = tx_msg[1];
-    uint8_t field_num = tx_msg[2];
+    uint8_t msg_type = tx_msg[2];
+    uint8_t field_num = tx_msg[3];
 
     // Can return early to not send a message back
     switch (msg_type) {
@@ -561,12 +563,13 @@ void sim_send_next_pay_tx_msg(void) {
 
     // Construct the message EPS would send back
     uint8_t rx_msg[8] = {0x00};
-    rx_msg[0] = 0;
-    rx_msg[1] = tx_msg[1];
+    rx_msg[0] = 0x00;
+    rx_msg[1] = 0x00;
     rx_msg[2] = tx_msg[2];
+    rx_msg[3] = tx_msg[3];
 
-    uint8_t msg_type = tx_msg[1];
-    uint8_t field_num = tx_msg[2];
+    uint8_t msg_type = tx_msg[2];
+    uint8_t field_num = tx_msg[3];
 
     // Can return early to not send a message back
     switch (msg_type) {
