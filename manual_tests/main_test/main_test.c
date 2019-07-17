@@ -114,35 +114,35 @@ uart_cmd_t all_cmds[] = {
     },
     {
         .description = "Request EPS HK",
-        .cmd = &collect_block_cmd,
+        .cmd = &col_block_cmd,
         .arg1 = CMD_BLOCK_EPS_HK,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Request PAY HK",
-        .cmd = &collect_block_cmd,
+        .cmd = &col_block_cmd,
         .arg1 = CMD_BLOCK_PAY_HK,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Request PAY OPT",
-        .cmd = &collect_block_cmd,
+        .cmd = &col_block_cmd,
         .arg1 = CMD_BLOCK_PAY_OPT,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Actuate motors up",
-        .cmd = &actuate_pay_motors_cmd,
+        .cmd = &pay_act_motors_cmd,
         .arg1 = CAN_PAY_CTRL_ACT_UP,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Actuate motors down",
-        .cmd = &actuate_pay_motors_cmd,
+        .cmd = &pay_act_motors_cmd,
         .arg1 = CAN_PAY_CTRL_ACT_DOWN,
         .arg2 = 0,
         .bypass_trans = false
@@ -490,11 +490,12 @@ void delay_random_ms(uint16_t max_ms) {
     delay_ms(rand_in_range(1, max_ms));
 }
 
-// Splits up 24 bit data and populates msg[3], msg[4], and msg[5] with it
+// Splits up 32 bit data and populates msg[4], msg[5], msg[6], and msg[7] with it
 void populate_msg_data(uint8_t* msg, uint32_t data) {
-    msg[3] = (data >> 16) & 0xFF;
-    msg[4] = (data >> 8) & 0xFF;
-    msg[5] = data & 0xFF;
+    msg[4] = (data >> 24) & 0xFF;
+    msg[5] = (data >> 16) & 0xFF;
+    msg[6] = (data >> 8) & 0xFF;
+    msg[7] = data & 0xFF;
 }
 
 // Simulates sending an EPS TX message and getting a response back
@@ -509,12 +510,13 @@ void sim_send_next_eps_tx_msg(void) {
 
     // Construct the message EPS would send back
     uint8_t rx_msg[8] = {0x00};
-    rx_msg[0] = 0;
-    rx_msg[1] = tx_msg[1];
+    rx_msg[0] = 0x00;
+    rx_msg[1] = 0x00;
     rx_msg[2] = tx_msg[2];
+    rx_msg[3] = tx_msg[3];
 
-    uint8_t msg_type = tx_msg[1];
-    uint8_t field_num = tx_msg[2];
+    uint8_t msg_type = tx_msg[2];
+    uint8_t field_num = tx_msg[3];
 
     // Can return early to not send a message back
     switch (msg_type) {
@@ -525,15 +527,30 @@ void sim_send_next_eps_tx_msg(void) {
             } else if (CAN_EPS_HK_GYR_UNCAL_X <= field_num && field_num <= CAN_EPS_HK_GYR_CAL_Z) {
                 // 16-bit data - IMU gyro
                 populate_msg_data(rx_msg, rand_bits(16));
+            } else if (CAN_EPS_HK_HEAT_SHADOW_SP1 <= field_num && field_num <= CAN_EPS_HK_HEAT_SUN_SP2) {
+                // 12-bit data - DAC
+                populate_msg_data(rx_msg, rand_bits(12));
             } else {
                 return;
             }
             break;
 
         case CAN_EPS_CTRL:
-            if ((field_num == CAN_EPS_CTRL_HEAT_SP1) ||
-                (field_num == CAN_EPS_CTRL_HEAT_SP2)) {
+            if (field_num == CAN_EPS_CTRL_PING) {
+                // Nothing
+            } else if ((CAN_EPS_CTRL_HEAT_SHADOW_SP1 <= field_num) &&
+                (field_num <= CAN_EPS_CTRL_HEAT_CUR_THRESH_UPPER)) {
                 // Don't need to populate anything
+            } else if (field_num == CAN_EPS_CTRL_RESET) {
+                // Don't send a message back for reset
+                return;
+            } else if (field_num == CAN_EPS_CTRL_READ_EEPROM) {
+                populate_msg_data(rx_msg, rand_bits(32));
+            } else if (field_num == CAN_EPS_CTRL_ERASE_EEPROM) {
+                // Nothing
+            } else if ((CAN_EPS_CTRL_RESTART_COUNT <= field_num) &&
+                (field_num <= CAN_EPS_CTRL_UPTIME)) {
+                populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 return;
             }
@@ -561,12 +578,13 @@ void sim_send_next_pay_tx_msg(void) {
 
     // Construct the message EPS would send back
     uint8_t rx_msg[8] = {0x00};
-    rx_msg[0] = 0;
-    rx_msg[1] = tx_msg[1];
+    rx_msg[0] = 0x00;
+    rx_msg[1] = 0x00;
     rx_msg[2] = tx_msg[2];
+    rx_msg[3] = tx_msg[3];
 
-    uint8_t msg_type = tx_msg[1];
-    uint8_t field_num = tx_msg[2];
+    uint8_t msg_type = tx_msg[2];
+    uint8_t field_num = tx_msg[3];
 
     // Can return early to not send a message back
     switch (msg_type) {
@@ -601,11 +619,21 @@ void sim_send_next_pay_tx_msg(void) {
             break;
 
         case CAN_PAY_CTRL:
-            if ((field_num == CAN_PAY_CTRL_HEAT_SP1) ||
+            if ((field_num == CAN_PAY_CTRL_PING) ||
+                (field_num == CAN_PAY_CTRL_HEAT_SP1) ||
                 (field_num == CAN_PAY_CTRL_HEAT_SP2) ||
                 (field_num == CAN_PAY_CTRL_ACT_UP) ||
-                (field_num == CAN_PAY_CTRL_ACT_DOWN)) {
+                (field_num == CAN_PAY_CTRL_ACT_DOWN) ||
+                (field_num == CAN_PAY_CTRL_ERASE_EEPROM)) {
                 // Don't need to populate anything
+            } else if (field_num == CAN_PAY_CTRL_RESET) {
+                // Don't send a message back for reset
+                return;
+            } else if ((field_num == CAN_PAY_CTRL_READ_EEPROM) ||
+                (field_num == CAN_PAY_CTRL_RESTART_COUNT) ||
+                (field_num == CAN_PAY_CTRL_RESTART_REASON) ||
+                (field_num == CAN_PAY_CTRL_UPTIME)) {
+                populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 return;
             }
@@ -698,11 +726,11 @@ int main(void){
     sim_eps = true;
     sim_pay = true;
     sim_trans = true;
-    sim_trans_uart = true;
+    sim_trans_uart = false;
     comms_delay_s = 30;
     reset_comms_delay_eeprom = false;
-    skip_comms_delay = false;
-    skip_deploy_antenna = false;
+    skip_comms_delay = true;
+    skip_deploy_antenna = true;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;

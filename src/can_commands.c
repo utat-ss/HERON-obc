@@ -15,11 +15,10 @@ uint32_t pay_opt_fields[CAN_PAY_OPT_FIELD_COUNT] = { 0 };
 // received after 30 seconds
 volatile uint8_t can_countdown = 0;
 
-void handle_eps_hk(const uint8_t* data);
-void handle_eps_ctrl(const uint8_t* data);
-void handle_pay_hk(const uint8_t* data);
-void handle_pay_opt(const uint8_t* data);
-void handle_pay_ctrl(const uint8_t* data);
+void handle_eps_hk(uint8_t field_num, uint32_t data);
+void handle_pay_hk(uint8_t field_num, uint32_t data);
+void handle_pay_opt(uint8_t field_num, uint32_t data);
+void handle_pay_ctrl(uint8_t field_num);
 
 
 void handle_rx_msg(void) {
@@ -28,61 +27,57 @@ void handle_rx_msg(void) {
         return;
     }
 
+    can_countdown = 0; // Received message
+    uint8_t msg[8] = {0x00};
+    // print("Dequeued from data_rx_msg_queue\n");
+    dequeue(&data_rx_msg_queue, msg);
+
+    uint8_t msg_type = msg[2];
+    uint8_t field_num = msg[3];
+    uint32_t data =
+        ((uint32_t) msg[4] << 24) |
+        ((uint32_t) msg[5] << 16) |
+        ((uint32_t) msg[6] << 8) |
+        ((uint32_t) msg[7]);
+
+    //General CAN command-Send back data
+    if ((current_cmd == &eps_can_cmd) || (current_cmd == &pay_can_cmd)) {
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_tx_dec_msg();
+            for (uint8_t i = 0; i < 8; i++) {
+                append_to_trans_tx_dec_msg(msg[i]);
+            }
+            finish_trans_tx_dec_msg();
+        }
+        finish_current_cmd(true);
+    }
     else {
-        can_countdown = 0; // Received message
-        uint8_t data[8] = {0x00};
-        // print("Dequeued from data_rx_msg_queue\n");
-        dequeue(&data_rx_msg_queue, data);
-
-        uint8_t message_type = data[1];
-
-        //General CAN command-Send back data
-        if ((current_cmd == &send_eps_can_cmd) ||
-            (current_cmd == &send_pay_can_cmd)) {
-                ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                    start_trans_tx_dec_msg();
-                    for (uint8_t i = 0; i < 8; i++) {
-                        append_to_trans_tx_dec_msg(data[i]);
-                    }
-                    finish_trans_tx_dec_msg();
-                }
-                finish_current_cmd(true);
-            }
-        else {
-            switch (message_type) {
-                case CAN_EPS_HK:
-                    handle_eps_hk(data);
-                    break;
-                case CAN_EPS_CTRL:
-                    handle_eps_ctrl(data);
-                    break;
-                case CAN_PAY_HK:
-                    handle_pay_hk(data);
-                    break;
-                case CAN_PAY_OPT:
-                    handle_pay_opt(data);
-                    break;
-                case CAN_PAY_CTRL:
-                    handle_pay_ctrl(data);
-                    break;
-                default:
-                    break;
-            }
+        switch (msg_type) {
+            case CAN_EPS_HK:
+                handle_eps_hk(field_num, data);
+                break;
+            // Don't need an EPS CTRL handler
+            case CAN_PAY_HK:
+                handle_pay_hk(field_num, data);
+                break;
+            case CAN_PAY_OPT:
+                handle_pay_opt(field_num, data);
+                break;
+            case CAN_PAY_CTRL:
+                handle_pay_ctrl(field_num);
+                break;
+            default:
+                break;
         }
     }
 }
 
 
-void handle_eps_hk(const uint8_t* data){
-    uint8_t field_num = data[2];
-
+void handle_eps_hk(uint8_t field_num, uint32_t data){
     // Save the data to the local array
     if (field_num < CAN_EPS_HK_FIELD_COUNT) {
         // print("Received EPS_HK #%u\n", field_num);
-        eps_hk_fields[field_num] =
-                (((uint32_t) data[3]) << 16) |
-                (((uint32_t) data[4]) << 8) |
-                ((uint32_t) data[5]);
+        eps_hk_fields[field_num] = data;
     }
 
     // Request the next field (if not done yet)
@@ -93,7 +88,7 @@ void handle_eps_hk(const uint8_t* data){
 
     // If we have received all the fields
     if ((field_num == CAN_EPS_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &collect_block_cmd) &&
+        (current_cmd == &col_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_EPS_HK)) {
 
         if (!sim_local_actions) {
@@ -108,32 +103,12 @@ void handle_eps_hk(const uint8_t* data){
     }
 }
 
-void handle_eps_ctrl(const uint8_t* data){
-    uint8_t field_num = data[2];
 
-    if ((field_num == CAN_EPS_CTRL_HEAT_SP1 ||
-        field_num == CAN_EPS_CTRL_HEAT_SP2) &&
-        current_cmd == &set_eps_heater_sp_cmd) {
-
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
-            finish_trans_tx_dec_msg();
-        }
-
-        finish_current_cmd(true);
-    }
-}
-
-void handle_pay_hk(const uint8_t* data){
-    uint8_t field_num = data[2];
-
+void handle_pay_hk(uint8_t field_num, uint32_t data){
     // Save the data to the local array
     if (field_num < CAN_PAY_HK_FIELD_COUNT) {
         // print("modifying pay_hk_fields[%u]\n", field_num);
-        pay_hk_fields[field_num] =
-                (((uint32_t) data[3]) << 16) |
-                (((uint32_t) data[4]) << 8) |
-                ((uint32_t) data[5]);
+        pay_hk_fields[field_num] = data;
     }
 
     uint8_t next_field_num = field_num + 1;
@@ -143,7 +118,7 @@ void handle_pay_hk(const uint8_t* data){
 
     // If we have received all the fields
     if ((field_num == CAN_PAY_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &collect_block_cmd) &&
+        (current_cmd == &col_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_PAY_HK)) {
 
         if (!sim_local_actions) {
@@ -158,16 +133,11 @@ void handle_pay_hk(const uint8_t* data){
     }
 }
 
-void handle_pay_opt(const uint8_t* data){
-    uint8_t field_num = data[2];
-
+void handle_pay_opt(uint8_t field_num, uint32_t data){
     // Save the data to the local array
     if (field_num < CAN_PAY_OPT_FIELD_COUNT) {
         // Save data
-        pay_opt_fields[field_num] =
-                (((uint32_t) data[3]) << 16) |
-                (((uint32_t) data[4]) << 8) |
-                ((uint32_t) data[5]);
+        pay_opt_fields[field_num] = data;
     }
 
     uint8_t next_field_num = field_num + 1;
@@ -177,7 +147,7 @@ void handle_pay_opt(const uint8_t* data){
 
     // If we have received all the fields
     if ((field_num == CAN_PAY_OPT_FIELD_COUNT - 1) &&
-        (current_cmd == &collect_block_cmd) &&
+        (current_cmd == &col_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_PAY_OPT)) {
 
         if (!sim_local_actions) {
@@ -192,24 +162,10 @@ void handle_pay_opt(const uint8_t* data){
     }
 }
 
-void handle_pay_ctrl(const uint8_t* data) {
-    uint8_t field_num = data[2];
-
-    if ((field_num == CAN_PAY_CTRL_HEAT_SP1 ||
-        field_num == CAN_PAY_CTRL_HEAT_SP2) &&
-        current_cmd == &set_pay_heater_sp_cmd) {
-
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
-            finish_trans_tx_dec_msg();
-        }
-
-        finish_current_cmd(true);
-    }
-
-    else if ((field_num == CAN_PAY_CTRL_ACT_UP ||
+void handle_pay_ctrl(uint8_t field_num) {
+    if ((field_num == CAN_PAY_CTRL_ACT_UP ||
         field_num == CAN_PAY_CTRL_ACT_DOWN) &&
-        current_cmd == &actuate_pay_motors_cmd) {
+        current_cmd == &pay_act_motors_cmd) {
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             start_trans_tx_dec_msg();
@@ -223,7 +179,7 @@ void handle_pay_ctrl(const uint8_t* data) {
 
 // Enqueues a CAN message given a general set of 8 bytes data
 void enqueue_tx_msg_general(queue_t* queue, uint32_t data1, uint32_t data2) {
-    uint8_t msg[8] = { 0 };
+    uint8_t msg[8] = { 0x00 };
     msg[0] = (data1 >> 24) & 0xFF;
     msg[1] = (data1 >> 16) & 0xFF;
     msg[2] = (data1 >> 8) & 0xFF;
@@ -252,13 +208,15 @@ msg_type - Message type to request (byte 1)
 field_num - Field number to request (byte 2)
 */
 void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num, uint32_t data) {
-    uint8_t msg[8] = { 0 };
-    msg[0] = 0;   // TODO
-    msg[1] = msg_type;
-    msg[2] = field_num;
-    msg[3] = (data >> 16) & 0xFF;
-    msg[4] = (data >> 8) & 0xFF;
-    msg[5] = data & 0xFF;
+    uint8_t msg[8] = { 0x00 };
+    msg[0] = 0x00;
+    msg[1] = 0x00;
+    msg[2] = msg_type;
+    msg[3] = field_num;
+    msg[4] = (data >> 24) & 0xFF;
+    msg[5] = (data >> 16) & 0xFF;
+    msg[6] = (data >> 8) & 0xFF;
+    msg[7] = data & 0xFF;
 
     can_countdown = 5; // Wait 30 seconds for return message
     enqueue(queue, msg);
