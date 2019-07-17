@@ -527,15 +527,30 @@ void sim_send_next_eps_tx_msg(void) {
             } else if (CAN_EPS_HK_GYR_UNCAL_X <= field_num && field_num <= CAN_EPS_HK_GYR_CAL_Z) {
                 // 16-bit data - IMU gyro
                 populate_msg_data(rx_msg, rand_bits(16));
+            } else if (CAN_EPS_HK_HEAT_SHADOW_SP1 <= field_num && field_num <= CAN_EPS_HK_HEAT_SUN_SP2) {
+                // 12-bit data - DAC
+                populate_msg_data(rx_msg, rand_bits(12));
             } else {
                 return;
             }
             break;
 
         case CAN_EPS_CTRL:
-            if ((field_num == CAN_EPS_CTRL_HEAT_SP1) ||
-                (field_num == CAN_EPS_CTRL_HEAT_SP2)) {
+            if (field_num == CAN_EPS_CTRL_PING) {
+                // Nothing
+            } else if ((CAN_EPS_CTRL_HEAT_SHADOW_SP1 <= field_num) &&
+                (field_num <= CAN_EPS_CTRL_HEAT_CUR_THRESH_UPPER)) {
                 // Don't need to populate anything
+            } else if (field_num == CAN_EPS_CTRL_RESET) {
+                // Don't send a message back for reset
+                return;
+            } else if (field_num == CAN_EPS_CTRL_READ_EEPROM) {
+                populate_msg_data(rx_msg, rand_bits(32));
+            } else if (field_num == CAN_EPS_CTRL_ERASE_EEPROM) {
+                // Nothing
+            } else if ((CAN_EPS_CTRL_RESTART_COUNT <= field_num) &&
+                (field_num <= CAN_EPS_CTRL_UPTIME)) {
+                populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 return;
             }
@@ -604,11 +619,21 @@ void sim_send_next_pay_tx_msg(void) {
             break;
 
         case CAN_PAY_CTRL:
-            if ((field_num == CAN_PAY_CTRL_HEAT_SP1) ||
+            if ((field_num == CAN_PAY_CTRL_PING) ||
+                (field_num == CAN_PAY_CTRL_HEAT_SP1) ||
                 (field_num == CAN_PAY_CTRL_HEAT_SP2) ||
                 (field_num == CAN_PAY_CTRL_ACT_UP) ||
-                (field_num == CAN_PAY_CTRL_ACT_DOWN)) {
+                (field_num == CAN_PAY_CTRL_ACT_DOWN) ||
+                (field_num == CAN_PAY_CTRL_ERASE_EEPROM)) {
                 // Don't need to populate anything
+            } else if (field_num == CAN_PAY_CTRL_RESET) {
+                // Don't send a message back for reset
+                return;
+            } else if ((field_num == CAN_PAY_CTRL_READ_EEPROM) ||
+                (field_num == CAN_PAY_CTRL_RESTART_COUNT) ||
+                (field_num == CAN_PAY_CTRL_RESTART_REASON) ||
+                (field_num == CAN_PAY_CTRL_UPTIME)) {
+                populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 return;
             }
@@ -701,11 +726,11 @@ int main(void){
     sim_eps = true;
     sim_pay = true;
     sim_trans = true;
-    sim_trans_uart = true;
+    sim_trans_uart = false;
     comms_delay_s = 30;
     reset_comms_delay_eeprom = false;
-    skip_comms_delay = false;
-    skip_deploy_antenna = false;
+    skip_comms_delay = true;
+    skip_deploy_antenna = true;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;

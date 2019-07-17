@@ -496,10 +496,20 @@ void reset_subsys_fn(void) {
     // Just finish the current command
     else if (current_cmd_arg1 == CMD_SUBSYS_EPS) {
         enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_RESET, 0);
+
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_tx_dec_msg();
+            finish_trans_tx_dec_msg();
+        }
         finish_current_cmd(true);
     }
     else if (current_cmd_arg1 == CMD_SUBSYS_PAY) {
         enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_RESET, 0);
+
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_tx_dec_msg();
+            finish_trans_tx_dec_msg();
+        }
         finish_current_cmd(true);
     }
     else {
@@ -862,7 +872,7 @@ void dequeue_cmd(void) {
         current_cmd_arg2 = arg2;
     }
 
-    print("dequeue_cmd: cmd = 0x%x, arg1 = %lu, arg2 = %lu\n", current_cmd,
+    print("dequeue_cmd: cmd = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", current_cmd,
         current_cmd_arg1, current_cmd_arg2);
 }
 
