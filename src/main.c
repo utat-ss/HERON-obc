@@ -5,6 +5,7 @@ int main(void) {
     WDT_ENABLE_SYS_RESET(WDTO_8S);
 
     init_obc_core();
+    init_hb(HB_OBC);
     
     run_comms_delay();
     deploy_antenna();
@@ -12,6 +13,8 @@ int main(void) {
 
     while (1) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
+
+        run_hb();
 
         send_next_eps_tx_msg();
         send_next_pay_tx_msg();

@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include <can/can.h>
+#include <heartbeat/heartbeat.h>
 #include <queue/queue.h>
 #include <spi/spi.h>
 #include <uptime/uptime.h>
