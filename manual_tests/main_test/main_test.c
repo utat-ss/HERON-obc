@@ -37,6 +37,8 @@ bool reset_comms_delay_eeprom = false;
 bool skip_comms_delay = false;
 bool skip_deploy_antenna = false;
 
+bool disable_hb = false;
+
 // Set to true to print TX and RX CAN messages
 bool print_can_msgs = false;
 // Set to true to print commands and arguments
@@ -723,14 +725,16 @@ int main(void){
     print("\n\n\nStarting commands test\n\n");
 
     sim_local_actions = false;
-    sim_eps = true;
+    sim_eps = false;
     sim_pay = true;
     sim_trans = true;
-    sim_trans_uart = false;
+    sim_trans_uart = true;
     comms_delay_s = 30;
     reset_comms_delay_eeprom = false;
     skip_comms_delay = true;
     skip_deploy_antenna = true;
+    hb_ping_period_s = 30;
+    disable_hb = false;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;
@@ -744,10 +748,17 @@ int main(void){
     print("reset_comms_delay_eeprom = %u\n", reset_comms_delay_eeprom);
     print("skip_comms_delay = %u\n", skip_comms_delay);
     print("skip_deploy_antenna = %u\n", skip_deploy_antenna);
+    print("hb_ping_period_s = %lu\n", hb_ping_period_s);
+    print("disable_hb = %u\n", disable_hb);
     print("print_can_msgs = %u\n", print_can_msgs);
     print("print_cmds = %u\n", print_cmds);
     print("print_trans_msgs = %u\n", print_trans_msgs);
     print("\n");
+
+    // Initialize heartbeat separately so we have the option to disable it for debugging
+    if (!disable_hb) {
+        init_hb(HB_OBC);
+    }
 
     print("Mem blocks: eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
         eps_hk_mem_section.curr_block,
@@ -784,6 +795,10 @@ int main(void){
 
     while (1) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
+
+        if (!disable_hb) {
+            run_hb();
+        }
 
         // EPS TX
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
