@@ -739,21 +739,25 @@ int main(void){
     print_cmds = true;
     print_trans_msgs = true;
 
-    print("sim_local_actions = %u\n", sim_local_actions);
-    print("sim_eps = %u\n", sim_eps);
-    print("sim_pay = %u\n", sim_pay);
-    print("sim_trans = %u\n", sim_trans);
-    print("sim_trans_uart = %u\n", sim_trans_uart);
-    print("comms_delay_s = %lu\n", comms_delay_s);
-    print("reset_comms_delay_eeprom = %u\n", reset_comms_delay_eeprom);
-    print("skip_comms_delay = %u\n", skip_comms_delay);
-    print("skip_deploy_antenna = %u\n", skip_deploy_antenna);
+    // NOTE: Leaving all these print statements in will likely overflow the data section/stack, so generally they should be commented out
+    // Run `avr-size main_test.elf`
+    // In one case, 2676 worked but 2926 did not
+
+    // print("sim_local_actions = %u\n", sim_local_actions);
+    // print("sim_eps = %u\n", sim_eps);
+    // print("sim_pay = %u\n", sim_pay);
+    // print("sim_trans = %u\n", sim_trans);
+    // print("sim_trans_uart = %u\n", sim_trans_uart);
+    // print("comms_delay_s = %lu\n", comms_delay_s);
+    // print("reset_comms_delay_eeprom = %u\n", reset_comms_delay_eeprom);
+    // print("skip_comms_delay = %u\n", skip_comms_delay);
+    // print("skip_deploy_antenna = %u\n", skip_deploy_antenna);
     print("hb_ping_period_s = %lu\n", hb_ping_period_s);
     print("disable_hb = %u\n", disable_hb);
-    print("print_can_msgs = %u\n", print_can_msgs);
-    print("print_cmds = %u\n", print_cmds);
-    print("print_trans_msgs = %u\n", print_trans_msgs);
-    print("\n");
+    // print("print_can_msgs = %u\n", print_can_msgs);
+    // print("print_cmds = %u\n", print_cmds);
+    // print("print_trans_msgs = %u\n", print_trans_msgs);
+    // print("\n");
 
     // Initialize heartbeat separately so we have the option to disable it for debugging
     if (!disable_hb) {
