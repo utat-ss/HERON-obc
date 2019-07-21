@@ -32,81 +32,139 @@ void erase_mem_phy_block_fn(void);
 // All possible commands
 // Default no-op command
 cmd_t nop_cmd = {
-    .fn = nop_fn
+    .fn = nop_fn,
+    .num = 0xFF // Don't care
 };
 cmd_t ping_cmd = {
-    .fn = ping_fn
+    .fn = ping_fn,
+    .num = TRANS_CMD_PING
 };
-cmd_t get_restart_uptime_cmd = {
-    .fn = get_subsys_status_fn
+cmd_t get_subsys_status_cmd = {
+    .fn = get_subsys_status_fn,
+    .num = TRANS_CMD_GET_SUBSYS_STATUS
 };
 cmd_t get_rtc_cmd = {
-    .fn = get_rtc_fn
+    .fn = get_rtc_fn,
+    .num = TRANS_CMD_GET_RTC
 };
 cmd_t set_rtc_cmd = {
-    .fn = set_rtc_fn
+    .fn = set_rtc_fn,
+    .num = TRANS_CMD_SET_RTC
 };
 cmd_t read_mem_bytes_cmd = {
-    .fn = read_mem_bytes_fn
+    .fn = read_mem_bytes_fn,
+    .num = TRANS_CMD_READ_MEM_BYTES
 };
-cmd_t erase_mem_sector_cmd = {
-    .fn = erase_mem_phy_sector_fn
+cmd_t erase_mem_phy_sector_cmd = {
+    .fn = erase_mem_phy_sector_fn,
+    .num = TRANS_CMD_ERASE_MEM_PHY_SECTOR
 };
 cmd_t col_block_cmd = {
-    .fn = col_block_fn
+    .fn = col_block_fn,
+    .num = TRANS_CMD_COL_BLOCK
 };
 cmd_t read_loc_block_cmd = {
-    .fn = read_loc_block_fn
+    .fn = read_loc_block_fn,
+    .num = TRANS_CMD_READ_LOC_BLOCK
 };
 cmd_t read_mem_block_cmd = {
-    .fn = read_mem_block_fn
+    .fn = read_mem_block_fn,
+    .num = TRANS_CMD_READ_MEM_BLOCK
 };
 cmd_t auto_data_col_enable_cmd = {
-    .fn = auto_data_col_enable_fn
+    .fn = auto_data_col_enable_fn,
+    .num = TRANS_CMD_AUTO_DATA_COL_ENABLE
 };
 cmd_t auto_data_col_period_cmd = {
-    .fn = auto_data_col_period_fn
+    .fn = auto_data_col_period_fn,
+    .num = TRANS_CMD_AUTO_DATA_COL_PERIOD
 };
 cmd_t auto_data_col_resync_cmd = {
-    .fn = auto_data_col_resync_fn
+    .fn = auto_data_col_resync_fn,
+    .num = TRANS_CMD_AUTO_DATA_COL_RESYNC
 };
 cmd_t pay_act_motors_cmd = {
-    .fn = pay_act_motors_fn
+    .fn = pay_act_motors_fn,
+    .num = TRANS_CMD_PAY_ACT_MOTORS
 };
 cmd_t reset_subsys_cmd = {
-    .fn = reset_subsys_fn
+    .fn = reset_subsys_fn,
+    .num = TRANS_CMD_RESET_SUBSYS
 };
 cmd_t eps_can_cmd = {
-    .fn = eps_can_fn
+    .fn = eps_can_fn,
+    .num = TRANS_CMD_EPS_CAN
 };
 cmd_t pay_can_cmd = {
-    .fn = pay_can_fn
+    .fn = pay_can_fn,
+    .num = TRANS_CMD_PAY_CAN
 };
 cmd_t read_eeprom_cmd = {
-    .fn = read_eeprom_fn
+    .fn = read_eeprom_fn,
+    .num = TRANS_CMD_READ_EEPROM
 };
 cmd_t get_cur_block_num_cmd = {
-    .fn = get_cur_block_num_fn
+    .fn = get_cur_block_num_fn,
+    .num = TRANS_CMD_GET_CUR_BLOCK_NUM
 };
 cmd_t set_cur_block_num_cmd = {
-    .fn = set_cur_block_num_fn
+    .fn = set_cur_block_num_fn,
+    .num = TRANS_CMD_SET_CUR_BLOCK_NUM
 };
 cmd_t set_mem_sec_start_addr_cmd = {
-    .fn = set_mem_sec_start_addr_fn
+    .fn = set_mem_sec_start_addr_fn,
+    .num = TRANS_CMD_SET_MEM_SEC_START_ADDR
 };
 cmd_t set_mem_sec_end_addr_cmd = {
-    .fn = set_mem_sec_end_addr_fn
+    .fn = set_mem_sec_end_addr_fn,
+    .num = TRANS_CMD_SET_MEM_SEC_END_ADDR
 };
 cmd_t erase_eeprom_cmd = {
-    .fn = erase_eeprom_fn
+    .fn = erase_eeprom_fn,
+    .num = TRANS_CMD_ERASE_EEPROM
 };
 cmd_t erase_all_mem_cmd = {
-    .fn = erase_all_mem_fn
+    .fn = erase_all_mem_fn,
+    .num = TRANS_CMD_ERASE_ALL_MEM
 };
 cmd_t erase_mem_phy_block_cmd = {
-    .fn = erase_mem_phy_block_fn
+    .fn = erase_mem_phy_block_fn,
+    .num = TRANS_CMD_ERASE_MEM_PHY_BLOCK
 };
 
+// Should not include nop_cmd
+// Explicitly specify the length because using sizeof(all_cmds_list) gives an error
+// "invalid application of 'sizeof' to incomplete type 'cmd_t *[]' {aka 'struct
+// <anonymous> *[]'}"
+// If the ALL_CMDS_LEN is too small, gives warning "excess elements in array initializer"
+// If the ALL_CMDS_LEN is too big, no warnings
+// NOTE: MAKE SURE TO UPDATE ALL_CMDS_LEN WHEN ADDING/DELETING
+cmd_t* all_cmds_list[ALL_CMDS_LEN] = {
+    &ping_cmd,
+    &get_subsys_status_cmd,
+    &get_rtc_cmd,
+    &set_rtc_cmd,
+    &read_mem_block_cmd,
+    &erase_mem_phy_sector_cmd,
+    &col_block_cmd,
+    &read_loc_block_cmd,
+    &read_mem_block_cmd,
+    &auto_data_col_enable_cmd,
+    &auto_data_col_period_cmd,
+    &auto_data_col_resync_cmd,
+    &pay_act_motors_cmd,
+    &reset_subsys_cmd,
+    &eps_can_cmd,
+    &pay_can_cmd,
+    &read_eeprom_cmd,
+    &get_cur_block_num_cmd,
+    &set_cur_block_num_cmd,
+    &set_mem_sec_start_addr_cmd,
+    &set_mem_sec_end_addr_cmd,
+    &erase_eeprom_cmd,
+    &erase_all_mem_cmd,
+    &erase_mem_phy_block_cmd
+};
 
 
 // Command callback functions

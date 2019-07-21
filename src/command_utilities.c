@@ -126,115 +126,17 @@ void finish_trans_tx_dec_msg(void) {
 
 
 cmd_t* trans_msg_type_to_cmd(uint8_t msg_type) {
-    switch (msg_type) {
-        case TRANS_CMD_PING:
-            return &ping_cmd;
-        case TRANS_CMD_GET_RESTART_UPTIME:
-            return &get_restart_uptime_cmd;
-        case TRANS_CMD_GET_RTC:
-            return &get_rtc_cmd;
-        case TRANS_CMD_SET_RTC:
-            return &set_rtc_cmd;
-        case TRANS_CMD_READ_MEM_BYTES:
-            return &read_mem_bytes_cmd;
-        case TRANS_CMD_ERASE_MEM_SECTOR:
-            return &erase_mem_sector_cmd;
-        case TRANS_CMD_COL_BLOCK:
-            return &col_block_cmd;
-        case TRANS_CMD_READ_LOC_BLOCK:
-            return &read_loc_block_cmd;
-        case TRANS_CMD_READ_MEM_BLOCK:
-            return &read_mem_block_cmd;
-        case TRANS_CMD_AUTO_DATA_COL_ENABLE:
-            return &auto_data_col_enable_cmd;
-        case TRANS_CMD_AUTO_DATA_COL_PERIOD:
-            return &auto_data_col_period_cmd;
-        case TRANS_CMD_AUTO_DATA_COL_RESYNC:
-            return &auto_data_col_resync_cmd;
-        case TRANS_CMD_PAY_ACT_MOTORS:
-            return &pay_act_motors_cmd;
-        case TRANS_CMD_RESET_SUBSYS:
-            return &reset_subsys_cmd;
-        case TRANS_CMD_EPS_CAN:
-            return &eps_can_cmd;
-        case TRANS_CMD_PAY_CAN:
-            return &pay_can_cmd;
-        case TRANS_CMD_READ_EEPROM:
-            return &read_eeprom_cmd;
-        case TRANS_CMD_GET_CUR_BLOCK_NUM:
-            return &get_cur_block_num_cmd;
-        case TRANS_CMD_SET_CUR_BLOCK_NUM:
-            return &set_cur_block_num_cmd;
-        case TRANS_CMD_SET_MEM_SEC_START_ADDR:
-            return &set_mem_sec_start_addr_cmd;
-        case TRANS_CMD_SET_MEM_SEC_END_ADDR:
-            return &set_mem_sec_end_addr_cmd;
-        case TRANS_CMD_ERASE_EEPROM:
-            return &erase_eeprom_cmd;
-        case TRANS_CMD_ERASE_ALL_MEM:
-            return &erase_all_mem_cmd;
-        case TRANS_CMD_ERASE_MEM_PHY_BLOCK:
-            return &erase_mem_phy_block_cmd;
-        default:
-            // TODO - return NOP?
-            return NULL;
+    for (uint8_t i = 0; i < ALL_CMDS_LEN; i++) {
+        if (all_cmds_list[i]->num == msg_type) {
+            return all_cmds_list[i];
+        }
     }
+
+    return &nop_cmd;
 }
 
 uint8_t trans_cmd_to_msg_type(cmd_t* cmd) {
-    // Can't use switch/case structure for pointers
-    if (cmd == &ping_cmd) {
-        return TRANS_CMD_PING;
-    } else if (cmd == &get_restart_uptime_cmd) {
-        return TRANS_CMD_GET_RESTART_UPTIME;
-    } else if (cmd == &get_rtc_cmd) {
-        return TRANS_CMD_GET_RTC;
-    } else if (cmd == &set_rtc_cmd) {
-        return TRANS_CMD_SET_RTC;
-    } else if (cmd == &read_mem_bytes_cmd) {
-        return TRANS_CMD_READ_MEM_BYTES;
-    } else if (cmd == &erase_mem_sector_cmd) {
-        return TRANS_CMD_ERASE_MEM_SECTOR;
-    } else if (cmd == &col_block_cmd) {
-        return TRANS_CMD_COL_BLOCK;
-    } else if (cmd == &read_loc_block_cmd) {
-        return TRANS_CMD_READ_LOC_BLOCK;
-    } else if (cmd == &read_mem_block_cmd) {
-        return TRANS_CMD_READ_MEM_BLOCK;
-    } else if (cmd == &auto_data_col_enable_cmd) {
-        return TRANS_CMD_AUTO_DATA_COL_ENABLE;
-    } else if (cmd == &auto_data_col_period_cmd) {
-        return TRANS_CMD_AUTO_DATA_COL_PERIOD;
-    } else if (cmd == &auto_data_col_resync_cmd) {
-        return TRANS_CMD_AUTO_DATA_COL_RESYNC;
-    } else if (cmd == &pay_act_motors_cmd) {
-        return TRANS_CMD_PAY_ACT_MOTORS;
-    } else if (cmd == &reset_subsys_cmd) {
-        return TRANS_CMD_RESET_SUBSYS;
-    } else if (cmd == &eps_can_cmd) {
-        return TRANS_CMD_EPS_CAN;
-    } else if (cmd == &pay_can_cmd) {
-        return TRANS_CMD_PAY_CAN;
-    } else if (cmd == &read_eeprom_cmd) {
-        return TRANS_CMD_READ_EEPROM;
-    } else if (cmd == &get_cur_block_num_cmd) {
-        return TRANS_CMD_GET_CUR_BLOCK_NUM;
-    } else if (cmd == &set_cur_block_num_cmd) {
-        return TRANS_CMD_SET_CUR_BLOCK_NUM;
-    } else if (cmd == &set_mem_sec_start_addr_cmd) {
-        return TRANS_CMD_SET_MEM_SEC_START_ADDR;
-    } else if (cmd == &set_mem_sec_end_addr_cmd) {
-        return TRANS_CMD_SET_MEM_SEC_END_ADDR;
-    } else if (cmd == &erase_eeprom_cmd) {
-        return TRANS_CMD_ERASE_EEPROM;
-    } else if (cmd == &erase_all_mem_cmd) {
-        return TRANS_CMD_ERASE_ALL_MEM;
-    } else if (cmd == &erase_mem_phy_block_cmd) {
-        return TRANS_CMD_ERASE_MEM_PHY_BLOCK;
-    } else {
-        // TODO - use NOP?
-        return 0xFF;
-    }
+    return cmd->num;
 }
 
 

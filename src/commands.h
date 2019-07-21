@@ -12,13 +12,16 @@
 #include "command_utilities.h"
 #include "mem.h"
 
+// Length of `all_cmds_list` array
+#define ALL_CMDS_LEN 24
+
 extern cmd_t nop_cmd;
 extern cmd_t ping_cmd;
-extern cmd_t get_restart_uptime_cmd;
+extern cmd_t get_subsys_status_cmd;
 extern cmd_t get_rtc_cmd;
 extern cmd_t set_rtc_cmd;
 extern cmd_t read_mem_bytes_cmd;
-extern cmd_t erase_mem_sector_cmd;
+extern cmd_t erase_mem_phy_sector_cmd;
 extern cmd_t col_block_cmd;
 extern cmd_t read_loc_block_cmd;
 extern cmd_t read_mem_block_cmd;
@@ -37,5 +40,7 @@ extern cmd_t set_mem_sec_end_addr_cmd;
 extern cmd_t erase_eeprom_cmd;
 extern cmd_t erase_all_mem_cmd;
 extern cmd_t erase_mem_phy_block_cmd;
+
+extern cmd_t* all_cmds_list[];
 
 #endif

@@ -88,7 +88,7 @@ uart_cmd_t all_cmds[] = {
     },
     {
         .description = "Get restart and uptime",
-        .cmd = &get_restart_uptime_cmd,
+        .cmd = &get_subsys_status_cmd,
         .arg1 = 0,
         .arg2 = 0,
         .bypass_trans = false
