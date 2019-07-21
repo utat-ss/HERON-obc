@@ -1,5 +1,5 @@
 /*
-TODO - get this test working
+Test alarm interrupt functionality with callbacks
 */
 
 #include <uart/uart.h>

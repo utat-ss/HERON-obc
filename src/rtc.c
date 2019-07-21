@@ -5,8 +5,6 @@ Datasheet: https://www.sparkfun.com/datasheets/BreakoutBoards/DS3234.pdf
 
 - 24-hour clock
 - Can use SPI mode 1 or 3 (choose 1)
-
-TODO - test alarm interrupt functionality
 */
 
 #include "rtc.h"

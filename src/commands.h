@@ -53,7 +53,6 @@ typedef struct {
 #define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 9)
 
 
-// TODO
 extern rtc_date_t restart_date;		
 extern rtc_time_t restart_time;
 
