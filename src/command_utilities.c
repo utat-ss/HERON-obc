@@ -19,13 +19,6 @@ volatile bool prev_cmd_succeeded = false;
 // received after 30 seconds
 volatile uint8_t can_countdown = 0;
 
-
-// If true, the program will simulate local actions (i.e. simulates any
-// operations with peripherals besides the microcontroller and CAN)
-// This allows the software to be used on any microcontroller just to test
-// the command handling and CAN functionality
-bool sim_local_actions = false;
-
 mem_header_t eps_hk_header;
 uint32_t eps_hk_fields[CAN_EPS_HK_FIELD_COUNT] = { 0 };
 mem_header_t pay_hk_header;
@@ -254,17 +247,8 @@ Populates the block number, error, and current live date/time.
 void populate_header(mem_header_t* header, uint32_t block_num, uint8_t error) {
     header->block_num = block_num;
     header->error = error;
-    if (sim_local_actions) {
-        header->date.yy = 5;
-        header->date.mm = 9;
-        header->date.dd = 4;
-        header->time.hh = 15;
-        header->time.mm = 48;
-        header->time.ss = 58;
-    } else {
-        header->date = read_rtc_date();
-        header->time = read_rtc_time();
-    }
+    header->date = read_rtc_date();
+    header->time = read_rtc_time();
 }
 
 

@@ -99,8 +99,6 @@ extern volatile bool prev_cmd_succeeded;
 
 extern volatile uint8_t can_countdown;
 
-extern bool sim_local_actions;
-
 extern mem_header_t eps_hk_header;
 extern uint32_t eps_hk_fields[];
 extern mem_header_t pay_hk_header;

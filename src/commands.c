@@ -348,64 +348,18 @@ void read_mem_block_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
-            if (sim_local_actions) {
-                // Random values
-                eps_hk_header.block_num = 3;
-                eps_hk_header.error = 0x00;
-                eps_hk_header.date.yy = 14;
-                eps_hk_header.date.mm = 11;
-                eps_hk_header.date.dd = 7;
-                eps_hk_header.time.hh = 18;
-                eps_hk_header.time.mm = 5;
-                eps_hk_header.time.ss = 20;
-                for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
-                    eps_hk_fields[i] = i + 4;
-                }
-            }
-            else {
-                read_mem_data_block(&eps_hk_mem_section, current_cmd_arg2,
-                    &eps_hk_header, eps_hk_fields);
-            }
+            read_mem_data_block(&eps_hk_mem_section, current_cmd_arg2,
+                &eps_hk_header, eps_hk_fields);
             break;
 
         case CMD_BLOCK_PAY_HK:
-            if (sim_local_actions) {
-                pay_hk_header.block_num = 15;
-                pay_hk_header.error = 0x00;
-                pay_hk_header.date.yy = 13;
-                pay_hk_header.date.mm = 11;
-                pay_hk_header.date.dd = 7;
-                pay_hk_header.time.hh = 21;
-                pay_hk_header.time.mm = 5;
-                pay_hk_header.time.ss = 20;
-                for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
-                    pay_hk_fields[i] = i + 17;
-                }
-            }
-            else {
-                read_mem_data_block(&pay_hk_mem_section, current_cmd_arg2,
-                    &pay_hk_header, pay_hk_fields);
-            }
+            read_mem_data_block(&pay_hk_mem_section, current_cmd_arg2,
+                &pay_hk_header, pay_hk_fields);
             break;
 
         case CMD_BLOCK_PAY_OPT:
-            if (sim_local_actions) {
-                pay_opt_header.block_num = 29;
-                pay_opt_header.error = 0x00;
-                pay_opt_header.date.yy = 79;
-                pay_opt_header.date.mm = 11;
-                pay_opt_header.date.dd = 7;
-                pay_opt_header.time.hh = 4;
-                pay_opt_header.time.mm = 5;
-                pay_opt_header.time.ss = 20;
-                for (uint8_t i = 0; i < CAN_PAY_OPT_FIELD_COUNT; i++) {
-                    pay_opt_fields[i] = i + 11;
-                }
-            }
-            else {
-                read_mem_data_block(&pay_opt_mem_section, current_cmd_arg2,
-                    &pay_opt_header, pay_opt_fields);
-            }
+            read_mem_data_block(&pay_opt_mem_section, current_cmd_arg2,
+                &pay_opt_header, pay_opt_fields);
             break;
 
         default:

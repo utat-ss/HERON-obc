@@ -724,7 +724,6 @@ int main(void){
 
     print("\n\n\nStarting commands test\n\n");
 
-    sim_local_actions = false;
     sim_eps = false;
     sim_pay = true;
     sim_trans = true;
@@ -743,7 +742,6 @@ int main(void){
     // Run `avr-size main_test.elf`
     // In one case, 2676 worked but 2926 did not
 
-    // print("sim_local_actions = %u\n", sim_local_actions);
     // print("sim_eps = %u\n", sim_eps);
     // print("sim_pay = %u\n", sim_pay);
     // print("sim_trans = %u\n", sim_trans);
