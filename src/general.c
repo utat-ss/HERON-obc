@@ -34,8 +34,16 @@ void init_obc_core(void) {
     add_uptime_callback(can_timer_cb);
 }
 
-// Initializes the comms/transceiver parts of OBC that must be delayed after initial startup
-void init_obc_comms(void) {
-    // TODO
+// Initializes the transceiver parts of OBC that must be delayed after initial startup
+void init_obc_trans(void) {
     init_trans();
+
+    uart_baud_rate_t previous_baud = UART_BAUD_9600;
+    correct_transceiver_baud_rate(UART_BAUD_9600, &previous_baud);
+
+    set_trans_freq(TRANS_DEF_FREQ);
+
+    set_trans_beacon_period(TRANS_BEACON_DEF_PERIOD_S);
+    set_trans_beacon_content(TRANS_BEACON_DEF_MSG);
+    turn_on_trans_beacon();
 }

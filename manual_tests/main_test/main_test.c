@@ -751,7 +751,7 @@ int main(void){
 
     if (sim_trans) {
         if (sim_trans_uart) {
-            print("Overwriting UART RX callback\n");
+            print("Overwriting UART RX cb\n");
             set_uart_rx_cb(uart_cb);
             // print("Press h to list commands\n\n");
             print_uart_cmds();
@@ -760,8 +760,8 @@ int main(void){
             init_trans_uart();
         }
     } else {
-        print("Init OBC comms\n");
-        init_obc_comms();
+        print("Init OBC trans\n");
+        init_obc_trans();
     }
     print("\n");
 

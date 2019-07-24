@@ -156,6 +156,10 @@ void test_all_sets(void) {
     ret = set_trans_beacon_period(2);
     print("set_trans_beacon_period: ret = %u\n", ret);
 
+    char beacon_content[] = "Test beacon!";
+    ret = set_trans_beacon_content(beacon_content);
+    print("set_trans_beacon_content: ret = %u\n", ret);
+
     // Random call sign
     char dest_call_sign[TRANS_CALL_SIGN_LEN + 1] = "ABCDEF";
     ret = set_trans_dest_call_sign(dest_call_sign);

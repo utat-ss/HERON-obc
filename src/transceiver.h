@@ -19,9 +19,6 @@
 #define TRANS_TX_DEC_MSG_MAX_SIZE   115
 #define TRANS_TX_ENC_MSG_MAX_SIZE   232
 
-/* crc-ccitt mask */
-#define TRANS_CRC_POLY 0x1021
-
 // Number of seconds to wait (if we are not receiving anymore characters) to clear the buffer
 // Uptime error is +- 1 second, which should be accounted for in this number
 #define TRANS_RX_BUF_TIMEOUT 2
@@ -42,9 +39,15 @@
 #define TRANS_FRAM      1
 #define TRANS_RFTS      0
 
+// Number of characters in a call sign (NOT INCLUDING '\0' termination)
+// Need to add 1 to array sizes for '\0' terminating character
+#define TRANS_CALL_SIGN_LEN 6
+
+// Maximum number of times to attempt each command
+#define TRANS_MAX_CMD_ATTEMPTS 3
+
 /*
 Default status register value
-
 baud rate = 0b00 (9600)
 reset = 0b0 (not reset)
 RF Mode = 0b011 (mode 3 - 2GFSK, 9600 bps data rate, 2400 Hz Fdev, 0.5 ModInd)
@@ -56,14 +59,14 @@ boot = 0b0 (application mode)
 #define TRANS_DEF_SCW   0x0303
 
 // Default frequency
+// This is in the 32-bit format, i.e. the output of EnduroSat's utility program
 #define TRANS_DEF_FREQ 0x9DD80942UL //default 437 MHz freq
 
-// Number of characters in a call sign (NOT INCLUDING '\0' termination)
-// Need to add 1 to array sizes for '\0' terminating character
-#define TRANS_CALL_SIGN_LEN 6
+// Default beacon parameters
+#define TRANS_BEACON_DEF_PERIOD_S   60
+#define TRANS_BEACON_DEF_MSG        "UTAT"
 
-// Maximum number of times to attempt each command
-#define TRANS_MAX_CMD_ATTEMPTS 3
+
 
 
 extern volatile uint8_t    trans_cmd_resp[]; //buffer
@@ -138,6 +141,8 @@ uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout);
 // 5
 uint8_t set_trans_beacon_period(uint16_t period);
 uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period);
+
+uint8_t set_trans_beacon_content(char* content);
 
 // 7
 uint8_t set_trans_dest_call_sign(char* call_sign);
