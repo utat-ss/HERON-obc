@@ -126,7 +126,7 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
                 &pay_hk_header, pay_hk_fields);
         }
         // Increment the current block and then write to the section
-        inc_mem_section_curr_block(&eps_hk_mem_section);
+        inc_mem_section_curr_block(&pay_hk_mem_section);
 
         print("Done PAY_HK\n");
         finish_current_cmd(true);
@@ -155,7 +155,7 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
                 &pay_opt_header, pay_opt_fields);
         }
         // Increment the current block and then write to the section
-        inc_mem_section_curr_block(&eps_hk_mem_section);
+        inc_mem_section_curr_block(&pay_opt_mem_section);
 
         print("Done PAY_OPT\n");
         finish_current_cmd(true);
