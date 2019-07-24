@@ -144,7 +144,7 @@ cmd_t* all_cmds_list[ALL_CMDS_LEN] = {
     &get_subsys_status_cmd,
     &get_rtc_cmd,
     &set_rtc_cmd,
-    &read_mem_block_cmd,
+    &read_mem_bytes_cmd,
     &erase_mem_phy_sector_cmd,
     &col_block_cmd,
     &read_loc_block_cmd,
