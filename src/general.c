@@ -1,9 +1,5 @@
 #include "general.h"
 
-// Date and time of the most recent restart
-rtc_date_t restart_date = { .yy = 0, .mm = 0, .dd  = 0 };
-rtc_time_t restart_time = { .hh = 0, .mm = 0, .ss  = 0 };
-
 
 // Initializes everything in OBC, EXCEPT the transceiver/comms things that must
 // not be turned on for the first 30 minutes
@@ -42,53 +38,4 @@ void init_obc_core(void) {
 void init_obc_comms(void) {
     // TODO
     init_trans();
-}
-
-
-// If the command queue is not empty, dequeues the next command and executes it
-void execute_next_cmd(void) {
-    if (!queue_empty(&cmd_queue) && current_cmd == &nop_cmd) {
-        print("Starting cmd\n");
-        // Fetch the next command
-        dequeue_cmd();
-        // Run the command's function
-        (current_cmd->fn)();
-    }
-}
-
-// If there is an RX messsage in the queue, handle it
-void process_next_rx_msg(void) {
-    if (!queue_empty(&data_rx_msg_queue)) {
-        handle_rx_msg();
-    }
-}
-
-/*
-If there is a TX message in the EPS queue, sends it
-
-When resume_mob(mob name) is called, it:
-1) resumes the MOB
-2) triggers an interrupt (callback function) to get the data to transmit
-3) sends the data
-4) pauses the mob
-*/
-void send_next_eps_tx_msg(void) {
-    if (!queue_empty(&eps_tx_msg_queue)) {
-        resume_mob(&eps_cmd_tx_mob);
-    }
-}
-
-/*
-If there is a TX message in the PAY queue, sends it
-
-When resume_mob(mob name) is called, it:
-1) resumes the MOB
-2) triggers an interrupt (callback function) to get the data to transmit
-3) sends the data
-4) pauses the mob
-*/
-void send_next_pay_tx_msg(void) {
-    if (!queue_empty(&pay_tx_msg_queue)) {
-        resume_mob(&pay_cmd_tx_mob);
-    }
 }

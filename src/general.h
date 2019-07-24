@@ -18,18 +18,7 @@
 #include "rtc.h"
 #include "transceiver.h"
 
-
-extern rtc_date_t restart_date;
-extern rtc_time_t restart_time;
-
-
 void init_obc_core(void);
 void init_obc_comms(void);
-
-void execute_next_cmd(void);
-
-void process_next_rx_msg(void);
-void send_next_eps_tx_msg(void);
-void send_next_pay_tx_msg(void);
 
 #endif

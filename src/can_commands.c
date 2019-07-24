@@ -4,16 +4,6 @@ queue_t eps_tx_msg_queue;
 queue_t pay_tx_msg_queue;
 queue_t data_rx_msg_queue;
 
-mem_header_t eps_hk_header;
-uint32_t eps_hk_fields[CAN_EPS_HK_FIELD_COUNT] = { 0 };
-mem_header_t pay_hk_header;
-uint32_t pay_hk_fields[CAN_PAY_HK_FIELD_COUNT] = { 0 };
-mem_header_t pay_opt_header;
-uint32_t pay_opt_fields[CAN_PAY_OPT_FIELD_COUNT] = { 0 };
-
-// For the uptime interrupt to can_timer_cb to finish command if no response
-// received after 30 seconds
-volatile uint8_t can_countdown = 0;
 
 void handle_eps_hk(uint8_t field_num, uint32_t data);
 void handle_pay_hk(uint8_t field_num, uint32_t data);
@@ -91,11 +81,9 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
         (current_cmd == &col_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_EPS_HK)) {
 
-        if (!sim_local_actions) {
-            write_mem_data_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
-                &eps_hk_header, eps_hk_fields);
-        }
         // Increment the current block and then write to the section
+        write_mem_data_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
+            &eps_hk_header, eps_hk_fields);
         inc_mem_section_curr_block(&eps_hk_mem_section);
 
         print("Done EPS_HK\n");
@@ -121,11 +109,9 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
         (current_cmd == &col_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_PAY_HK)) {
 
-        if (!sim_local_actions) {
-            write_mem_data_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
-                &pay_hk_header, pay_hk_fields);
-        }
         // Increment the current block and then write to the section
+        write_mem_data_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
+            &pay_hk_header, pay_hk_fields);
         inc_mem_section_curr_block(&pay_hk_mem_section);
 
         print("Done PAY_HK\n");
@@ -150,11 +136,9 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
         (current_cmd == &col_block_cmd) &&
         (current_cmd_arg1 == CMD_BLOCK_PAY_OPT)) {
 
-        if (!sim_local_actions) {
-            write_mem_data_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
-                &pay_opt_header, pay_opt_fields);
-        }
         // Increment the current block and then write to the section
+        write_mem_data_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
+            &pay_opt_header, pay_opt_fields);
         inc_mem_section_curr_block(&pay_opt_mem_section);
 
         print("Done PAY_OPT\n");
@@ -175,6 +159,46 @@ void handle_pay_ctrl(uint8_t field_num) {
         finish_current_cmd(true);
     }
 }
+
+
+// If there is an RX messsage in the queue, handle it
+void process_next_rx_msg(void) {
+    if (!queue_empty(&data_rx_msg_queue)) {
+        handle_rx_msg();
+    }
+}
+
+/*
+If there is a TX message in the EPS queue, sends it
+
+When resume_mob(mob name) is called, it:
+1) resumes the MOB
+2) triggers an interrupt (callback function) to get the data to transmit
+3) sends the data
+4) pauses the mob
+*/
+void send_next_eps_tx_msg(void) {
+    if (!queue_empty(&eps_tx_msg_queue)) {
+        resume_mob(&eps_cmd_tx_mob);
+    }
+}
+
+/*
+If there is a TX message in the PAY queue, sends it
+
+When resume_mob(mob name) is called, it:
+1) resumes the MOB
+2) triggers an interrupt (callback function) to get the data to transmit
+3) sends the data
+4) pauses the mob
+*/
+void send_next_pay_tx_msg(void) {
+    if (!queue_empty(&pay_tx_msg_queue)) {
+        resume_mob(&pay_cmd_tx_mob);
+    }
+}
+
+
 
 
 // Enqueues a CAN message given a general set of 8 bytes data
@@ -237,17 +261,4 @@ void enqueue_pay_opt_tx_msg(uint8_t field_num) {
 }
 void enqueue_pay_ctrl_tx_msg(uint8_t field_num, uint32_t data) {
     enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, field_num, data);
-}
-
-// If no CAN response is received after 30 seconds, stop waiting for command
-void can_timer_cb(void) {
-    if (can_countdown > 155) {
-        finish_current_cmd(false);
-    }
-    else if (can_countdown > 0) {
-        can_countdown -= 1;
-        if (can_countdown == 0) {
-            finish_current_cmd(false);
-        }
-    }
 }
