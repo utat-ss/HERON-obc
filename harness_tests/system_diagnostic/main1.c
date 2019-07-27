@@ -171,7 +171,7 @@ void pay_reset_test(void){
     _delay_ms(100);
     dequeue(&data_rx_msg_queue, msg);
     restart_reason = (uint32_t) msg[4] << 24| (uint32_t) msg[5] << 16 | (uint32_t) msg[6] << 8 | (uint32_t) msg[7];
-    ASSERT_EQ(restart_reason, UPTIME_RESTART_REASON_WDT_TIMEOUT);
+    ASSERT_EQ(restart_reason, UPTIME_RESTART_REASON_RESET_CMD);
 }
 
 /* Resets the EPS SSM and verifies that the reset counter increments correctly
@@ -210,7 +210,7 @@ void eps_reset_test(void){
     _delay_ms(100);
     dequeue(&data_rx_msg_queue, msg);
     restart_reason = (uint32_t) msg[4] << 24| (uint32_t) msg[5] << 16 | (uint32_t) msg[6] << 8 | (uint32_t) msg[7];
-    ASSERT_EQ(restart_reason, UPTIME_RESTART_REASON_WDT_TIMEOUT);
+    ASSERT_EQ(restart_reason, UPTIME_RESTART_REASON_RESET_CMD);
 }
 
 
