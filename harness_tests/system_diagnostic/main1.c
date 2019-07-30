@@ -213,6 +213,29 @@ void eps_reset_test(void){
     ASSERT_EQ(restart_reason, UPTIME_RESTART_REASON_RESET_CMD);
 }
 
+/* Send message to invalid field and verify that no response is received */
+void send_invalid_command_test(void){
+    /* Send message to invalid field within PAY ctrl */
+    uint32_t data = 0x00;
+    enqueue_pay_ctrl_tx_msg(NUM_PAY_CTRL_FIELDS + 1, data);
+    send_next_pay_tx_msg();
+    /* Delay to give time to send and receive message */
+    _delay_ms(100);
+    ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
+
+    enqueue_eps_ctrl_tx_msg(-1, data);
+    send_next_eps_tx_msg();
+    /* Delay to give time to send and receive message */
+    _delay_ms(100);
+    ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
+
+    /* 0x10 is an invalid message type */
+    enqueue_tx_msg(&pay_tx_msg_queue, 0x10, field_num, data);
+    send_next_pay_tx_msg();
+    _delay_ms(100);
+    ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
+}
+
 
 test_t t1 = { .name = "EPS Housekeeping Test", .fn = eps_hk_test };
 test_t t2 = { .name = "EPS Control Test", .fn = eps_ctrl_test };
