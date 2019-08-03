@@ -106,7 +106,7 @@ Initializes the transceiver for UART RX callbacks (does not change any settings)
 void init_trans(void) {
     init_trans_uart();
     uart_baud_rate_t previous_baud = UART_BAUD_9600;
-    correct_transceiver_baud_rate(&previous_baud);
+    correct_transceiver_baud_rate(previous_baud, &previous_baud);
 }
 
 void init_trans_uart(void) {
@@ -122,7 +122,7 @@ void trans_uptime_cb(void) {
     if (uptime_s > trans_rx_prev_uptime_s &&
         uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
         get_uart_rx_buf_count() > 0) {
-        
+
         print("UART RX buf (%u bytes): ", get_uart_rx_buf_count());
         print_bytes((uint8_t*) uart_rx_buf, get_uart_rx_buf_count());
         clear_uart_rx_buf();
@@ -284,7 +284,7 @@ void send_trans_tx_enc_msg(void) {
 
         // We only need to supply the message, not any additional packet
         // information from Transceiver Packet Protocol document
-        
+
         // Send a CR termination to terminate any packet accidentally sent from
         // print statements we previously sent over UART
         put_uart_char('\r');
@@ -1110,14 +1110,15 @@ Assumes the UART's baud rate is already set to 9600
 previous - pointer to transceiver's previous baud_rate
 Returns 1 if success, 0 if failed
 */
-uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous) {
+uint8_t correct_transceiver_baud_rate(const uart_baud_rate_t new_rate, uart_baud_rate_t* previous) {
     uint8_t rssi = 0, reset_count = 0;
     uint16_t scw = 0;
 
-    // Check if the transciever is already at 9600, if if is we don't have to do anything
+    set_uart_baud_rate(new_rate);
+    // Check if the transciever is already at the baud rate that we want, if it is we don't have to do anything
     uint8_t received = get_trans_scw(&rssi, &reset_count, &scw);
     if (received == 1) {
-        *previous = UART_BAUD_9600;
+        *previous = new_rate;
         return 1;
     }
 
@@ -1133,16 +1134,37 @@ uint8_t correct_transceiver_baud_rate(uart_baud_rate_t* previous) {
         }
     }
 
-    // set bits 12 and 13 of the scw to 00 which sets baud rate to 9600
-    uint16_t scw_new = (scw & ~_BV(12)) & ~_BV(13);
+    // set bits 12 and 13 of the scw to correspond to the new baud rate
+    uint16_t scw_new;
+    switch (new_rate) {
+        case UART_BAUD_1200:
+            // 01
+            scw_new = (scw & ~_BV(13)) | _BV(12);
+            break;
+        case UART_BAUD_9600:
+            // 00
+            scw_new = (scw & ~_BV(13)) & ~_BV(12);
+            break;
+        case UART_BAUD_19200:
+            // 10
+            scw_new = (scw | _BV(13)) & ~_BV(12);
+            break;
+        case UART_BAUD_115200:
+            // 11
+            scw_new = (scw | _BV(13)) | _BV(12);
+            break;
+        default: // Default baud rate will be 9600
+            scw_new = (scw & ~_BV(13)) & ~_BV(12);
+            break;
+    }
 
     set_trans_scw(scw_new);
-    // Set the UART baud rate back to 9600
-    set_uart_baud_rate(UART_BAUD_9600);
+    // Set the UART baud rate to new rate
+    set_uart_baud_rate(new_rate);
 
     // Make sure it got set
     received = get_trans_scw(&rssi, &reset_count, &scw);
-    if (received == 1 && scw == scw_new) {
+    if (received == 1) {
         *previous = baud_rate;
         return 1;
     }
