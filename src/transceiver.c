@@ -225,6 +225,28 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
 
 // trans_rx_enc_msg -> trans_rx_dec_msg
 void decode_trans_rx_msg(void) {
+    // Old encoding, uses ASCII to avoid carriage return (13) and 0x00
+    // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    //     if (!trans_rx_enc_msg_avail) {
+    //         return;
+    //     }
+    //     if (trans_rx_enc_msg_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
+    //         trans_rx_enc_msg_avail = false;
+    //         return;
+    //     }
+
+    //     uint8_t dec_len = (trans_rx_enc_msg_len - 2) / 2;
+
+    //     // Decode two ASCII hex byte to one byte
+    //     for (uint8_t i = 0; i < dec_len; i++) {
+    //         trans_rx_dec_msg[i] = scan_uint(trans_rx_enc_msg, 2 + (i * 2), 2);
+    //     }
+    //     trans_rx_dec_msg_len = dec_len;
+    //     trans_rx_dec_msg_avail = true;
+
+    //     trans_rx_enc_msg_avail = false;
+    // }
+
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         if (!trans_rx_enc_msg_avail) {
             return;
@@ -234,12 +256,39 @@ void decode_trans_rx_msg(void) {
             return;
         }
 
-        uint8_t dec_len = (trans_rx_enc_msg_len - 2) / 2;
+        // length of encoded message can be extracted from the first field
+        uint8_t enc_len = (trans_rx_enc_msg[1] >= 1 && trans_rx_enc_msg[1] <= 12) ? trans_rx_enc_msg[1] - 1 : trans_rx_enc_msg[1] - 2;
+        uint64_t enc_buff = 0;
+        // concatenate the message into 8 byte groups and leftovers, then calculate length
+        uint8_t num_groups = floor(enc_len / 8);
+        uint8_t left_over_len = enc_len % 8;
+        uint8_t dec_len = num_groups * 7 + left_over_len - 1;
 
-        // Decode two ASCII hex byte to one byte
-        for (uint8_t i = 0; i < dec_len; i++) {
-            trans_rx_dec_msg[i] = scan_uint(trans_rx_enc_msg, 2 + (i * 2), 2);
+        // unmap the values in the buffer
+        for(uint8_t i = 1; i < enc_len; i++) {
+            if(trans_rx_enc_msg[i] >= 1 && trans_rx_enc_msg[i] <= 12)
+                trans_rx_enc_msg[i] -= 1;
+            else if(trans_rx_enc_msg[i] >= 14 && trans_rx_enc_msg[i] <= 255)
+                trans_rx_enc_msg[i] -= 2;
         }
+
+        for (uint8_t i = 0; i < num_groups; i++) {
+            enc_buff = 0;
+            for (uint8_t j = 0; j < 8; j++) 
+                enc_buff += trans_rx_enc_msg[ (8 * i) + j ] * pow(254, j);
+            for (uint8_t k = 0; k < 7; k++)
+                trans_rx_dec_msg[ (7 * i) + k ] = floor(enc_buff / pow(256, k)) % 254;
+        }
+        if (left_over_len > 1) {
+            for (uint8_t i = 0; i < left_over_len; i++) {
+                enc_buff = 0;
+                for (uint8_t j = 0; j < left_over_len; j++) 
+                    enc_buff += trans_rx_enc_msg[ (num_groups * 8) + j ] * pow(254, j);
+                for (uint8_t k = 0; k < left_over_len - 1; k++)
+                    trans_rx_dec_msg[ (num_groups * 7) + k ] = floor(enc_buff / pow(256, k)) % 254;
+            }            
+        }
+
         trans_rx_dec_msg_len = dec_len;
         trans_rx_dec_msg_avail = true;
 
@@ -249,6 +298,28 @@ void decode_trans_rx_msg(void) {
 
 // trans_tx_dec_msg -> trans_tx_enc_msg
 void encode_trans_tx_msg(void) {
+    // Old encoding, uses ASCII to avoid carriage return (13) and 0
+    // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    //     if (!trans_tx_dec_msg_avail) {
+    //         return;
+    //     }
+    //     if (trans_tx_dec_msg_len == 0 || trans_tx_dec_msg_len > TRANS_TX_DEC_MSG_MAX_SIZE) {
+    //         trans_tx_dec_msg_avail = false;
+    //         return;
+    //     }
+
+    //     trans_tx_enc_msg[0] = 0x00;
+    //     trans_tx_enc_msg[1] = trans_tx_dec_msg_len * 2;
+    //     // Encode one byte to two ASCII hex bytes
+    //     for (uint8_t i = 0; i < trans_tx_dec_msg_len; i++) {
+    //         trans_tx_enc_msg[2 + (i * 2) + 0] = hex_to_char((trans_tx_dec_msg[i] >> 4) & 0x0F);
+    //         trans_tx_enc_msg[2 + (i * 2) + 1] = hex_to_char(trans_tx_dec_msg[i] & 0x0F);
+    //     }
+    //     trans_tx_enc_msg_len = 2 + (trans_tx_dec_msg_len * 2);
+    //     trans_tx_enc_msg_avail = true;
+
+    //     trans_tx_dec_msg_avail = false;
+    // }
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         if (!trans_tx_dec_msg_avail) {
             return;
@@ -258,16 +329,44 @@ void encode_trans_tx_msg(void) {
             return;
         }
 
-        trans_tx_enc_msg[0] = 0x00;
-        trans_tx_enc_msg[1] = trans_tx_dec_msg_len * 2;
-        // Encode one byte to two ASCII hex bytes
-        for (uint8_t i = 0; i < trans_tx_dec_msg_len; i++) {
-            trans_tx_enc_msg[2 + (i * 2) + 0] = hex_to_char((trans_tx_dec_msg[i] >> 4) & 0x0F);
-            trans_tx_enc_msg[2 + (i * 2) + 1] = hex_to_char(trans_tx_dec_msg[i] & 0x0F);
-        }
-        trans_tx_enc_msg_len = 2 + (trans_tx_dec_msg_len * 2);
-        trans_tx_enc_msg_avail = true;
+        uint64_t msg_buff = 0;
+        uint8_t num_byte_groups = floor(trans_tx_dec_msg_len / 7);
+        uint8_t left_over_len = trans_tx_dec_msg_len % 7;
+        uint8_t enc_msg_len = (left_over_len > 0) ? (num_byte_groups * 8 + left_over_len + 1) : (num_byte_groups * 8);
 
+        trans_tx_enc_msg[0] = 0x00;
+        trans_tx_enc_msg[1] = enc_msg_len;
+
+        // Convert each of the 7 base-256 digits to 8 base-254 digits
+        for (uint8_t i = 0; i < num_byte_groups; i++) {
+            msg_buff = 0;
+            for (uint8_t j = 0; j < 7; j++) 
+                msg_buff += trans_tx_dec_msg[i*7 + j] * pow(256, j);  
+            for (uint8_t k = 0; k < 8; k++)
+                trans_tx_enc_msg[i*8 + k] = floor(msg_buff / 254^k) % 254;
+        }
+        // encode the remainining bytes
+        if(left_over_len > 0) {
+            msg_buff = 0;
+            for (uint8_t j = 0; j < left_over_len; j++)
+                msg_buff += trans_tx_dec_msg[num_byte_groups*7 + j] * pow(256, j);
+            for (uint8_t k = 0; k < (left_over_len + 1); k++)
+                trans_tx_enc_msg[num_byte_groups*8 + k] = floor(msg_buff / pow(254, k)) % 254;   
+        }
+
+        // Perform the mapping to avoid values 0 and 13. 0-11 -> 1-12, 12-253 -> 14-255
+        // Note that the length of the message is also put through this mapping. The only digit that doesn't get mapped is the 0x00.
+        for (uint8_t i = 1; i < enc_msg_len; i++) {
+            if( trans_tx_enc_msg[i] >= 0 && trans_tx_enc_msg[i] <= 11 ) {
+                trans_tx_enc_msg[i] += 1;
+            }
+            else if( trans_tx_enc_msg[i] >= 12 && trans_tx_enc_msg[i] <= 253 ) {
+                trans_tx_enc_msg[i] += 2;
+            }
+        }
+
+        trans_tx_enc_msg_len = 2 + enc_msg_len;
+        trans_tx_enc_msg_avail = true;
         trans_tx_dec_msg_avail = false;
     }
 }

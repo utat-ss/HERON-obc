@@ -2,6 +2,7 @@
 #include <avr/io.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 
 // lib-common includes
 #include <uart/uart.h>
