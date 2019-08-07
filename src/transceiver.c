@@ -76,7 +76,7 @@ volatile bool       trans_cmd_resp_avail = false;
 
 // Encoded RX message (from ground station)
 volatile uint8_t    trans_rx_enc_msg[TRANS_RX_ENC_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_rx_enc_msg_len = 0;
+volatile uint8_t    trans_rx_enc_len = 0;
 volatile bool       trans_rx_enc_msg_avail = false;
 
 // Decoded RX message (from ground station)
@@ -91,7 +91,7 @@ volatile bool       trans_tx_dec_msg_avail = false;
 
 // Encoded TX message (to ground station)
 volatile uint8_t    trans_tx_enc_msg[TRANS_TX_ENC_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_tx_enc_msg_len = 0;
+volatile uint8_t    trans_tx_enc_len = 0;
 volatile bool       trans_tx_enc_msg_avail = false;
 
 // Last time we have received a UART character
@@ -218,7 +218,7 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
         for (uint8_t i = 0; i < len; i++) {
             trans_rx_enc_msg[i] = buf[i];
         }
-        trans_rx_enc_msg_len = len;
+        trans_rx_enc_len = len;
         trans_rx_enc_msg_avail = true;
     }
 }
@@ -230,12 +230,12 @@ void decode_trans_rx_msg(void) {
     //     if (!trans_rx_enc_msg_avail) {
     //         return;
     //     }
-    //     if (trans_rx_enc_msg_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
+    //     if (trans_rx_enc_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
     //         trans_rx_enc_msg_avail = false;
     //         return;
     //     }
 
-    //     uint8_t dec_len = (trans_rx_enc_msg_len - 2) / 2;
+    //     uint8_t dec_len = (trans_rx_enc_len - 2) / 2;
 
     //     // Decode two ASCII hex byte to one byte
     //     for (uint8_t i = 0; i < dec_len; i++) {
@@ -251,18 +251,19 @@ void decode_trans_rx_msg(void) {
         if (!trans_rx_enc_msg_avail) {
             return;
         }
-        if (trans_rx_enc_msg_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
+        if (trans_rx_enc_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
             trans_rx_enc_msg_avail = false;
             return;
         }
 
-        // length of encoded message can be extracted from the first field
-        uint8_t enc_len = (trans_rx_enc_msg[1] >= 1 && trans_rx_enc_msg[1] <= 12) ? trans_rx_enc_msg[1] - 1 : trans_rx_enc_msg[1] - 2;
-        uint64_t enc_buff = 0;
+        // length of encoded message can be extracted from the first field, the mapping is undone
+        uint8_t enc_len = (trans_rx_enc_msg[1] >= 1 && trans_rx_enc_msg[1] <= 12) ? (trans_rx_enc_msg[1] - 1) : (trans_rx_enc_msg[1] - 2);
+        // 64 bit integer that will hold the 56 bit values from the byte group
+        uint64_t base_conversion_buff = 0;
         // concatenate the message into 8 byte groups and leftovers, then calculate length
-        uint8_t num_groups = floor(enc_len / 8);
-        uint8_t left_over_len = enc_len % 8;
-        uint8_t dec_len = num_groups * 7 + left_over_len - 1;
+        uint8_t num_byte_groups = floor(enc_len / 8);
+        uint8_t num_remainder_bytes = enc_len % 8;
+        uint8_t dec_len = num_byte_groups * 7 + num_remainder_bytes - 1;
 
         // unmap the values in the buffer
         for(uint8_t i = 1; i < enc_len; i++) {
@@ -272,26 +273,25 @@ void decode_trans_rx_msg(void) {
                 trans_rx_enc_msg[i] -= 2;
         }
 
-        for (uint8_t i = 0; i < num_groups; i++) {
-            enc_buff = 0;
+        for (uint8_t i = 0; i < num_byte_groups; i++) {
+            base_conversion_buff = 0;
             for (uint8_t j = 0; j < 8; j++) 
-                enc_buff += trans_rx_enc_msg[ (8 * i) + j ] * pow(254, j);
+                base_conversion_buff += trans_rx_enc_msg[ (8 * i) + j ] * pow(254, j);
             for (uint8_t k = 0; k < 7; k++)
-                trans_rx_dec_msg[ (7 * i) + k ] = floor(enc_buff / pow(256, k)) % 254;
+                trans_rx_dec_msg[ (7 * i) + k ] = floor(base_conversion_buff / pow(256, k)) % 256;
         }
-        if (left_over_len > 1) {
-            for (uint8_t i = 0; i < left_over_len; i++) {
-                enc_buff = 0;
-                for (uint8_t j = 0; j < left_over_len; j++) 
-                    enc_buff += trans_rx_enc_msg[ (num_groups * 8) + j ] * pow(254, j);
-                for (uint8_t k = 0; k < left_over_len - 1; k++)
-                    trans_rx_dec_msg[ (num_groups * 7) + k ] = floor(enc_buff / pow(256, k)) % 254;
+        if (num_remainder_bytes > 1) {
+            for (uint8_t i = 0; i < num_remainder_bytes; i++) {
+                base_conversion_buff = 0;
+                for (uint8_t j = 0; j < num_remainder_bytes; j++) 
+                    base_conversion_buff += trans_rx_enc_msg[ (num_byte_groups * 8) + j ] * pow(254, j);
+                for (uint8_t k = 0; k < num_remainder_bytes - 1; k++)
+                    trans_rx_dec_msg[ (num_byte_groups * 7) + k ] = floor(base_conversion_buff / pow(256, k)) % 256;
             }            
         }
 
         trans_rx_dec_msg_len = dec_len;
         trans_rx_dec_msg_avail = true;
-
         trans_rx_enc_msg_avail = false;
     }
 }
@@ -315,7 +315,7 @@ void encode_trans_tx_msg(void) {
     //         trans_tx_enc_msg[2 + (i * 2) + 0] = hex_to_char((trans_tx_dec_msg[i] >> 4) & 0x0F);
     //         trans_tx_enc_msg[2 + (i * 2) + 1] = hex_to_char(trans_tx_dec_msg[i] & 0x0F);
     //     }
-    //     trans_tx_enc_msg_len = 2 + (trans_tx_dec_msg_len * 2);
+    //     trans_tx_enc_len = 2 + (trans_tx_dec_msg_len * 2);
     //     trans_tx_enc_msg_avail = true;
 
     //     trans_tx_dec_msg_avail = false;
@@ -329,34 +329,40 @@ void encode_trans_tx_msg(void) {
             return;
         }
 
-        uint64_t msg_buff = 0;
+        // 64 bit integer that will hold the 56 bit values from the byte groups
+        uint64_t base_conversion_buff = 0;
+        // Number of 7 byte groups in the decoded message
         uint8_t num_byte_groups = floor(trans_tx_dec_msg_len / 7);
-        uint8_t left_over_len = trans_tx_dec_msg_len % 7;
-        uint8_t enc_msg_len = (left_over_len > 0) ? (num_byte_groups * 8 + left_over_len + 1) : (num_byte_groups * 8);
+        // Number of bytes leftover
+        uint8_t num_remainder_bytes = trans_tx_dec_msg_len % 7;
+        // Encoded length
+        uint8_t enc_len = (num_remainder_bytes > 0) ? (num_byte_groups * 8 + num_remainder_bytes + 1) : (num_byte_groups * 8);
 
+        // All encoded messages start with 0x00
         trans_tx_enc_msg[0] = 0x00;
-        trans_tx_enc_msg[1] = enc_msg_len;
+        // Next field is the length. This value will later be mapped similar to the other bytes.
+        trans_tx_enc_msg[1] = enc_len;
 
         // Convert each of the 7 base-256 digits to 8 base-254 digits
         for (uint8_t i = 0; i < num_byte_groups; i++) {
-            msg_buff = 0;
+            base_conversion_buff = 0;
             for (uint8_t j = 0; j < 7; j++) 
-                msg_buff += trans_tx_dec_msg[i*7 + j] * pow(256, j);  
+                base_conversion_buff += trans_tx_dec_msg[ (7 * i) + j] * pow(256, j);  
             for (uint8_t k = 0; k < 8; k++)
-                trans_tx_enc_msg[i*8 + k] = floor(msg_buff / 254^k) % 254;
+                trans_tx_enc_msg[ (8 * i) + k] = floor(base_conversion_buff / 254^k) % 254;
         }
         // encode the remainining bytes
-        if(left_over_len > 0) {
-            msg_buff = 0;
-            for (uint8_t j = 0; j < left_over_len; j++)
-                msg_buff += trans_tx_dec_msg[num_byte_groups*7 + j] * pow(256, j);
-            for (uint8_t k = 0; k < (left_over_len + 1); k++)
-                trans_tx_enc_msg[num_byte_groups*8 + k] = floor(msg_buff / pow(254, k)) % 254;   
+        if(num_remainder_bytes > 0) {
+            base_conversion_buff = 0;
+            for (uint8_t j = 0; j < num_remainder_bytes; j++)
+                base_conversion_buff += trans_tx_dec_msg[num_byte_groups*7 + j] * pow(256, j);
+            for (uint8_t k = 0; k < (num_remainder_bytes + 1); k++)
+                trans_tx_enc_msg[ (num_byte_groups * 8) + k] = floor(base_conversion_buff / pow(254, k)) % 254;   
         }
 
         // Perform the mapping to avoid values 0 and 13. 0-11 -> 1-12, 12-253 -> 14-255
         // Note that the length of the message is also put through this mapping. The only digit that doesn't get mapped is the 0x00.
-        for (uint8_t i = 1; i < enc_msg_len; i++) {
+        for (uint8_t i = 1; i < enc_len; i++) {
             if( trans_tx_enc_msg[i] >= 0 && trans_tx_enc_msg[i] <= 11 ) {
                 trans_tx_enc_msg[i] += 1;
             }
@@ -365,7 +371,7 @@ void encode_trans_tx_msg(void) {
             }
         }
 
-        trans_tx_enc_msg_len = 2 + enc_msg_len;
+        trans_tx_enc_len = 2 + enc_len;
         trans_tx_enc_msg_avail = true;
         trans_tx_dec_msg_avail = false;
     }
@@ -387,7 +393,7 @@ void send_trans_tx_enc_msg(void) {
         // Send a CR termination to terminate any packet accidentally sent from
         // print statements we previously sent over UART
         put_uart_char('\r');
-        for (uint8_t i = 0; i < trans_tx_enc_msg_len; i++) {
+        for (uint8_t i = 0; i < trans_tx_enc_len; i++) {
             put_uart_char(trans_tx_enc_msg[i]);
         }
         // Need to terminate the packet to send it

@@ -236,6 +236,22 @@ void swc_bits_test(void){
     ASSERT_EQ(test,1);
 }
 
+// 14
+void decode_trans_rx_msg_test(void){
+    // Encoded message: [0x02, 0x04, 0xC4, oxED, 0x97, 0x48, 0x74, 0x0F, 0x09, 0x00]
+    // Decoded message: 
+
+
+}
+
+// 15
+void encode_trans_tx_msg_test(void){
+    // Decoded message:
+    // Encoded message: 
+
+
+
+}
 
 test_t t1 = {.name = "trans_uart_rx_cb_test", .fn = trans_uart_rx_cb_test };
 test_t t2 = {.name = "clear_trans_cmd_resp_test", .fn =  clear_trans_cmd_resp_test };
@@ -250,9 +266,11 @@ test_t t10 = {.name = "trans_call_sign_test", .fn = trans_call_sign_test };
 test_t t11 = {.name = "get_uptime_test", .fn = get_uptime_test };
 test_t t12 = {.name = "get_trans_num_packets_test", .fn = get_trans_num_packets_test };
 test_t t13 = {.name = "swc_bits_test", .fn = swc_bits_test };
+test_t t14 = {.name = "decode_trans_rx_msg_test", .fn = decode_trans_rx_msg_test};
+test_t t15 = {.name = "encode_trans_tx_msg_test", .fn = encode_trans_tx_msg_test};
 
 
-test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11, &t12, &t13 };
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11, &t12, &t13, &t14, &t15 };
 
 void run_test(test_t*);
 
