@@ -259,6 +259,10 @@ void decode_trans_rx_msg(void) {
             trans_rx_enc_msg_avail = false;
             return;
         }
+        if (trans_rx_enc_msg[0] != 0x00){
+            trans_rx_enc_msg_avail = false;
+            return;
+        }
 
         // length of encoded message can be extracted from the first field, the mapping is undone
         uint8_t enc_len = (trans_rx_enc_msg[1] >= 1 && trans_rx_enc_msg[1] <= 12) ? (trans_rx_enc_msg[1] - 1) : (trans_rx_enc_msg[1] - 2);
