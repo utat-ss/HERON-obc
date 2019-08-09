@@ -251,7 +251,11 @@ void decode_trans_rx_msg(void) {
         if (!trans_rx_enc_msg_avail) {
             return;
         }
-        if (trans_rx_enc_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
+        // if (trans_rx_enc_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
+        //     trans_rx_enc_msg_avail = false;
+        //     return;
+        // }
+        if (trans_rx_enc_len == 0 || trans_rx_enc_len > TRANS_RX_DEC_MSG_MAX_SIZE) {
             trans_rx_enc_msg_avail = false;
             return;
         }
@@ -276,16 +280,16 @@ void decode_trans_rx_msg(void) {
         for (uint8_t i = 0; i < num_byte_groups; i++) {
             base_conversion_buff = 0;
             for (uint8_t j = 0; j < 8; j++) 
-                base_conversion_buff += trans_rx_enc_msg[ (8 * i) + j ] * pow(254, j);
+                base_conversion_buff += trans_rx_enc_msg[ 2 + (8 * i) + j ] * pow(254, j);
             for (uint8_t k = 0; k < 7; k++)
                 trans_rx_dec_msg[ (7 * i) + k ] = floor(base_conversion_buff / pow(256, k)) % 256;
         }
         if (num_remainder_bytes > 1) {
-            for (uint8_t i = 0; i < num_remainder_bytes; i++) {
+            for (uint8_t i = 2; i < num_remainder_bytes; i++) {
                 base_conversion_buff = 0;
                 for (uint8_t j = 0; j < num_remainder_bytes; j++) 
-                    base_conversion_buff += trans_rx_enc_msg[ (num_byte_groups * 8) + j ] * pow(254, j);
-                for (uint8_t k = 0; k < num_remainder_bytes - 1; k++)
+                    base_conversion_buff += trans_rx_enc_msg[ 2 + (num_byte_groups * 8) + j ] * pow(254, j);
+                for (uint8_t k = 0; k < (num_remainder_bytes - 1); k++)
                     trans_rx_dec_msg[ (num_byte_groups * 7) + k ] = floor(base_conversion_buff / pow(256, k)) % 256;
             }            
         }
