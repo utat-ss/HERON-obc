@@ -7,8 +7,8 @@
 
 #define TEST_SIZE 7
 
-#define NUM_EPS_HK_FIELDS 23
-#define NUM_EPS_CTRL_FIELDS 14
+#define NUM_EPS_HK_FIELDS 27
+#define NUM_EPS_CTRL_FIELDS 11
 #define NUM_PAY_HK_FIELDS 16
 #define NUM_PAY_OPT_FIELDS 32
 #define NUM_PAY_CTRL_FIELDS 12
@@ -21,8 +21,10 @@
 #define PAY_RESET_REQUEST 5
 #define PAY_RESET_REASON 9
 
-/* Positions denoted by 1 expect non-zero data */
-uint8_t eps_ctrl_data[NUM_EPS_CTRL_FIELDS] = {0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0};
+/* Positions denoted by 1 expect non-zero data
+   Need to update when CAN Protocol changes
+   https://utat-ss.readthedocs.io/en/master/our-protocols/can.html */
+uint8_t eps_ctrl_data[NUM_EPS_CTRL_FIELDS] = {0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0};
 uint8_t pay_ctrl_data[NUM_PAY_CTRL_FIELDS] = {0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0};
 
 /* Sends a message to request data from all EPS Housekeeping fields */
@@ -230,7 +232,7 @@ void send_invalid_command_test(void){
     ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
 
     /* 0x10 is an invalid message type */
-    enqueue_tx_msg(&pay_tx_msg_queue, 0x10, field_num, data);
+    enqueue_tx_msg(&pay_tx_msg_queue, 0x10, 0x01, data);
     send_next_pay_tx_msg();
     _delay_ms(100);
     ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
