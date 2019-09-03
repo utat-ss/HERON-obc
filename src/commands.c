@@ -28,7 +28,6 @@ void erase_all_mem_fn(void);
 void erase_mem_phy_block_fn(void);
 
 
-// TODO - put command number in struct?
 // All possible commands
 // Default no-op command
 cmd_t nop_cmd = {
@@ -378,12 +377,15 @@ void auto_data_col_enable_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
             eps_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
+            eeprom_update_dword(EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  eps_hk_auto_data_col.enabled);
             break;
         case CMD_BLOCK_PAY_HK:
             pay_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
+            eeprom_update_dword(PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  pay_hk_auto_data_col.enabled);
             break;
         case CMD_BLOCK_PAY_OPT:
             pay_opt_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
+            eeprom_update_dword(PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, pay_opt_auto_data_col.enabled);
             break;
         default:
             finish_current_cmd(false);
@@ -403,12 +405,15 @@ void auto_data_col_period_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_BLOCK_EPS_HK:
             eps_hk_auto_data_col.period = current_cmd_arg2;
+            eeprom_update_dword(EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  eps_hk_auto_data_col.period);
             break;
         case CMD_BLOCK_PAY_HK:
             pay_hk_auto_data_col.period = current_cmd_arg2;
+            eeprom_update_dword(PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  pay_hk_auto_data_col.period);
             break;
         case CMD_BLOCK_PAY_OPT:
             pay_opt_auto_data_col.period = current_cmd_arg2;
+            eeprom_update_dword(PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, pay_opt_auto_data_col.period);
             break;
         default:
             finish_current_cmd(false);

@@ -77,6 +77,14 @@ typedef struct {
 #define PAY_HK_AUTO_DATA_COL_PERIOD     120
 #define PAY_OPT_AUTO_DATA_COL_PERIOD    300
 
+// TODO change
+#define EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR    ((uint32_t*) 0x100)
+#define EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR     ((uint32_t*) 0x104)
+#define PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR    ((uint32_t*) 0x110)
+#define PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR     ((uint32_t*) 0x114)
+#define PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR   ((uint32_t*) 0x120)
+#define PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR    ((uint32_t*) 0x124)
+
 
 // Automatic data collection for one block type
 typedef struct {
@@ -134,6 +142,7 @@ void populate_header(mem_header_t* header, uint32_t block_num, uint8_t error);
 void append_header_to_tx_msg(mem_header_t* header);
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);
 
+void init_auto_data_col(void);
 void auto_data_col_timer_cb(void);
 void can_timer_cb(void);
 
