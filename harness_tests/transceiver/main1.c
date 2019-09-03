@@ -251,6 +251,7 @@ test_t t11 = {.name = "get_uptime_test", .fn = get_uptime_test };
 test_t t12 = {.name = "get_trans_num_packets_test", .fn = get_trans_num_packets_test };
 test_t t13 = {.name = "swc_bits_test", .fn = swc_bits_test };
 
+
 test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7, &t8, &t9, &t10, &t11, &t12, &t13 };
 
 void run_test(test_t*);

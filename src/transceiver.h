@@ -9,11 +9,13 @@
 #include <uptime/uptime.h>
 #include <utilities/utilities.h>
 
+#include "command_utilities.h"
+
 
 // Number of characters in the buffer of received UART RX characters
 #define TRANS_CMD_RESP_MAX_SIZE     20
-#define TRANS_RX_ENC_MSG_MAX_SIZE   20
-#define TRANS_RX_DEC_MSG_MAX_SIZE   9
+#define TRANS_RX_ENC_MSG_MAX_SIZE   19
+#define TRANS_RX_DEC_MSG_MAX_SIZE   13
 #define TRANS_TX_DEC_MSG_MAX_SIZE   115
 #define TRANS_TX_ENC_MSG_MAX_SIZE   232
 

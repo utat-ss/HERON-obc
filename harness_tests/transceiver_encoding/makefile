@@ -4,5 +4,5 @@
 PROG = main1
 # .c files from `src` folder to compile (except for in `lib-common`),
 # separated by spaces
-SRC = $(addprefix ../../src/, transceiver.c uptime.c)
+SRC = $(addprefix ../../src/, transceiver.c)
 include ../makefile
