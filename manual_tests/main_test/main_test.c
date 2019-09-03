@@ -724,16 +724,16 @@ int main(void){
 
     print("\n\n\nStarting commands test\n\n");
 
-    sim_eps = false;
+    sim_eps = true;
     sim_pay = true;
     sim_trans = true;
-    sim_trans_uart = true;
+    sim_trans_uart = false;
     comms_delay_s = 30;
     reset_comms_delay_eeprom = false;
     skip_comms_delay = true;
     skip_deploy_antenna = true;
     hb_ping_period_s = 30;
-    disable_hb = false;
+    disable_hb = true;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;
@@ -750,8 +750,8 @@ int main(void){
     // print("reset_comms_delay_eeprom = %u\n", reset_comms_delay_eeprom);
     // print("skip_comms_delay = %u\n", skip_comms_delay);
     // print("skip_deploy_antenna = %u\n", skip_deploy_antenna);
-    print("hb_ping_period_s = %lu\n", hb_ping_period_s);
-    print("disable_hb = %u\n", disable_hb);
+    // print("hb_ping_period_s = %lu\n", hb_ping_period_s);
+    // print("disable_hb = %u\n", disable_hb);
     // print("print_can_msgs = %u\n", print_can_msgs);
     // print("print_cmds = %u\n", print_cmds);
     // print("print_trans_msgs = %u\n", print_trans_msgs);
