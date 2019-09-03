@@ -371,49 +371,49 @@ void print_next_trans_tx_enc_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_tx_enc_msg_avail) {
+    if (!trans_tx_enc_avail) {
         return;
     }
 
-    print("Trans TX (Encoded): %u bytes: ", trans_tx_enc_msg_len);
-    print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_msg_len);
+    print("Trans TX (Encoded): %u bytes: ", trans_tx_enc_len);
+    print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_len);
 }
 
 void print_next_trans_tx_dec_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_tx_dec_msg_avail) {
+    if (!trans_tx_dec_avail) {
         return;
     }
 
-    print("Trans TX (Decoded): %u bytes: ", trans_tx_dec_msg_len);
-    print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_msg_len);
+    print("Trans TX (Decoded): %u bytes: ", trans_tx_dec_len);
+    print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_len);
 }
 
 void print_next_trans_rx_dec_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_rx_dec_msg_avail) {
+    if (!trans_rx_dec_avail) {
         return;
     }
 
-    print("Trans RX (Decoded): %u bytes: ", trans_rx_dec_msg_len);
-    print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_msg_len);
+    print("Trans RX (Decoded): %u bytes: ", trans_rx_dec_len);
+    print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_len);
 }
 
 void print_next_trans_rx_enc_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_rx_enc_msg_avail) {
+    if (!trans_rx_enc_avail) {
         return;
     }
 
     print("\n");
-    print("Trans RX (Encoded): %u bytes: ", trans_rx_enc_msg_len);
-    print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_msg_len);
+    print("Trans RX (Encoded): %u bytes: ", trans_rx_enc_len);
+    print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_len);
 }
 
 
@@ -702,8 +702,8 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
             trans_rx_enc_msg[18] = hex_to_char((arg2 >> 4) & 0x0F);
             trans_rx_enc_msg[19] = hex_to_char((arg2 >> 0) & 0x0F);
 
-            trans_rx_enc_msg_len = 20;
-            trans_rx_enc_msg_avail = true;
+            trans_rx_enc_len = 20;
+            trans_rx_enc_avail = true;
         }
     }
 
@@ -724,16 +724,16 @@ int main(void){
 
     print("\n\n\nStarting commands test\n\n");
 
-    sim_eps = false;
+    sim_eps = true;
     sim_pay = true;
     sim_trans = true;
-    sim_trans_uart = true;
+    sim_trans_uart = false;
     comms_delay_s = 30;
     reset_comms_delay_eeprom = false;
     skip_comms_delay = true;
     skip_deploy_antenna = true;
     hb_ping_period_s = 30;
-    disable_hb = false;
+    disable_hb = true;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;
@@ -750,8 +750,8 @@ int main(void){
     // print("reset_comms_delay_eeprom = %u\n", reset_comms_delay_eeprom);
     // print("skip_comms_delay = %u\n", skip_comms_delay);
     // print("skip_deploy_antenna = %u\n", skip_deploy_antenna);
-    print("hb_ping_period_s = %lu\n", hb_ping_period_s);
-    print("disable_hb = %u\n", disable_hb);
+    // print("hb_ping_period_s = %lu\n", hb_ping_period_s);
+    // print("disable_hb = %u\n", disable_hb);
     // print("print_can_msgs = %u\n", print_can_msgs);
     // print("print_cmds = %u\n", print_cmds);
     // print("print_trans_msgs = %u\n", print_trans_msgs);

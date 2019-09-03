@@ -57,12 +57,12 @@ If there is a message in trans_rx_dec_msg, processes its components and enqueues
 void handle_trans_rx_dec_msg(void) {
     // Need to put everything in an atomic block because the message is in a global array
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_rx_dec_msg_avail) {
+        if (!trans_rx_dec_avail) {
             return;
         }
         // Only accept 9 byte messages
-        if (trans_rx_dec_msg_len != TRANS_RX_DEC_MSG_MAX_SIZE) {
-            trans_rx_dec_msg_avail = false;
+        if (trans_rx_dec_len < 9) {
+            trans_rx_dec_avail = false;
             return;
         }
 
@@ -80,7 +80,7 @@ void handle_trans_rx_dec_msg(void) {
             (((uint32_t) msg[7]) << 8) |
             (((uint32_t) msg[8]));
 
-        trans_rx_dec_msg_avail = false;
+        trans_rx_dec_avail = false;
 
         cmd_t* cmd = trans_msg_type_to_cmd(msg_type);
         if (cmd == NULL) {
@@ -103,18 +103,18 @@ void start_trans_tx_dec_msg(void) {
     trans_tx_dec_msg[7] = (current_cmd_arg2 >> 8) & 0xFF;
     trans_tx_dec_msg[8] = current_cmd_arg2 & 0xFF;
 
-    trans_tx_dec_msg_len = 9;
+    trans_tx_dec_len = 9;
 }
 
 void append_to_trans_tx_dec_msg(uint8_t byte) {
-    if (trans_tx_dec_msg_len < TRANS_TX_DEC_MSG_MAX_SIZE) {
-        trans_tx_dec_msg[trans_tx_dec_msg_len] = byte;
-        trans_tx_dec_msg_len++;
+    if (trans_tx_dec_len < TRANS_TX_DEC_MSG_MAX_SIZE) {
+        trans_tx_dec_msg[trans_tx_dec_len] = byte;
+        trans_tx_dec_len++;
     }
 }
 
 void finish_trans_tx_dec_msg(void) {
-    trans_tx_dec_msg_avail = true;
+    trans_tx_dec_avail = true;
 }
 
 

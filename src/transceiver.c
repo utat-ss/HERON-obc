@@ -76,23 +76,23 @@ volatile bool       trans_cmd_resp_avail = false;
 
 // Encoded RX message (from ground station)
 volatile uint8_t    trans_rx_enc_msg[TRANS_RX_ENC_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_rx_enc_msg_len = 0;
-volatile bool       trans_rx_enc_msg_avail = false;
+volatile uint8_t    trans_rx_enc_len = 0;
+volatile bool       trans_rx_enc_avail = false;
 
 // Decoded RX message (from ground station)
 volatile uint8_t    trans_rx_dec_msg[TRANS_RX_DEC_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_rx_dec_msg_len = 0;
-volatile bool       trans_rx_dec_msg_avail = false;
+volatile uint8_t    trans_rx_dec_len = 0;
+volatile bool       trans_rx_dec_avail = false;
 
 // Decoded TX message (to ground station)
 volatile uint8_t    trans_tx_dec_msg[TRANS_TX_DEC_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_tx_dec_msg_len = 0;
-volatile bool       trans_tx_dec_msg_avail = false;
+volatile uint8_t    trans_tx_dec_len = 0;
+volatile bool       trans_tx_dec_avail = false;
 
 // Encoded TX message (to ground station)
 volatile uint8_t    trans_tx_enc_msg[TRANS_TX_ENC_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_tx_enc_msg_len = 0;
-volatile bool       trans_tx_enc_msg_avail = false;
+volatile uint8_t    trans_tx_enc_len = 0;
+volatile bool       trans_tx_enc_avail = false;
 
 // Last time we have received a UART character
 volatile uint32_t trans_rx_prev_uptime_s = 0;
@@ -160,7 +160,7 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
 
     // RX encoded message
     scan_trans_rx_enc_msg(buf, len);
-    if (trans_rx_enc_msg_avail) {
+    if (trans_rx_enc_avail) {
         return len;
     }
 
@@ -200,7 +200,7 @@ void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len) {
     }
 }
 
-// Scans the contents of trans_cmd_resp for a received message, sets
+// Scans the contents of the UART RX buffer for a received message, sets
 // trans_rx_msg_avail if appropriate
 // This should be called within an ISR so it is atomic
 void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
@@ -209,66 +209,268 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
     // - First byte is 0
     // - Second byte is not 0
     // - Second byte is the number of bytes remaining in the buffer
-    if (len == TRANS_RX_ENC_MSG_MAX_SIZE &&
+    // Check the most likely to fail conditions first (want to process as quickly as possible if still receiving characters)
+    // This callback will only check for the 0x00 bytes to be fast
+    if (len >= 5 &&
         buf[0] == 0x00 &&
-        buf[1] != 0x00 &&
-        buf[1] == len - 2) {
+        buf[2] == 0x00 &&
+        buf[len - 1] == 0x00 &&
+        len <= TRANS_RX_ENC_MSG_MAX_SIZE) {
 
         // Copy all characters
         for (uint8_t i = 0; i < len; i++) {
             trans_rx_enc_msg[i] = buf[i];
         }
-        trans_rx_enc_msg_len = len;
-        trans_rx_enc_msg_avail = true;
+        trans_rx_enc_len = len;
+        trans_rx_enc_avail = true;
     }
+}
+
+// // This should be called in an atomic block!
+// void add_tx_ack_msg(uint8_t opcode, uint32_t arg1, uint32_t arg2, uint8_t status) {
+//     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+//         start_trans_tx_dec_msg();
+//         append_to_trans_tx_dec_msg(opcode);
+//         append_to_trans_tx_dec_msg((arg1 >> 24) & 0xFF);
+//         append_to_trans_tx_dec_msg((arg1 >> 16) & 0xFF);
+//         append_to_trans_tx_dec_msg((arg1 >> 8) & 0xFF);
+//         append_to_trans_tx_dec_msg(arg1 & 0xFF);
+//         append_to_trans_tx_dec_msg((arg2 >> 24) & 0xFF);
+//         append_to_trans_tx_dec_msg((arg2 >> 16) & 0xFF);
+//         append_to_trans_tx_dec_msg((arg2 >> 8) & 0xFF);
+//         append_to_trans_tx_dec_msg(arg2 & 0xFF);
+//         append_to_trans_tx_dec_msg(status);
+//         finish_trans_tx_dec_msg();
+//     }
+// }
+
+void print_uint64(uint64_t num) {
+    print("0x%.8lx%.8lx",
+        (uint32_t)((num >> 32) & 0xFFFFFFFF),
+        (uint32_t)(num & 0xFFFFFFFF));
 }
 
 // trans_rx_enc_msg -> trans_rx_dec_msg
 void decode_trans_rx_msg(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_rx_enc_msg_avail) {
+        // print("trans_rx_enc_avail = %u\n", trans_rx_enc_avail);
+        // print("trans_rx_enc_len = %u\n", trans_rx_enc_len);
+        // print("trans_rx_enc_msg = ");
+        // print_bytes(trans_rx_enc_msg, trans_rx_enc_len);
+
+        // Check encoded message available
+        if (!trans_rx_enc_avail) {
             return;
         }
-        if (trans_rx_enc_msg_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
-            trans_rx_enc_msg_avail = false;
+        trans_rx_enc_avail = false;
+        // Check invalid length
+        if (!(trans_rx_enc_msg[1] > 0x10 &&
+            trans_rx_enc_msg[1] - 0x10 == trans_rx_enc_len - 4)) {
+            // TODO - how to send NACK for invalid length?
+            // add_tx_ack_msg(0, 0, 0, 1);
             return;
         }
 
-        uint8_t dec_len = (trans_rx_enc_msg_len - 2) / 2;
+        // length of base-254 encoded message can be extracted from the first field, the mapping is undone
+        uint8_t enc_len = trans_rx_enc_msg[1] - 0x10;
+        // 64 bit integer that will hold the 56 bit values from the byte group
+        uint64_t base_conversion_buff = 0;
+        // concatenate the message into 8 byte groups and leftovers, then calculate length
+        uint8_t num_byte_groups = enc_len / 8;
+        uint8_t num_remainder_bytes = enc_len % 8;
 
-        // Decode two ASCII hex byte to one byte
-        for (uint8_t i = 0; i < dec_len; i++) {
-            trans_rx_dec_msg[i] = scan_uint(trans_rx_enc_msg, 2 + (i * 2), 2);
+        uint8_t dec_len;
+        // TODO - what if 1 remainder byte?
+        if (num_remainder_bytes == 0) {
+            dec_len = num_byte_groups * 7;
+        } else {
+            dec_len = (num_byte_groups * 7) + (num_remainder_bytes - 1);
         }
-        trans_rx_dec_msg_len = dec_len;
-        trans_rx_dec_msg_avail = true;
 
-        trans_rx_enc_msg_avail = false;
+        // print("enc_len = %u\n", enc_len);
+        // print("dec_len = %u\n", dec_len);
+        // print("num_byte_groups = %u\n", num_byte_groups);
+        // print("num_remainder_bytes = %u\n", num_remainder_bytes);
+
+        // unmap the values in the buffer
+        for(uint8_t i = 0; i < enc_len; i++) {
+            if(trans_rx_enc_msg[3 + i] >= 1 && trans_rx_enc_msg[3 + i] <= 12)
+                trans_rx_enc_msg[3 + i] -= 1;
+            else if(trans_rx_enc_msg[3 + i] >= 14 && trans_rx_enc_msg[3 + i] <= 255)
+                trans_rx_enc_msg[3 + i] -= 2;
+        }
+
+        // print("trans_rx_enc_msg = ");
+        // print_bytes(trans_rx_enc_msg, trans_rx_enc_len);
+
+        // Set up array of powers of 254
+        // ULL is unsigned long long (unsigned 64-bit on AVR)
+        // [0] = 254^0, [7] = 254^7
+        uint64_t pow_254[8] = {0x00};
+        pow_254[0] = 1;
+        for (uint8_t i = 1; i < 8; i++) {
+            pow_254[i] = pow_254[i - 1] * 254ULL;
+        }
+
+        // print("pow_254 =");
+        // for (uint8_t i = 0; i < 8; i++) {
+        //     print(" ");
+        //     print_uint64(pow_254[i]);
+        // }
+        // print("\n");
+
+        for (uint8_t i_group = 0; i_group < num_byte_groups; i_group++) {
+            base_conversion_buff = 0;
+
+            for (uint8_t i_byte = 0; i_byte < 8; i_byte++) {
+                base_conversion_buff += trans_rx_enc_msg[ 3 + (8 * i_group) + i_byte ] * pow_254[7 - i_byte];
+                // print("base_conversion_buff = ");
+                // print_uint64(base_conversion_buff);
+                // print("\n");
+            }
+
+            for (uint8_t i_byte = 0; i_byte < 7; i_byte++) {
+                trans_rx_dec_msg[ (7 * i_group) + i_byte ] = (base_conversion_buff / (1ULL << ((6 - i_byte) * 8))) % 256;
+                // print("trans_rx_dec_msg = ");
+                // print_bytes(trans_rx_dec_msg, dec_len);
+            }
+        }
+
+        if (num_remainder_bytes > 1) {
+            base_conversion_buff = 0;
+            for (uint8_t i_byte = 0; i_byte < num_remainder_bytes; i_byte++) 
+                base_conversion_buff += trans_rx_enc_msg[ 3 + (num_byte_groups * 8) + i_byte ] * pow_254[num_remainder_bytes - 1 - i_byte];
+            // print("base_conversion_buff = ");
+            // print_uint64(base_conversion_buff);
+            // print("\n");
+
+            for (uint8_t i_byte = 0; i_byte < (num_remainder_bytes - 1); i_byte++)
+                trans_rx_dec_msg[ (num_byte_groups * 7) + i_byte ] = (base_conversion_buff / (1ULL << ((num_remainder_bytes - 2 - i_byte) * 8))) % 256;
+            // print("trans_rx_dec_msg = ");
+            // print_bytes(trans_rx_dec_msg, dec_len);
+        }
+
+        // print("base_conversion_buff = ");
+        // print_uint64(base_conversion_buff);
+        // print("\n");
+
+        trans_rx_dec_len = dec_len;
+        trans_rx_dec_avail = true;
+
+        // print("trans_rx_dec_len = %u\n", trans_rx_dec_len);
+        // print("trans_rx_dec_avail = %u\n", trans_rx_dec_avail);
+        // print("trans_rx_dec_msg = ");
+        // print_bytes(trans_rx_dec_msg, trans_rx_dec_len);
     }
 }
 
 // trans_tx_dec_msg -> trans_tx_enc_msg
 void encode_trans_tx_msg(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_tx_dec_msg_avail) {
+        // print("trans_tx_dec_avail = %u\n", trans_tx_dec_avail);
+        // print("trans_tx_dec_len = %u\n", trans_tx_dec_len);
+        // print("trans_tx_dec_msg = ");
+        // print_bytes(trans_tx_dec_msg, trans_tx_dec_len);
+
+        if (!trans_tx_dec_avail) {
             return;
         }
-        if (trans_tx_dec_msg_len == 0 || trans_tx_dec_msg_len > TRANS_TX_DEC_MSG_MAX_SIZE) {
-            trans_tx_dec_msg_avail = false;
+        trans_tx_dec_avail = false;
+        if (trans_tx_dec_len == 0 || trans_tx_dec_len > TRANS_TX_DEC_MSG_MAX_SIZE) {
             return;
         }
 
+        // 64 bit integer that will hold the 56 bit values from the byte groups
+        uint64_t base_conversion_buff = 0;
+        // Number of 7 byte groups in the decoded message
+        uint8_t num_byte_groups = trans_tx_dec_len / 7;
+        // Number of bytes leftover
+        uint8_t num_remainder_bytes = trans_tx_dec_len % 7;
+        // Encoded length
+        uint8_t enc_len = (num_remainder_bytes > 0) ? (num_byte_groups * 8 + num_remainder_bytes + 1) : (num_byte_groups * 8);
+
+        // print("enc_len = %u\n", enc_len);
+        // print("num_byte_groups = %u\n", num_byte_groups);
+        // print("num_remainder_bytes = %u\n", num_remainder_bytes);
+
+        // All encoded messages start with 0x00
         trans_tx_enc_msg[0] = 0x00;
-        trans_tx_enc_msg[1] = trans_tx_dec_msg_len * 2;
-        // Encode one byte to two ASCII hex bytes
-        for (uint8_t i = 0; i < trans_tx_dec_msg_len; i++) {
-            trans_tx_enc_msg[2 + (i * 2) + 0] = hex_to_char((trans_tx_dec_msg[i] >> 4) & 0x0F);
-            trans_tx_enc_msg[2 + (i * 2) + 1] = hex_to_char(trans_tx_dec_msg[i] & 0x0F);
-        }
-        trans_tx_enc_msg_len = 2 + (trans_tx_dec_msg_len * 2);
-        trans_tx_enc_msg_avail = true;
+        // Next field is the length. This value will later be mapped similar to the other bytes.
+        trans_tx_enc_msg[1] = enc_len + 0x10;
+        trans_tx_enc_msg[2] = 0x00;
 
-        trans_tx_dec_msg_avail = false;
+        // print("trans_tx_enc_msg = ");
+        // print_bytes(trans_tx_enc_msg, trans_tx_enc_len);
+
+        // Set up array of powers of 254
+        // ULL is unsigned long long (unsigned 64-bit on AVR)
+        // [0] = 254^0, [7] = 254^7
+        uint64_t pow_254[8] = {0x00};
+        pow_254[0] = 1;
+        for (uint8_t i = 1; i < 8; i++) {
+            pow_254[i] = pow_254[i - 1] * 254ULL;
+        }
+
+        // print("pow_254 =");
+        // for (uint8_t i = 0; i < 8; i++) {
+        //     print(" ");
+        //     print_uint64(pow_254[i]);
+        // }
+        // print("\n");
+
+        // Convert each of the 7 base-256 digits to 8 base-254 digits
+        for (uint8_t i_group = 0; i_group < num_byte_groups; i_group++) {
+            base_conversion_buff = 0;
+
+            for (uint8_t i_byte = 0; i_byte < 7; i_byte++) {
+                base_conversion_buff += trans_tx_dec_msg[ (7 * i_group) + i_byte] * (1ULL << ((6 - i_byte) * 8));  
+                // print("base_conversion_buff = ");
+                // print_uint64(base_conversion_buff);
+                // print("\n");
+            }
+            
+            for (uint8_t i_byte = 0; i_byte < 8; i_byte++) {
+                trans_tx_enc_msg[3 + (8 * i_group) + i_byte] = (base_conversion_buff / pow_254[7 - i_byte]) % 254;
+                // print("trans_tx_enc_msg = ");
+                // print_bytes(trans_tx_enc_msg, enc_len + 4);
+            }
+        }
+
+        // encode the remainining bytes
+        if(num_remainder_bytes > 0) {
+            base_conversion_buff = 0;
+            for (uint8_t i_byte = 0; i_byte < num_remainder_bytes; i_byte++) {
+                base_conversion_buff += trans_tx_dec_msg[num_byte_groups*7 + i_byte] * (1ULL << ((num_remainder_bytes - 1 - i_byte) * 8));
+                // print("base_conversion_buff = ");
+                // print_uint64(base_conversion_buff);
+                // print("\n");
+            }
+            for (uint8_t i_byte = 0; i_byte < (num_remainder_bytes + 1); i_byte++) {
+                trans_tx_enc_msg[3 + (num_byte_groups * 8) + i_byte] = (base_conversion_buff / pow_254[num_remainder_bytes - i_byte]) % 254;
+                // print("trans_tx_enc_msg = ");
+                // print_bytes(trans_tx_enc_msg, enc_len + 4);
+            }  
+        }
+
+        // Perform the mapping to avoid values 0 and 13. 0-11 -> 1-12, 12-253 -> 14-255
+        // Note that the length of the message is not put through this mapping. The other digit that doesn't get mapped is the 0x00.
+        for (uint8_t i = 3; i < 3 + enc_len; i++) {
+            if( trans_tx_enc_msg[i] >= 0 && trans_tx_enc_msg[i] <= 11 ) {
+                trans_tx_enc_msg[i] += 1;
+            }
+            else if( trans_tx_enc_msg[i] >= 12 && trans_tx_enc_msg[i] <= 253 ) {
+                trans_tx_enc_msg[i] += 2;
+            }
+        }
+
+        trans_tx_enc_msg[3 + enc_len] = 0x00;
+        trans_tx_enc_len = 4 + enc_len;
+        trans_tx_enc_avail = true;
+
+        // print("trans_tx_enc_len = %u\n", trans_tx_enc_len);
+        // print("trans_tx_enc_avail = %u\n", trans_tx_enc_avail);
+        // print("trans_tx_enc_msg = ");
+        // print_bytes(trans_tx_enc_msg, trans_tx_enc_len);
     }
 }
 
@@ -278,7 +480,7 @@ void send_trans_tx_enc_msg(void) {
 
     // Make sure all the bytes are sent atomically over UART
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_tx_enc_msg_avail) {
+        if (!trans_tx_enc_avail) {
             return;
         }
 
@@ -288,13 +490,13 @@ void send_trans_tx_enc_msg(void) {
         // Send a CR termination to terminate any packet accidentally sent from
         // print statements we previously sent over UART
         put_uart_char('\r');
-        for (uint8_t i = 0; i < trans_tx_enc_msg_len; i++) {
+        for (uint8_t i = 0; i < trans_tx_enc_len; i++) {
             put_uart_char(trans_tx_enc_msg[i]);
         }
         // Need to terminate the packet to send it
         put_uart_char('\r');
 
-        trans_tx_enc_msg_avail = false;
+        trans_tx_enc_avail = false;
     }
 }
 
