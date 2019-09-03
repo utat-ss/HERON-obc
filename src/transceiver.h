@@ -69,20 +69,20 @@ extern volatile uint8_t    trans_cmd_resp_len; //numebr valid chars
 extern volatile bool       trans_cmd_resp_avail; 
 
 extern volatile uint8_t    trans_rx_enc_msg[];
-extern volatile uint8_t    trans_rx_enc_msg_len;
-extern volatile bool       trans_rx_enc_msg_avail;
+extern volatile uint8_t    trans_rx_enc_len;
+extern volatile bool       trans_rx_enc_avail;
 
 extern volatile uint8_t    trans_rx_dec_msg[];
-extern volatile uint8_t    trans_rx_dec_msg_len;
-extern volatile bool       trans_rx_dec_msg_avail;
+extern volatile uint8_t    trans_rx_dec_len;
+extern volatile bool       trans_rx_dec_avail;
 
 extern volatile uint8_t    trans_tx_dec_msg[];
-extern volatile uint8_t    trans_tx_dec_msg_len;
-extern volatile bool       trans_tx_dec_msg_avail;
+extern volatile uint8_t    trans_tx_dec_len;
+extern volatile bool       trans_tx_dec_avail;
 
 extern volatile uint8_t    trans_tx_enc_msg[];
-extern volatile uint8_t    trans_tx_enc_msg_len;
-extern volatile bool       trans_tx_enc_msg_avail;
+extern volatile uint8_t    trans_tx_enc_len;
+extern volatile bool       trans_tx_enc_avail;
 
 // Initialization
 void init_trans(void);

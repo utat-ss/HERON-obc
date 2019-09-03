@@ -29,8 +29,8 @@ void add_standard_message(uint8_t msg_type, uint32_t arg1, uint32_t arg2) {
         trans_tx_dec_msg[7] = (arg2 >> 8) & 0xFF;
         trans_tx_dec_msg[8] = arg2 & 0xFF;
 
-        trans_tx_dec_msg_len = 9;
-        trans_tx_dec_msg_avail = true;
+        trans_tx_dec_len = 9;
+        trans_tx_dec_avail = true;
     }
 }
 
@@ -41,27 +41,27 @@ void add_string_message(char* string) {
         for (uint8_t i = 0; i < len; i++) {
             trans_tx_dec_msg[i] = string[i];
         }
-        trans_tx_dec_msg_len = len;
-        trans_tx_dec_msg_avail = true;
+        trans_tx_dec_len = len;
+        trans_tx_dec_avail = true;
     }
 }
 
 void print_decoded(void) {
-    if (!trans_tx_dec_msg_avail) {
+    if (!trans_tx_dec_avail) {
         print("No decoded message available\n");
         return;
     }
     print("Decoded: ");
-    print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_msg_len);
+    print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_len);
 }
 
 void print_encoded(void) {
-    if (!trans_tx_enc_msg_avail) {
+    if (!trans_tx_enc_avail) {
         print("No encoded message available\n");
         return;
     }
     print("Encoded: ");
-    print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_msg_len);
+    print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_len);
 }
 
 void test_standard_message(uint8_t msg_type, uint32_t arg1, uint32_t arg2) {

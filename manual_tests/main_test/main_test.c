@@ -371,49 +371,49 @@ void print_next_trans_tx_enc_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_tx_enc_msg_avail) {
+    if (!trans_tx_enc_avail) {
         return;
     }
 
-    print("Trans TX (Encoded): %u bytes: ", trans_tx_enc_msg_len);
-    print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_msg_len);
+    print("Trans TX (Encoded): %u bytes: ", trans_tx_enc_len);
+    print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_len);
 }
 
 void print_next_trans_tx_dec_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_tx_dec_msg_avail) {
+    if (!trans_tx_dec_avail) {
         return;
     }
 
-    print("Trans TX (Decoded): %u bytes: ", trans_tx_dec_msg_len);
-    print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_msg_len);
+    print("Trans TX (Decoded): %u bytes: ", trans_tx_dec_len);
+    print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_len);
 }
 
 void print_next_trans_rx_dec_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_rx_dec_msg_avail) {
+    if (!trans_rx_dec_avail) {
         return;
     }
 
-    print("Trans RX (Decoded): %u bytes: ", trans_rx_dec_msg_len);
-    print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_msg_len);
+    print("Trans RX (Decoded): %u bytes: ", trans_rx_dec_len);
+    print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_len);
 }
 
 void print_next_trans_rx_enc_msg(void) {
     if (!print_trans_msgs) {
         return;
     }
-    if (!trans_rx_enc_msg_avail) {
+    if (!trans_rx_enc_avail) {
         return;
     }
 
     print("\n");
-    print("Trans RX (Encoded): %u bytes: ", trans_rx_enc_msg_len);
-    print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_msg_len);
+    print("Trans RX (Encoded): %u bytes: ", trans_rx_enc_len);
+    print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_len);
 }
 
 
@@ -702,8 +702,8 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
             trans_rx_enc_msg[18] = hex_to_char((arg2 >> 4) & 0x0F);
             trans_rx_enc_msg[19] = hex_to_char((arg2 >> 0) & 0x0F);
 
-            trans_rx_enc_msg_len = 20;
-            trans_rx_enc_msg_avail = true;
+            trans_rx_enc_len = 20;
+            trans_rx_enc_avail = true;
         }
     }
 

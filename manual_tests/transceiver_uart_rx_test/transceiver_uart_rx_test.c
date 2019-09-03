@@ -48,20 +48,20 @@ int main(void){
 
         // Make sure we detect the encoded message before it gets decoded
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            if (trans_rx_enc_msg_avail) {
+            if (trans_rx_enc_avail) {
                 _delay_ms(10);
-                print("\nReceived trans encoded RX msg: %u bytes: ", trans_rx_enc_msg_len);
-                print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_msg_len);
+                print("\nReceived trans encoded RX msg: %u bytes: ", trans_rx_enc_len);
+                print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_len);
                 // Don't clear the encoded message (the decode function should do it)
             }
 
             decode_trans_rx_msg();
 
-            if (trans_rx_dec_msg_avail) {
+            if (trans_rx_dec_avail) {
                 _delay_ms(10);
-                print("\nReceived trans decoded RX msg: %u bytes: ", trans_rx_dec_msg_len);
-                print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_msg_len);
-                trans_rx_dec_msg_avail = false;
+                print("\nReceived trans decoded RX msg: %u bytes: ", trans_rx_dec_len);
+                print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_len);
+                trans_rx_dec_avail = false;
             }
         }
     }

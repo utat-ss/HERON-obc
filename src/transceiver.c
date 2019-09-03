@@ -77,22 +77,22 @@ volatile bool       trans_cmd_resp_avail = false;
 // Encoded RX message (from ground station)
 volatile uint8_t    trans_rx_enc_msg[TRANS_RX_ENC_MSG_MAX_SIZE] = {0x00};
 volatile uint8_t    trans_rx_enc_len = 0;
-volatile bool       trans_rx_enc_msg_avail = false;
+volatile bool       trans_rx_enc_avail = false;
 
 // Decoded RX message (from ground station)
 volatile uint8_t    trans_rx_dec_msg[TRANS_RX_DEC_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_rx_dec_msg_len = 0;
-volatile bool       trans_rx_dec_msg_avail = false;
+volatile uint8_t    trans_rx_dec_len = 0;
+volatile bool       trans_rx_dec_avail = false;
 
 // Decoded TX message (to ground station)
 volatile uint8_t    trans_tx_dec_msg[TRANS_TX_DEC_MSG_MAX_SIZE] = {0x00};
-volatile uint8_t    trans_tx_dec_msg_len = 0;
-volatile bool       trans_tx_dec_msg_avail = false;
+volatile uint8_t    trans_tx_dec_len = 0;
+volatile bool       trans_tx_dec_avail = false;
 
 // Encoded TX message (to ground station)
 volatile uint8_t    trans_tx_enc_msg[TRANS_TX_ENC_MSG_MAX_SIZE] = {0x00};
 volatile uint8_t    trans_tx_enc_len = 0;
-volatile bool       trans_tx_enc_msg_avail = false;
+volatile bool       trans_tx_enc_avail = false;
 
 // Last time we have received a UART character
 volatile uint32_t trans_rx_prev_uptime_s = 0;
@@ -160,7 +160,7 @@ uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len) {
 
     // RX encoded message
     scan_trans_rx_enc_msg(buf, len);
-    if (trans_rx_enc_msg_avail) {
+    if (trans_rx_enc_avail) {
         return len;
     }
 
@@ -219,7 +219,7 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
             trans_rx_enc_msg[i] = buf[i];
         }
         trans_rx_enc_len = len;
-        trans_rx_enc_msg_avail = true;
+        trans_rx_enc_avail = true;
     }
 }
 
@@ -227,11 +227,11 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
 void decode_trans_rx_msg(void) {
     // Old encoding, uses ASCII to avoid carriage return (13) and 0x00
     // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    //     if (!trans_rx_enc_msg_avail) {
+    //     if (!trans_rx_enc_avail) {
     //         return;
     //     }
     //     if (trans_rx_enc_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
-    //         trans_rx_enc_msg_avail = false;
+    //         trans_rx_enc_avail = false;
     //         return;
     //     }
 
@@ -241,26 +241,26 @@ void decode_trans_rx_msg(void) {
     //     for (uint8_t i = 0; i < dec_len; i++) {
     //         trans_rx_dec_msg[i] = scan_uint(trans_rx_enc_msg, 2 + (i * 2), 2);
     //     }
-    //     trans_rx_dec_msg_len = dec_len;
-    //     trans_rx_dec_msg_avail = true;
+    //     trans_rx_dec_len = dec_len;
+    //     trans_rx_dec_avail = true;
 
-    //     trans_rx_enc_msg_avail = false;
+    //     trans_rx_enc_avail = false;
     // }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_rx_enc_msg_avail) {
+        if (!trans_rx_enc_avail) {
             return;
         }
         // if (trans_rx_enc_len != TRANS_RX_ENC_MSG_MAX_SIZE) {
-        //     trans_rx_enc_msg_avail = false;
+        //     trans_rx_enc_avail = false;
         //     return;
         // }
         if (trans_rx_enc_len == 0 || trans_rx_enc_len > TRANS_RX_DEC_MSG_MAX_SIZE) {
-            trans_rx_enc_msg_avail = false;
+            trans_rx_enc_avail = false;
             return;
         }
         if (trans_rx_enc_msg[0] != 0x00){
-            trans_rx_enc_msg_avail = false;
+            trans_rx_enc_avail = false;
             return;
         }
 
@@ -298,9 +298,9 @@ void decode_trans_rx_msg(void) {
             }            
         }
 
-        trans_rx_dec_msg_len = dec_len;
-        trans_rx_dec_msg_avail = true;
-        trans_rx_enc_msg_avail = false;
+        trans_rx_dec_len = dec_len;
+        trans_rx_dec_avail = true;
+        trans_rx_enc_avail = false;
     }
 }
 
@@ -308,41 +308,41 @@ void decode_trans_rx_msg(void) {
 void encode_trans_tx_msg(void) {
     // Old encoding, uses ASCII to avoid carriage return (13) and 0
     // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    //     if (!trans_tx_dec_msg_avail) {
+    //     if (!trans_tx_dec_avail) {
     //         return;
     //     }
-    //     if (trans_tx_dec_msg_len == 0 || trans_tx_dec_msg_len > TRANS_TX_DEC_MSG_MAX_SIZE) {
-    //         trans_tx_dec_msg_avail = false;
+    //     if (trans_tx_dec_len == 0 || trans_tx_dec_len > TRANS_TX_DEC_MSG_MAX_SIZE) {
+    //         trans_tx_dec_avail = false;
     //         return;
     //     }
 
     //     trans_tx_enc_msg[0] = 0x00;
-    //     trans_tx_enc_msg[1] = trans_tx_dec_msg_len * 2;
+    //     trans_tx_enc_msg[1] = trans_tx_dec_len * 2;
     //     // Encode one byte to two ASCII hex bytes
-    //     for (uint8_t i = 0; i < trans_tx_dec_msg_len; i++) {
+    //     for (uint8_t i = 0; i < trans_tx_dec_len; i++) {
     //         trans_tx_enc_msg[2 + (i * 2) + 0] = hex_to_char((trans_tx_dec_msg[i] >> 4) & 0x0F);
     //         trans_tx_enc_msg[2 + (i * 2) + 1] = hex_to_char(trans_tx_dec_msg[i] & 0x0F);
     //     }
-    //     trans_tx_enc_len = 2 + (trans_tx_dec_msg_len * 2);
-    //     trans_tx_enc_msg_avail = true;
+    //     trans_tx_enc_len = 2 + (trans_tx_dec_len * 2);
+    //     trans_tx_enc_avail = true;
 
-    //     trans_tx_dec_msg_avail = false;
+    //     trans_tx_dec_avail = false;
     // }
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_tx_dec_msg_avail) {
+        if (!trans_tx_dec_avail) {
             return;
         }
-        if (trans_tx_dec_msg_len == 0 || trans_tx_dec_msg_len > TRANS_TX_DEC_MSG_MAX_SIZE) {
-            trans_tx_dec_msg_avail = false;
+        if (trans_tx_dec_len == 0 || trans_tx_dec_len > TRANS_TX_DEC_MSG_MAX_SIZE) {
+            trans_tx_dec_avail = false;
             return;
         }
 
         // 64 bit integer that will hold the 56 bit values from the byte groups
         uint64_t base_conversion_buff = 0;
         // Number of 7 byte groups in the decoded message
-        uint8_t num_byte_groups = floor(trans_tx_dec_msg_len / 7);
+        uint8_t num_byte_groups = floor(trans_tx_dec_len / 7);
         // Number of bytes leftover
-        uint8_t num_remainder_bytes = trans_tx_dec_msg_len % 7;
+        uint8_t num_remainder_bytes = trans_tx_dec_len % 7;
         // Encoded length
         uint8_t enc_len = (num_remainder_bytes > 0) ? (num_byte_groups * 8 + num_remainder_bytes + 1) : (num_byte_groups * 8);
 
@@ -380,8 +380,8 @@ void encode_trans_tx_msg(void) {
         }
 
         trans_tx_enc_len = 2 + enc_len;
-        trans_tx_enc_msg_avail = true;
-        trans_tx_dec_msg_avail = false;
+        trans_tx_enc_avail = true;
+        trans_tx_dec_avail = false;
     }
 }
 
@@ -391,7 +391,7 @@ void send_trans_tx_enc_msg(void) {
 
     // Make sure all the bytes are sent atomically over UART
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_tx_enc_msg_avail) {
+        if (!trans_tx_enc_avail) {
             return;
         }
 
@@ -407,7 +407,7 @@ void send_trans_tx_enc_msg(void) {
         // Need to terminate the packet to send it
         put_uart_char('\r');
 
-        trans_tx_enc_msg_avail = false;
+        trans_tx_enc_avail = false;
     }
 }
 
