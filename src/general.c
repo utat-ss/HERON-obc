@@ -30,7 +30,7 @@ void init_obc_core(void) {
     restart_time = read_rtc_time();
     init_uptime();
 
-    add_uptime_callback(auto_data_col_timer_cb);
+    init_auto_data_col();
     add_uptime_callback(can_timer_cb);
 }
 

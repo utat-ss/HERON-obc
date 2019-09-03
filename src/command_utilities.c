@@ -274,7 +274,33 @@ void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields) {
 }
 
 
+// TODO - put in utilities?
+uint32_t read_eeprom(uint32_t* addr, uint32_t default_val) {
+    uint32_t value = eeprom_read_dword(addr);
+    if (value == EEPROM_DEF_DWORD) {
+        return default_val;
+    }
+    return value;
+}
 
+
+void init_auto_data_col(void) {
+    eps_hk_auto_data_col.enabled = read_eeprom(
+        EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
+    pay_hk_auto_data_col.enabled = read_eeprom(
+        PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
+    pay_opt_auto_data_col.enabled = read_eeprom(
+        PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
+    
+    eps_hk_auto_data_col.period = read_eeprom(
+        EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, EPS_HK_AUTO_DATA_COL_PERIOD);
+    pay_hk_auto_data_col.period = read_eeprom(
+        PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, PAY_HK_AUTO_DATA_COL_PERIOD);
+    pay_opt_auto_data_col.period = read_eeprom(
+        PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, PAY_OPT_AUTO_DATA_COL_PERIOD);
+
+    add_uptime_callback(auto_data_col_timer_cb);
+}
 
 // Automatic data collection timer callback (for 16-bit timer)
 void auto_data_col_timer_cb(void) {
