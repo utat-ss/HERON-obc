@@ -61,7 +61,7 @@ void handle_trans_rx_dec_msg(void) {
             return;
         }
         // Only accept 9 byte messages
-        if (trans_rx_dec_len != TRANS_RX_DEC_MSG_MAX_SIZE) {
+        if (trans_rx_dec_len < 9) {
             trans_rx_dec_avail = false;
             return;
         }
