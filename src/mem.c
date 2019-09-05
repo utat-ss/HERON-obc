@@ -209,6 +209,25 @@ void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     }
 }
 
+// Command was a success
+void write_mem_cmd_success(uint32_t block_num) {
+    //uint32_t start_address = mem_block_section_addr(block_num); // header starting addr
+    //uint8_t bytes[1] = { 0x00 };
+    //write_mem_section_bytes(&cmd_log_mem_section, (start_address + 3), bytes, 1)
+    uint8_t success = 0x00;
+    mem_header_t dummy_header = {
+        .block_num = 0xFFFFFFFF,
+        .error = success,
+        .date.yy = 0xFF,
+        .date.mm = 0xFF,
+        .date.dd = 0xFF,
+        .time.hh = 0xFF,
+        .time.mm = 0xFF,
+        .time.ss = 0xFF,
+    };
+    write_mem_header(&cmd_log_mem_section, block_num, &dummy_header);
+}
+
 uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
     uint8_t cmd_num, uint32_t arg1, uint32_t arg2) {
     /*
