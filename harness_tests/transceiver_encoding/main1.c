@@ -34,14 +34,14 @@ void decode_trans_rx_msg_test(void){
     // decode the message
     decode_trans_rx_msg();
 
-    // check length of message and contents 
+    // check length of message and contents
     ASSERT_EQ(trans_rx_dec_len, dec_msg_len);
     for (uint8_t i = 0; i < trans_rx_dec_len; i++) {
         ASSERT_EQ(trans_rx_dec_msg[i], dec_msg[i]);
     }
     ASSERT_EQ(trans_rx_enc_avail, false);
     ASSERT_EQ(trans_rx_dec_avail, true);
-    
+
     // set dec msg avail flag back to false
     trans_rx_dec_avail = false;
 }
@@ -57,7 +57,7 @@ void encode_trans_tx_msg_test(void){
     // Can't use the `enc_msg_len` variable as the array size, even if it is const
     uint8_t enc_msg[15] = { 0x00, 0x1b, 0x00, 0x02, 0x02, 0xc1, 0x6c, 0xbf, 0xc9, 0x0f, 0x01, 0x01, 0x71, 0x97, 0x00 };
 
-    // Set up tx decode message buffer
+    // Set tx decode buffer
     trans_tx_dec_len = dec_msg_len;
     for (uint8_t i = 0; i < trans_tx_dec_len; i++) {
         trans_tx_dec_msg[i] = dec_msg[i];
@@ -69,20 +69,61 @@ void encode_trans_tx_msg_test(void){
 
     // check length of message as well as contents
     ASSERT_EQ(trans_tx_enc_len, enc_msg_len);
-    for(uint8_t i=0; i<enc_msg_len; i++) {
+    for (uint8_t i=0; i<enc_msg_len; i++) {
         ASSERT_EQ(trans_tx_enc_msg[i], enc_msg[i]);
     }
+
     ASSERT_EQ(trans_tx_dec_avail, false);
     ASSERT_EQ(trans_tx_enc_avail, true);
 
-    // set the enc msg avail back to false
     trans_tx_enc_avail = false;
+}
+
+// Verifies that a randomly-generated decoded message is the same after an encode-decode sequence
+void random_encode_decode_test(void){
+    // Generate random message of arbitrary length (max length 13)
+    uint8_t dec_msg_len = rand() % 13;
+    uint8_t dec_msg[13] = {0};
+    for (uint8_t i = 0; i < dec_msg_len; i++){
+        dec_msg[i] = (uint8_t)(rand() % 256);
+    }
+
+    // Set up decoded message buffer and encode message
+    trans_tx_dec_len = dec_msg_len;
+    for (uint8_t i = 0; i < trans_tx_dec_len; i++) {
+        trans_tx_dec_msg[i] = dec_msg[i];
+    }
+    trans_tx_dec_avail = true;
+    encode_trans_tx_msg();
+
+    // Assert that encoded message is terminated correctly
+    ASSERT_EQ(trans_tx_enc_msg[trans_tx_enc_len-1], 0x00);
+
+    // Assert that no value of encoded message is 0x00 or 0x0D (escape cmd)
+    for (uint8_t i = 0; i < trans_tx_enc_len - 1; i++){
+        ASSERT_NEQ(trans_tx_enc_msg[i], 0x00);
+        ASSERT_NEQ(trans_tx_enc_msg[i], 0x0D);
+    }
+
+    // Set up rx encoded message buffer and decode message
+    trans_rx_enc_len = trans_tx_enc_len;
+    for (uint8_t i = 0; i < trans_rx_enc_len; i++) {
+        trans_rx_enc_msg[i] = trans_tx_enc_msg[i];
+    }
+    trans_rx_enc_avail = true;
+    decode_trans_rx_msg();
+
+    // Assert that decoded values are same as initial values
+    for (uint8_t i = 0; i < trans_rx_dec_len; i++){
+        ASSERT_EQ(trans_rx_dec_msg[i], dec_msg[i]);
+    }
 }
 
 test_t t1 = {.name = "decode_trans_rx_msg_test", .fn = decode_trans_rx_msg_test};
 test_t t2 = {.name = "encode_trans_tx_msg_test", .fn = encode_trans_tx_msg_test};
+test_t t3 = {.name = "random_encode_decode_test", .fn = random_encode_decode_test};
 
-test_t* suite[] = { &t1, &t2 };
+test_t* suite[] = { &t1, &t2, &t3 };
 
 int main(void) {
     run_tests(suite, sizeof(suite) / sizeof(suite[0]));
