@@ -31,3 +31,7 @@ xcuserdata
 
 # Compiled Python files
 *.pyc
+
+# Super-secret password files that should NEVER be committed to Git
+security.h
+security.py
