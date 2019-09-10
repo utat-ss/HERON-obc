@@ -29,106 +29,133 @@ void erase_mem_phy_block_fn(void);
 
 
 // All possible commands
+
 // Default no-op command
+// Don't care about `num`
 cmd_t nop_cmd = {
     .fn = nop_fn,
-    .num = 0xFF // Don't care
+    .num = 0xFF,
+    .pwd_protected = false
 };
 cmd_t ping_cmd = {
     .fn = ping_fn,
-    .num = TRANS_CMD_PING
+    .num = TRANS_CMD_PING,
+    .pwd_protected = false
 };
 cmd_t get_subsys_status_cmd = {
     .fn = get_subsys_status_fn,
-    .num = TRANS_CMD_GET_SUBSYS_STATUS
+    .num = TRANS_CMD_GET_SUBSYS_STATUS,
+    .pwd_protected = false
 };
 cmd_t get_rtc_cmd = {
     .fn = get_rtc_fn,
-    .num = TRANS_CMD_GET_RTC
+    .num = TRANS_CMD_GET_RTC,
+    .pwd_protected = false
 };
 cmd_t set_rtc_cmd = {
     .fn = set_rtc_fn,
-    .num = TRANS_CMD_SET_RTC
+    .num = TRANS_CMD_SET_RTC,
+    .pwd_protected = true
 };
 cmd_t read_mem_bytes_cmd = {
     .fn = read_mem_bytes_fn,
-    .num = TRANS_CMD_READ_MEM_BYTES
+    .num = TRANS_CMD_READ_MEM_BYTES,
+    .pwd_protected = true
 };
 cmd_t erase_mem_phy_sector_cmd = {
     .fn = erase_mem_phy_sector_fn,
-    .num = TRANS_CMD_ERASE_MEM_PHY_SECTOR
+    .num = TRANS_CMD_ERASE_MEM_PHY_SECTOR,
+    .pwd_protected = true
 };
 cmd_t col_block_cmd = {
     .fn = col_block_fn,
-    .num = TRANS_CMD_COL_BLOCK
+    .num = TRANS_CMD_COL_BLOCK,
+    .pwd_protected = false
 };
 cmd_t read_loc_block_cmd = {
     .fn = read_loc_block_fn,
-    .num = TRANS_CMD_READ_LOC_BLOCK
+    .num = TRANS_CMD_READ_LOC_BLOCK,
+    .pwd_protected = false
 };
 cmd_t read_mem_block_cmd = {
     .fn = read_mem_block_fn,
-    .num = TRANS_CMD_READ_MEM_BLOCK
+    .num = TRANS_CMD_READ_MEM_BLOCK,
+    .pwd_protected = false
 };
 cmd_t auto_data_col_enable_cmd = {
     .fn = auto_data_col_enable_fn,
-    .num = TRANS_CMD_AUTO_DATA_COL_ENABLE
+    .num = TRANS_CMD_AUTO_DATA_COL_ENABLE,
+    .pwd_protected = true
 };
 cmd_t auto_data_col_period_cmd = {
     .fn = auto_data_col_period_fn,
-    .num = TRANS_CMD_AUTO_DATA_COL_PERIOD
+    .num = TRANS_CMD_AUTO_DATA_COL_PERIOD,
+    .pwd_protected = true
 };
 cmd_t auto_data_col_resync_cmd = {
     .fn = auto_data_col_resync_fn,
-    .num = TRANS_CMD_AUTO_DATA_COL_RESYNC
+    .num = TRANS_CMD_AUTO_DATA_COL_RESYNC,
+    .pwd_protected = true
 };
 cmd_t pay_act_motors_cmd = {
     .fn = pay_act_motors_fn,
-    .num = TRANS_CMD_PAY_ACT_MOTORS
+    .num = TRANS_CMD_PAY_ACT_MOTORS,
+    .pwd_protected = true
 };
 cmd_t reset_subsys_cmd = {
     .fn = reset_subsys_fn,
-    .num = TRANS_CMD_RESET_SUBSYS
+    .num = TRANS_CMD_RESET_SUBSYS,
+    .pwd_protected = true
 };
 cmd_t eps_can_cmd = {
     .fn = eps_can_fn,
-    .num = TRANS_CMD_EPS_CAN
+    .num = TRANS_CMD_EPS_CAN,
+    .pwd_protected = true
 };
 cmd_t pay_can_cmd = {
     .fn = pay_can_fn,
-    .num = TRANS_CMD_PAY_CAN
+    .num = TRANS_CMD_PAY_CAN,
+    .pwd_protected = true
 };
 cmd_t read_eeprom_cmd = {
     .fn = read_eeprom_fn,
-    .num = TRANS_CMD_READ_EEPROM
+    .num = TRANS_CMD_READ_EEPROM,
+    .pwd_protected = true
 };
 cmd_t get_cur_block_num_cmd = {
     .fn = get_cur_block_num_fn,
-    .num = TRANS_CMD_GET_CUR_BLOCK_NUM
+    .num = TRANS_CMD_GET_CUR_BLOCK_NUM,
+    .pwd_protected = false
 };
 cmd_t set_cur_block_num_cmd = {
     .fn = set_cur_block_num_fn,
-    .num = TRANS_CMD_SET_CUR_BLOCK_NUM
+    .num = TRANS_CMD_SET_CUR_BLOCK_NUM,
+    .pwd_protected = true
 };
 cmd_t set_mem_sec_start_addr_cmd = {
     .fn = set_mem_sec_start_addr_fn,
-    .num = TRANS_CMD_SET_MEM_SEC_START_ADDR
+    .num = TRANS_CMD_SET_MEM_SEC_START_ADDR,
+    .pwd_protected = true
 };
 cmd_t set_mem_sec_end_addr_cmd = {
     .fn = set_mem_sec_end_addr_fn,
-    .num = TRANS_CMD_SET_MEM_SEC_END_ADDR
+    .num = TRANS_CMD_SET_MEM_SEC_END_ADDR,
+    .pwd_protected = true
 };
 cmd_t erase_eeprom_cmd = {
     .fn = erase_eeprom_fn,
-    .num = TRANS_CMD_ERASE_EEPROM
+    .num = TRANS_CMD_ERASE_EEPROM,
+    .pwd_protected = true
 };
 cmd_t erase_all_mem_cmd = {
     .fn = erase_all_mem_fn,
-    .num = TRANS_CMD_ERASE_ALL_MEM
+    .num = TRANS_CMD_ERASE_ALL_MEM,
+    .pwd_protected = true
 };
 cmd_t erase_mem_phy_block_cmd = {
     .fn = erase_mem_phy_block_fn,
-    .num = TRANS_CMD_ERASE_MEM_PHY_BLOCK
+    .num = TRANS_CMD_ERASE_MEM_PHY_BLOCK,
+    .pwd_protected = true
 };
 
 // Should not include nop_cmd

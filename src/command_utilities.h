@@ -15,6 +15,8 @@ typedef void(*cmd_fn_t)(void);
 typedef struct {
     cmd_fn_t fn;
     uint8_t num;
+    // true if password needs to be correct to execute
+    bool pwd_protected;
 } cmd_t;
 
 // Need to declare `cmd_t` before this include to prevent errors from ordering

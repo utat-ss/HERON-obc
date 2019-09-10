@@ -204,13 +204,10 @@ void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len) {
 // trans_rx_msg_avail if appropriate
 // This should be called within an ISR so it is atomic
 void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
-    // Check conditions:
-    // - 20 characters, fits in buffer (all RX messages should be the same length)
-    // - First byte is 0
-    // - Second byte is not 0
-    // - Second byte is the number of bytes remaining in the buffer
+    // Check conditions
     // Check the most likely to fail conditions first (want to process as quickly as possible if still receiving characters)
-    // This callback will only check for the 0x00 bytes to be fast
+    // This callback will only check for the 0x00 bytes to be fast,
+    // and to NACK in a different place if the length doesn't match the data
     if (len >= 5 &&
         buf[0] == 0x00 &&
         buf[2] == 0x00 &&

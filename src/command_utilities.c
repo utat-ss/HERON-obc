@@ -1,5 +1,12 @@
 #include "command_utilities.h"
 
+// If you get an error here because `security.h` is not found, copy the dummy
+// `security.h` file from https://github.com/HeronMkII/templates to your `src`
+// folder and try again
+// DO NOT COMMIT ANY `security.h` FILE TO GIT
+#include "security.h"
+// The super-secret password for sensitive commands
+const uint8_t correct_pwd[] = SECURITY_CORRECT_PWD;
 
 // Queue of commands that need to be executed but have not been executed yet
 queue_t cmd_queue;
@@ -14,6 +21,8 @@ volatile uint32_t current_cmd_arg1 = 0;
 volatile uint32_t current_cmd_arg2 = 0;
 // true if the previous command succeeded or false if it failed
 volatile bool prev_cmd_succeeded = false;
+// Don't need to store a variable for the password because it is checked in the
+// decoded message before enqueueing to the command queue
 
 // For the uptime interrupt to can_timer_cb to finish command if no response
 // received after 30 seconds
@@ -60,9 +69,9 @@ void handle_trans_rx_dec_msg(void) {
         if (!trans_rx_dec_avail) {
             return;
         }
-        // Only accept 9 byte messages
-        if (trans_rx_dec_len < 9) {
-            trans_rx_dec_avail = false;
+        trans_rx_dec_avail = false;
+        // Only accept 13 byte messages
+        if (trans_rx_dec_len < 13) {
             return;
         }
 
@@ -70,22 +79,31 @@ void handle_trans_rx_dec_msg(void) {
         uint8_t* msg = (uint8_t*) trans_rx_dec_msg;
         uint8_t msg_type = msg[0];
         uint32_t arg1 =
-            (((uint32_t) msg[1]) << 24) |
-            (((uint32_t) msg[2]) << 16) |
-            (((uint32_t) msg[3]) << 8) |
-            (((uint32_t) msg[4]));
+            ((uint32_t) msg[1] << 24) |
+            ((uint32_t) msg[2] << 16) |
+            ((uint32_t) msg[3] << 8) |
+            ((uint32_t) msg[4]);
         uint32_t arg2 =
-            (((uint32_t) msg[5]) << 24) |
-            (((uint32_t) msg[6]) << 16) |
-            (((uint32_t) msg[7]) << 8) |
-            (((uint32_t) msg[8]));
-
-        trans_rx_dec_avail = false;
+            ((uint32_t) msg[5] << 24) |
+            ((uint32_t) msg[6] << 16) |
+            ((uint32_t) msg[7] << 8) |
+            ((uint32_t) msg[8]);
 
         cmd_t* cmd = trans_msg_type_to_cmd(msg_type);
         if (cmd == NULL) {
             return;
         }
+
+        // Password is indices 9-12 - check 4-byte password if necessary for the command
+        if (cmd->pwd_protected) {
+            for (uint8_t i = 0; i < 4; i++) {
+                if (msg[9 + i] != correct_pwd[i]) {
+                    // TODO - NACK
+                    return;
+                }
+            }
+        }
+        
         enqueue_cmd(cmd, arg1, arg2);
     }
 }
