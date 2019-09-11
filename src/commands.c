@@ -3,21 +3,21 @@
 
 void nop_fn(void);
 void ping_fn(void);
-void get_subsys_status_fn(void);
+void read_rec_status_info_fn(void);
 void get_rtc_fn(void);
 void set_rtc_fn(void);
-void read_mem_bytes_fn(void);
+void read_raw_mem_bytes_fn(void);
 void erase_mem_phy_sector_fn(void);
-void col_block_fn(void);
-void read_loc_block_fn(void);
-void read_mem_block_fn(void);
-void auto_data_col_enable_fn(void);
-void auto_data_col_period_fn(void);
-void auto_data_col_resync_fn(void);
-void pay_act_motors_fn(void);
+void col_data_block_fn(void);
+void read_rec_loc_data_block_fn(void);
+void read_data_block_fn(void);
+void set_auto_data_col_enable_fn(void);
+void set_auto_data_col_period_fn(void);
+void resync_auto_data_col_fn(void);
+void act_pay_motors_fn(void);
 void reset_subsys_fn(void);
-void eps_can_fn(void);
-void pay_can_fn(void);
+void send_eps_can_msg_fn(void);
+void send_pay_can_msg_fn(void);
 void read_eeprom_fn(void);
 void get_cur_block_num_fn(void);
 void set_cur_block_num_fn(void);
@@ -34,127 +34,127 @@ void erase_mem_phy_block_fn(void);
 // Don't care about `num`
 cmd_t nop_cmd = {
     .fn = nop_fn,
-    .num = 0xFF,
+    .opcode = 0xFF,
     .pwd_protected = false
 };
 cmd_t ping_cmd = {
     .fn = ping_fn,
-    .num = TRANS_CMD_PING,
+    .opcode = CMD_PING,
     .pwd_protected = false
 };
-cmd_t get_subsys_status_cmd = {
-    .fn = get_subsys_status_fn,
-    .num = TRANS_CMD_GET_SUBSYS_STATUS,
+cmd_t read_rec_status_info_cmd = {
+    .fn = read_rec_status_info_fn,
+    .opcode = CMD_READ_REC_STATUS_INFO,
     .pwd_protected = false
 };
 cmd_t get_rtc_cmd = {
     .fn = get_rtc_fn,
-    .num = TRANS_CMD_GET_RTC,
+    .opcode = CMD_GET_RTC,
     .pwd_protected = false
 };
 cmd_t set_rtc_cmd = {
     .fn = set_rtc_fn,
-    .num = TRANS_CMD_SET_RTC,
+    .opcode = CMD_SET_RTC,
     .pwd_protected = true
 };
-cmd_t read_mem_bytes_cmd = {
-    .fn = read_mem_bytes_fn,
-    .num = TRANS_CMD_READ_MEM_BYTES,
+cmd_t read_raw_mem_bytes_cmd = {
+    .fn = read_raw_mem_bytes_fn,
+    .opcode = CMD_READ_RAW_MEM_BYTES,
     .pwd_protected = true
 };
 cmd_t erase_mem_phy_sector_cmd = {
     .fn = erase_mem_phy_sector_fn,
-    .num = TRANS_CMD_ERASE_MEM_PHY_SECTOR,
+    .opcode = CMD_ERASE_MEM_PHY_SECTOR,
     .pwd_protected = true
 };
-cmd_t col_block_cmd = {
-    .fn = col_block_fn,
-    .num = TRANS_CMD_COL_BLOCK,
+cmd_t col_data_block_cmd = {
+    .fn = col_data_block_fn,
+    .opcode = CMD_COL_DATA_BLOCK,
     .pwd_protected = false
 };
-cmd_t read_loc_block_cmd = {
-    .fn = read_loc_block_fn,
-    .num = TRANS_CMD_READ_LOC_BLOCK,
+cmd_t read_rec_loc_data_block_cmd = {
+    .fn = read_rec_loc_data_block_fn,
+    .opcode = CMD_READ_REC_LOC_DATA_BLOCK,
     .pwd_protected = false
 };
-cmd_t read_mem_block_cmd = {
-    .fn = read_mem_block_fn,
-    .num = TRANS_CMD_READ_MEM_BLOCK,
+cmd_t read_data_block_cmd = {
+    .fn = read_data_block_fn,
+    .opcode = CMD_READ_DATA_BLOCK,
     .pwd_protected = false
 };
-cmd_t auto_data_col_enable_cmd = {
-    .fn = auto_data_col_enable_fn,
-    .num = TRANS_CMD_AUTO_DATA_COL_ENABLE,
+cmd_t set_auto_data_col_enable_cmd = {
+    .fn = set_auto_data_col_enable_fn,
+    .opcode = CMD_SET_AUTO_DATA_COL_ENABLE,
     .pwd_protected = true
 };
-cmd_t auto_data_col_period_cmd = {
-    .fn = auto_data_col_period_fn,
-    .num = TRANS_CMD_AUTO_DATA_COL_PERIOD,
+cmd_t set_auto_data_col_period_cmd = {
+    .fn = set_auto_data_col_period_fn,
+    .opcode = CMD_SET_AUTO_DATA_COL_PERIOD,
     .pwd_protected = true
 };
-cmd_t auto_data_col_resync_cmd = {
-    .fn = auto_data_col_resync_fn,
-    .num = TRANS_CMD_AUTO_DATA_COL_RESYNC,
+cmd_t resync_auto_data_col_cmd = {
+    .fn = resync_auto_data_col_fn,
+    .opcode = CMD_RESYNC_AUTO_DATA_COL,
     .pwd_protected = true
 };
-cmd_t pay_act_motors_cmd = {
-    .fn = pay_act_motors_fn,
-    .num = TRANS_CMD_PAY_ACT_MOTORS,
+cmd_t act_pay_motors_cmd = {
+    .fn = act_pay_motors_fn,
+    .opcode = CMD_ACT_PAY_MOTORS,
     .pwd_protected = true
 };
 cmd_t reset_subsys_cmd = {
     .fn = reset_subsys_fn,
-    .num = TRANS_CMD_RESET_SUBSYS,
+    .opcode = CMD_RESET_SUBSYS,
     .pwd_protected = true
 };
-cmd_t eps_can_cmd = {
-    .fn = eps_can_fn,
-    .num = TRANS_CMD_EPS_CAN,
+cmd_t send_eps_can_msg_cmd = {
+    .fn = send_eps_can_msg_fn,
+    .opcode = CMD_SEND_EPS_CAN_MSG,
     .pwd_protected = true
 };
-cmd_t pay_can_cmd = {
-    .fn = pay_can_fn,
-    .num = TRANS_CMD_PAY_CAN,
+cmd_t send_pay_can_msg_cmd = {
+    .fn = send_pay_can_msg_fn,
+    .opcode = CMD_SEND_PAY_CAN_MSG,
     .pwd_protected = true
 };
 cmd_t read_eeprom_cmd = {
     .fn = read_eeprom_fn,
-    .num = TRANS_CMD_READ_EEPROM,
+    .opcode = CMD_READ_EEPROM,
     .pwd_protected = true
 };
 cmd_t get_cur_block_num_cmd = {
     .fn = get_cur_block_num_fn,
-    .num = TRANS_CMD_GET_CUR_BLOCK_NUM,
+    .opcode = CMD_GET_CUR_BLOCK_NUM,
     .pwd_protected = false
 };
 cmd_t set_cur_block_num_cmd = {
     .fn = set_cur_block_num_fn,
-    .num = TRANS_CMD_SET_CUR_BLOCK_NUM,
+    .opcode = CMD_SET_CUR_BLOCK_NUM,
     .pwd_protected = true
 };
 cmd_t set_mem_sec_start_addr_cmd = {
     .fn = set_mem_sec_start_addr_fn,
-    .num = TRANS_CMD_SET_MEM_SEC_START_ADDR,
+    .opcode = CMD_SET_MEM_SEC_START_ADDR,
     .pwd_protected = true
 };
 cmd_t set_mem_sec_end_addr_cmd = {
     .fn = set_mem_sec_end_addr_fn,
-    .num = TRANS_CMD_SET_MEM_SEC_END_ADDR,
+    .opcode = CMD_SET_MEM_SEC_END_ADDR,
     .pwd_protected = true
 };
 cmd_t erase_eeprom_cmd = {
     .fn = erase_eeprom_fn,
-    .num = TRANS_CMD_ERASE_EEPROM,
+    .opcode = CMD_ERASE_EEPROM,
     .pwd_protected = true
 };
 cmd_t erase_all_mem_cmd = {
     .fn = erase_all_mem_fn,
-    .num = TRANS_CMD_ERASE_ALL_MEM,
+    .opcode = CMD_ERASE_ALL_MEM,
     .pwd_protected = true
 };
 cmd_t erase_mem_phy_block_cmd = {
     .fn = erase_mem_phy_block_fn,
-    .num = TRANS_CMD_ERASE_MEM_PHY_BLOCK,
+    .opcode = CMD_ERASE_MEM_PHY_BLOCK,
     .pwd_protected = true
 };
 
@@ -167,21 +167,21 @@ cmd_t erase_mem_phy_block_cmd = {
 // NOTE: MAKE SURE TO UPDATE ALL_CMDS_LEN WHEN ADDING/DELETING
 cmd_t* all_cmds_list[ALL_CMDS_LEN] = {
     &ping_cmd,
-    &get_subsys_status_cmd,
+    &read_rec_status_info_cmd,
     &get_rtc_cmd,
     &set_rtc_cmd,
-    &read_mem_bytes_cmd,
+    &read_raw_mem_bytes_cmd,
     &erase_mem_phy_sector_cmd,
-    &col_block_cmd,
-    &read_loc_block_cmd,
-    &read_mem_block_cmd,
-    &auto_data_col_enable_cmd,
-    &auto_data_col_period_cmd,
-    &auto_data_col_resync_cmd,
-    &pay_act_motors_cmd,
+    &col_data_block_cmd,
+    &read_rec_loc_data_block_cmd,
+    &read_data_block_cmd,
+    &set_auto_data_col_enable_cmd,
+    &set_auto_data_col_period_cmd,
+    &resync_auto_data_col_cmd,
+    &act_pay_motors_cmd,
     &reset_subsys_cmd,
-    &eps_can_cmd,
-    &pay_can_cmd,
+    &send_eps_can_msg_cmd,
+    &send_pay_can_msg_cmd,
     &read_eeprom_cmd,
     &get_cur_block_num_cmd,
     &set_cur_block_num_cmd,
@@ -209,8 +209,9 @@ void ping_fn(void) {
     finish_current_cmd(true);
 }
 
-void get_subsys_status_fn(void) {
+void read_rec_status_info_fn(void) {
     can_countdown = 30;
+    // TODO
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
@@ -278,7 +279,7 @@ void set_rtc_fn(void) {
     finish_current_cmd(true);
 }
 
-void read_mem_bytes_fn(void) {
+void read_raw_mem_bytes_fn(void) {
     can_countdown = 30;
 
     // Enforce max number of bytes
@@ -316,20 +317,20 @@ void erase_mem_phy_sector_fn(void) {
 
 // Starts requesting block data (field 0)
 // TODO - set error byte to error by default at beginning, clear error after receiving last field of data
-void col_block_fn(void) {
+void col_data_block_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
-        case CMD_BLOCK_EPS_HK:
+        case CMD_EPS_HK:
             print("Starting EPS_HK\n");
             populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, 0x00);
             enqueue_eps_hk_tx_msg(0);
             break;
-        case CMD_BLOCK_PAY_HK:
+        case CMD_PAY_HK:
             print ("Starting PAY_HK\n");
             populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, 0x00);
             enqueue_pay_hk_tx_msg(0);
             break;
-        case CMD_BLOCK_PAY_OPT:
+        case CMD_PAY_OPT:
             print ("Starting PAY_OPT\n");
             populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, 0x00);
             enqueue_pay_opt_tx_msg(0);
@@ -341,21 +342,21 @@ void col_block_fn(void) {
     // Will continue from CAN callbacks
 }
 
-void read_loc_block_fn(void) {
+void read_rec_loc_data_block_fn(void) {
     can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
 
         switch (current_cmd_arg1) {
-            case CMD_BLOCK_EPS_HK:
+            case CMD_EPS_HK:
                 append_header_to_tx_msg(&eps_hk_header);
                 append_fields_to_tx_msg(eps_hk_fields, CAN_EPS_HK_FIELD_COUNT);
                 break;
-            case CMD_BLOCK_PAY_HK:
+            case CMD_PAY_HK:
                 append_header_to_tx_msg(&pay_hk_header);
                 append_fields_to_tx_msg(pay_hk_fields, CAN_PAY_HK_FIELD_COUNT);
                 break;
-            case CMD_BLOCK_PAY_OPT:
+            case CMD_PAY_OPT:
                 append_header_to_tx_msg(&pay_opt_header);
                 append_fields_to_tx_msg(pay_opt_fields, CAN_PAY_OPT_FIELD_COUNT);
                 break;
@@ -370,20 +371,20 @@ void read_loc_block_fn(void) {
     finish_current_cmd(true);
 }
 
-void read_mem_block_fn(void) {
+void read_data_block_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
-        case CMD_BLOCK_EPS_HK:
+        case CMD_EPS_HK:
             read_mem_data_block(&eps_hk_mem_section, current_cmd_arg2,
                 &eps_hk_header, eps_hk_fields);
             break;
 
-        case CMD_BLOCK_PAY_HK:
+        case CMD_PAY_HK:
             read_mem_data_block(&pay_hk_mem_section, current_cmd_arg2,
                 &pay_hk_header, pay_hk_fields);
             break;
 
-        case CMD_BLOCK_PAY_OPT:
+        case CMD_PAY_OPT:
             read_mem_data_block(&pay_opt_mem_section, current_cmd_arg2,
                 &pay_opt_header, pay_opt_fields);
             break;
@@ -394,23 +395,23 @@ void read_mem_block_fn(void) {
     }
 
     // TODO - will this give the correct behavaiour? maybe refactor both with common functionality?
-    read_loc_block_fn();
+    read_rec_loc_data_block_fn();
 
     // TODO - finish_current_cmd(true)?
 }
 
-void auto_data_col_enable_fn(void) {
+void set_auto_data_col_enable_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
-        case CMD_BLOCK_EPS_HK:
+        case CMD_EPS_HK:
             eps_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
             eeprom_update_dword(EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  eps_hk_auto_data_col.enabled);
             break;
-        case CMD_BLOCK_PAY_HK:
+        case CMD_PAY_HK:
             pay_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
             eeprom_update_dword(PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  pay_hk_auto_data_col.enabled);
             break;
-        case CMD_BLOCK_PAY_OPT:
+        case CMD_PAY_OPT:
             pay_opt_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
             eeprom_update_dword(PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, pay_opt_auto_data_col.enabled);
             break;
@@ -427,18 +428,18 @@ void auto_data_col_enable_fn(void) {
     finish_current_cmd(true);
 }
 
-void auto_data_col_period_fn(void) {
+void set_auto_data_col_period_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
-        case CMD_BLOCK_EPS_HK:
+        case CMD_EPS_HK:
             eps_hk_auto_data_col.period = current_cmd_arg2;
             eeprom_update_dword(EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  eps_hk_auto_data_col.period);
             break;
-        case CMD_BLOCK_PAY_HK:
+        case CMD_PAY_HK:
             pay_hk_auto_data_col.period = current_cmd_arg2;
             eeprom_update_dword(PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  pay_hk_auto_data_col.period);
             break;
-        case CMD_BLOCK_PAY_OPT:
+        case CMD_PAY_OPT:
             pay_opt_auto_data_col.period = current_cmd_arg2;
             eeprom_update_dword(PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, pay_opt_auto_data_col.period);
             break;
@@ -455,7 +456,7 @@ void auto_data_col_period_fn(void) {
     finish_current_cmd(true);
 }
 
-void auto_data_col_resync_fn(void) {
+void resync_auto_data_col_fn(void) {
     can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         eps_hk_auto_data_col.count = 0;
@@ -471,7 +472,7 @@ void auto_data_col_resync_fn(void) {
     finish_current_cmd(true);
 }
 
-void pay_act_motors_fn(void) {
+void act_pay_motors_fn(void) {
     can_countdown = 30;
     // TODO - temp low-power
     switch (current_cmd_arg1) {
@@ -492,7 +493,7 @@ void pay_act_motors_fn(void) {
 void reset_subsys_fn(void) {
     can_countdown = 30;
 
-    if (current_cmd_arg1 == CMD_SUBSYS_OBC) {
+    if (current_cmd_arg1 == CMD_OBC) {
         reset_self_mcu(UPTIME_RESTART_REASON_RESET_CMD);
         // Program should stop here and restart from the beginning
 
@@ -504,7 +505,7 @@ void reset_subsys_fn(void) {
     }
     // PAY/EPS will not respond so don't expect a CAN message back
     // Just finish the current command
-    else if (current_cmd_arg1 == CMD_SUBSYS_EPS) {
+    else if (current_cmd_arg1 == CMD_EPS) {
         enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_RESET, 0);
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -513,7 +514,7 @@ void reset_subsys_fn(void) {
         }
         finish_current_cmd(true);
     }
-    else if (current_cmd_arg1 == CMD_SUBSYS_PAY) {
+    else if (current_cmd_arg1 == CMD_PAY) {
         enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_RESET, 0);
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -527,13 +528,13 @@ void reset_subsys_fn(void) {
     }
 }
 
-void eps_can_fn(void) {
+void send_eps_can_msg_fn(void) {
     can_countdown = 30;
     enqueue_eps_tx_msg(current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
 }
 
-void pay_can_fn(void) {
+void send_pay_can_msg_fn(void) {
     can_countdown = 30;
     enqueue_pay_tx_msg(current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
@@ -564,13 +565,13 @@ void get_cur_block_num_fn(void) {
 
     uint32_t block_num = 0;
     switch (current_cmd_arg1) {
-        case CMD_BLOCK_EPS_HK:
+        case CMD_EPS_HK:
             block_num = eps_hk_mem_section.curr_block;
             break;
-        case CMD_BLOCK_PAY_HK:
+        case CMD_PAY_HK:
             block_num = pay_hk_mem_section.curr_block;
             break;
-        case CMD_BLOCK_PAY_OPT:
+        case CMD_PAY_OPT:
             block_num = pay_opt_mem_section.curr_block;
             break;
         default:
@@ -593,13 +594,13 @@ void set_cur_block_num_fn(void) {
     can_countdown = 30;
 
     switch (current_cmd_arg1) {
-        case CMD_BLOCK_EPS_HK:
+        case CMD_EPS_HK:
             eps_hk_mem_section.curr_block = current_cmd_arg2;
             break;
-        case CMD_BLOCK_PAY_HK:
+        case CMD_PAY_HK:
             pay_hk_mem_section.curr_block = current_cmd_arg2;
             break;
-        case CMD_BLOCK_PAY_OPT:
+        case CMD_PAY_OPT:
             pay_opt_mem_section.curr_block = current_cmd_arg2;
             break;
         default:
@@ -618,13 +619,13 @@ void set_mem_sec_start_addr_fn(void) {
     can_countdown = 30;
 
     switch (current_cmd_arg1) {
-        case CMD_BLOCK_EPS_HK:
+        case CMD_EPS_HK:
             eps_hk_mem_section.start_addr = current_cmd_arg2;
             break;
-        case CMD_BLOCK_PAY_HK:
+        case CMD_PAY_HK:
             pay_hk_mem_section.start_addr = current_cmd_arg2;
             break;
-        case CMD_BLOCK_PAY_OPT:
+        case CMD_PAY_OPT:
             pay_opt_mem_section.start_addr = current_cmd_arg2;
             break;
         default:
@@ -643,13 +644,13 @@ void set_mem_sec_end_addr_fn(void) {
     can_countdown = 30;
 
     switch (current_cmd_arg1) {
-        case CMD_BLOCK_EPS_HK:
+        case CMD_EPS_HK:
             eps_hk_mem_section.end_addr = current_cmd_arg2;
             break;
-        case CMD_BLOCK_PAY_HK:
+        case CMD_PAY_HK:
             pay_hk_mem_section.end_addr = current_cmd_arg2;
             break;
-        case CMD_BLOCK_PAY_OPT:
+        case CMD_PAY_OPT:
             pay_opt_mem_section.end_addr = current_cmd_arg2;
             break;
         default:

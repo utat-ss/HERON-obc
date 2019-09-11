@@ -31,7 +31,7 @@ void handle_rx_msg(void) {
         ((uint32_t) msg[7]);
 
     //General CAN command-Send back data
-    if ((current_cmd == &eps_can_cmd) || (current_cmd == &pay_can_cmd)) {
+    if ((current_cmd == &send_eps_can_msg_cmd) || (current_cmd == &send_pay_can_msg_cmd)) {
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             start_trans_tx_dec_msg();
             for (uint8_t i = 0; i < 8; i++) {
@@ -78,8 +78,8 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
 
     // If we have received all the fields
     if ((field_num == CAN_EPS_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &col_block_cmd) &&
-        (current_cmd_arg1 == CMD_BLOCK_EPS_HK)) {
+        (current_cmd == &col_data_block_cmd) &&
+        (current_cmd_arg1 == CMD_EPS_HK)) {
 
         // Increment the current block and then write to the section
         write_mem_data_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
@@ -106,8 +106,8 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
 
     // If we have received all the fields
     if ((field_num == CAN_PAY_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &col_block_cmd) &&
-        (current_cmd_arg1 == CMD_BLOCK_PAY_HK)) {
+        (current_cmd == &col_data_block_cmd) &&
+        (current_cmd_arg1 == CMD_PAY_HK)) {
 
         // Increment the current block and then write to the section
         write_mem_data_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
@@ -133,8 +133,8 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
 
     // If we have received all the fields
     if ((field_num == CAN_PAY_OPT_FIELD_COUNT - 1) &&
-        (current_cmd == &col_block_cmd) &&
-        (current_cmd_arg1 == CMD_BLOCK_PAY_OPT)) {
+        (current_cmd == &col_data_block_cmd) &&
+        (current_cmd_arg1 == CMD_PAY_OPT)) {
 
         // Increment the current block and then write to the section
         write_mem_data_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
@@ -149,7 +149,7 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
 void handle_pay_ctrl(uint8_t field_num) {
     if ((field_num == CAN_PAY_CTRL_ACT_UP ||
         field_num == CAN_PAY_CTRL_ACT_DOWN) &&
-        current_cmd == &pay_act_motors_cmd) {
+        current_cmd == &act_pay_motors_cmd) {
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             start_trans_tx_dec_msg();

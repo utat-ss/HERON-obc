@@ -88,7 +88,7 @@ uart_cmd_t all_cmds[] = {
     },
     {
         .description = "Get restart and uptime",
-        .cmd = &get_subsys_status_cmd,
+        .cmd = &read_rec_status_info_cmd,
         .arg1 = 0,
         .arg2 = 0,
         .bypass_trans = false
@@ -116,35 +116,35 @@ uart_cmd_t all_cmds[] = {
     },
     {
         .description = "Request EPS HK",
-        .cmd = &col_block_cmd,
-        .arg1 = CMD_BLOCK_EPS_HK,
+        .cmd = &col_data_block_cmd,
+        .arg1 = CMD_EPS_HK,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Request PAY HK",
-        .cmd = &col_block_cmd,
-        .arg1 = CMD_BLOCK_PAY_HK,
+        .cmd = &col_data_block_cmd,
+        .arg1 = CMD_PAY_HK,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Request PAY OPT",
-        .cmd = &col_block_cmd,
-        .arg1 = CMD_BLOCK_PAY_OPT,
+        .cmd = &col_data_block_cmd,
+        .arg1 = CMD_PAY_OPT,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Actuate motors up",
-        .cmd = &pay_act_motors_cmd,
+        .cmd = &act_pay_motors_cmd,
         .arg1 = CAN_PAY_CTRL_ACT_UP,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Actuate motors down",
-        .cmd = &pay_act_motors_cmd,
+        .cmd = &act_pay_motors_cmd,
         .arg1 = CAN_PAY_CTRL_ACT_DOWN,
         .arg2 = 0,
         .bypass_trans = false
@@ -442,11 +442,11 @@ void clear_local_data_fn(void) {
 
 void read_all_mem_blocks_to_local_fn(void) {
     // TODO
-    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_EPS_HK,
+    enqueue_cmd(&read_mem_block_cmd, CMD_EPS_HK,
         eps_hk_mem_section.curr_block - 1);
-    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_PAY_HK,
+    enqueue_cmd(&read_mem_block_cmd, CMD_PAY_HK,
         pay_hk_mem_section.curr_block - 1);
-    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_PAY_OPT,
+    enqueue_cmd(&read_mem_block_cmd, CMD_PAY_OPT,
         pay_opt_mem_section.curr_block - 1);
 
     finish_current_cmd(true);

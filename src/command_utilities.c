@@ -138,7 +138,7 @@ void finish_trans_tx_dec_msg(void) {
 
 cmd_t* trans_msg_type_to_cmd(uint8_t msg_type) {
     for (uint8_t i = 0; i < ALL_CMDS_LEN; i++) {
-        if (all_cmds_list[i]->num == msg_type) {
+        if (all_cmds_list[i]->opcode == msg_type) {
             return all_cmds_list[i];
         }
     }
@@ -147,7 +147,7 @@ cmd_t* trans_msg_type_to_cmd(uint8_t msg_type) {
 }
 
 uint8_t trans_cmd_to_msg_type(cmd_t* cmd) {
-    return cmd->num;
+    return cmd->opcode;
 }
 
 
@@ -330,7 +330,7 @@ void auto_data_col_timer_cb(void) {
         if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
             print("Auto collecting EPS_HK\n");
             eps_hk_auto_data_col.count = 0;
-            enqueue_cmd(&col_block_cmd, CMD_BLOCK_EPS_HK, 0);
+            enqueue_cmd(&col_data_block_cmd, CMD_EPS_HK, 0);
         }
     }
 
@@ -340,7 +340,7 @@ void auto_data_col_timer_cb(void) {
         if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
             print("Auto collecting PAY_HK\n");
             pay_hk_auto_data_col.count = 0;
-            enqueue_cmd(&col_block_cmd, CMD_BLOCK_PAY_HK, 0);
+            enqueue_cmd(&col_data_block_cmd, CMD_PAY_HK, 0);
         }
     }
 
@@ -350,7 +350,7 @@ void auto_data_col_timer_cb(void) {
         if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
             print("Auto collecting PAY_OPT\n");
             pay_opt_auto_data_col.count = 0;
-            enqueue_cmd(&col_block_cmd, CMD_BLOCK_PAY_OPT, 0);
+            enqueue_cmd(&col_data_block_cmd, CMD_PAY_OPT, 0);
         }
     }
 }
