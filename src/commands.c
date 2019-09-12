@@ -367,7 +367,23 @@ void erase_obc_eeprom_fn(void) {
     finish_current_cmd(true);
 }
 
-void read_obc_ram_byte_fn(void) {}
+void read_obc_ram_byte_fn(void) {
+    can_countdown = 30;
+
+    // Need to represent address as uint8_t* to read RAM
+    // Must first cast to uint16_t or else we get warning: cast to pointer
+    // from integer of different size -Wint-to-pointer-cast]
+    uint8_t* pointer = (uint8_t*) ((uint16_t) current_cmd_arg2);
+    uint8_t data = *pointer;
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg(data);
+        finish_trans_tx_dec_msg();
+    }
+
+    finish_current_cmd(true);
+}
 
 void send_eps_can_msg_fn(void) {
     can_countdown = 30;
@@ -437,33 +453,60 @@ void reset_subsys_fn(void) {
     }
 }
 
-void set_indef_lpm_enable_fn(void) {}
-
-void read_rec_status_info_fn(void) {
+// TODO - should only send TX packet after receiving both responses
+void set_indef_lpm_enable_fn(void) {
     can_countdown = 30;
-    // TODO
+
+    enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM);
+    enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
-        append_to_trans_tx_dec_msg((restart_count >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((restart_count >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((restart_count >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(restart_count & 0xFF);
-        append_to_trans_tx_dec_msg(restart_date.yy);
-        append_to_trans_tx_dec_msg(restart_date.mm);
-        append_to_trans_tx_dec_msg(restart_date.dd);
-        append_to_trans_tx_dec_msg(restart_time.hh);
-        append_to_trans_tx_dec_msg(restart_time.mm);
-        append_to_trans_tx_dec_msg(restart_time.ss);
-        append_to_trans_tx_dec_msg((uptime_s >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((uptime_s >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((uptime_s >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(uptime_s & 0xFF);
         finish_trans_tx_dec_msg();
     }
 
     finish_current_cmd(true);
+}
 
+void read_rec_status_info_fn(void) {
+    can_countdown = 30;
+    
+    // TODO - OBC_HK
+
+    // uint32_t obc_block = obc_hk_mem_section.curr_block;
+    // obc_block = (obc_block > 0) ? (obc_block - 1) : obc_block;
+    uint32_t eps_block = eps_hk_mem_section.curr_block;
+    eps_block = (eps_block > 0) ? (eps_block - 1) : eps_block;
+    uint32_t pay_block = pay_hk_mem_section.curr_block;
+    pay_block = (pay_block > 0) ? (pay_block - 1) : pay_block;
+
+    read_mem_data_block(&eps_hk_mem_section, eps_block, &eps_hk_header, eps_hk_fields);
+    read_mem_data_block(&pay_hk_mem_section, pay_block, &pay_hk_header, pay_hk_fields);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+
+        // TODO
+        for (uint8_t i = 0; i <= 4; i++) {
+            append_to_trans_tx_dec_msg(0x00);
+            append_to_trans_tx_dec_msg(0x00);
+            append_to_trans_tx_dec_msg(0x00);
+        }
+        for (uint8_t i = CAN_EPS_HK_UPTIME; i <= CAN_EPS_HK_RESTART_REASON; i++) {
+            append_to_trans_tx_dec_msg((eps_hk_fields[i] >> 16) & 0xFF);
+            append_to_trans_tx_dec_msg((eps_hk_fields[i] >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg(eps_hk_fields[i] & 0xFF);
+        }
+        for (uint8_t i = CAN_PAY_HK_UPTIME; i <= CAN_PAY_HK_RESTART_REASON; i++) {
+            append_to_trans_tx_dec_msg((pay_hk_fields[i] >> 16) & 0xFF);
+            append_to_trans_tx_dec_msg((pay_hk_fields[i] >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg(pay_hk_fields[i] & 0xFF);
+        }
+        
+        finish_trans_tx_dec_msg();
+    }
+
+    finish_current_cmd(true);
 }
 
 void read_data_block_fn(void) {
