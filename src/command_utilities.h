@@ -36,12 +36,12 @@ typedef struct {
 #define CMD_PAY_OPT   4
 
 // Command types
-#define CMD_PING                        0x00
+#define CMD_PING_OBC                    0x00
 #define CMD_GET_RTC                     0x01
 #define CMD_SET_RTC                     0x02
-#define CMD_READ_EEPROM                 0x03
-#define CMD_ERASE_EEPROM                0x04
-#define CMD_READ_RAM_BYTE               0x05
+#define CMD_READ_OBC_EEPROM             0x03
+#define CMD_ERASE_OBC_EEPROM            0x04
+#define CMD_READ_OBC_RAM_BYTE           0x05
 #define CMD_SEND_EPS_CAN_MSG            0x06
 #define CMD_SEND_PAY_CAN_MSG            0x07
 #define CMD_ACT_PAY_MOTORS              0x08
@@ -53,17 +53,22 @@ typedef struct {
 #define CMD_READ_PRIM_CMD_BLOCKS        0x13
 #define CMD_READ_SEC_CMD_BLOCKS         0x14
 #define CMD_READ_RAW_MEM_BYTES          0x15
-#define CMD_SET_MEM_SEC_START_ADDR      0x16
-#define CMD_SET_MEM_SEC_END_ADDR        0x17
-#define CMD_ERASE_MEM_PHY_SECTOR        0x18
-#define CMD_ERASE_MEM_PHY_BLOCK         0x19
-#define CMD_ERASE_ALL_MEM               0x1A
+#define CMD_ERASE_MEM_PHY_SECTOR        0x16
+#define CMD_ERASE_MEM_PHY_BLOCK         0x17
+#define CMD_ERASE_ALL_MEM               0x18
 #define CMD_COL_DATA_BLOCK              0x20
 #define CMD_GET_CUR_BLOCK_NUM           0x21
 #define CMD_SET_CUR_BLOCK_NUM           0x22
-#define CMD_SET_AUTO_DATA_COL_ENABLE    0x23
-#define CMD_SET_AUTO_DATA_COL_PERIOD    0x24
-#define CMD_RESYNC_AUTO_DATA_COL        0x25
+#define CMD_GET_MEM_SEC_START_ADDR      0x23
+#define CMD_SET_MEM_SEC_START_ADDR      0x24
+#define CMD_GET_MEM_SEC_END_ADDR        0x25
+#define CMD_SET_MEM_SEC_END_ADDR        0x26
+#define CMD_GET_AUTO_DATA_COL_ENABLE    0x27
+#define CMD_SET_AUTO_DATA_COL_ENABLE    0x28
+#define CMD_GET_AUTO_DATA_COL_PERIOD    0x29
+#define CMD_SET_AUTO_DATA_COL_PERIOD    0x2A
+#define CMD_GET_AUTO_DATA_COL_TIMERS    0x2B
+#define CMD_RESYNC_AUTO_DATA_COL_TIMERS 0x2C
 
 // Max memory read
 #define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 13)

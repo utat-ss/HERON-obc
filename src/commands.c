@@ -2,7 +2,7 @@
 
 
 void nop_fn(void);
-void ping_fn(void);
+void ping_obc_fn(void);
 void read_rec_status_info_fn(void);
 void get_rtc_fn(void);
 void set_rtc_fn(void);
@@ -13,17 +13,17 @@ void read_rec_loc_data_block_fn(void);
 void read_data_block_fn(void);
 void set_auto_data_col_enable_fn(void);
 void set_auto_data_col_period_fn(void);
-void resync_auto_data_col_fn(void);
+void resync_auto_data_col_timers_fn(void);
 void act_pay_motors_fn(void);
 void reset_subsys_fn(void);
 void send_eps_can_msg_fn(void);
 void send_pay_can_msg_fn(void);
-void read_eeprom_fn(void);
+void read_obc_eeprom_fn(void);
 void get_cur_block_num_fn(void);
 void set_cur_block_num_fn(void);
 void set_mem_sec_start_addr_fn(void);
 void set_mem_sec_end_addr_fn(void);
-void erase_eeprom_fn(void);
+void erase_obc_eeprom_fn(void);
 void erase_all_mem_fn(void);
 void erase_mem_phy_block_fn(void);
 
@@ -37,9 +37,10 @@ cmd_t nop_cmd = {
     .opcode = 0xFF,
     .pwd_protected = false
 };
-cmd_t ping_cmd = {
-    .fn = ping_fn,
-    .opcode = CMD_PING,
+
+cmd_t ping_obc_cmd = {
+    .fn = ping_obc_fn,
+    .opcode = CMD_PING_OBC,
     .pwd_protected = false
 };
 cmd_t read_rec_status_info_cmd = {
@@ -92,9 +93,9 @@ cmd_t set_auto_data_col_period_cmd = {
     .opcode = CMD_SET_AUTO_DATA_COL_PERIOD,
     .pwd_protected = true
 };
-cmd_t resync_auto_data_col_cmd = {
-    .fn = resync_auto_data_col_fn,
-    .opcode = CMD_RESYNC_AUTO_DATA_COL,
+cmd_t resync_auto_data_col_timers_cmd = {
+    .fn = resync_auto_data_col_timers_fn,
+    .opcode = CMD_RESYNC_AUTO_DATA_COL_TIMERS,
     .pwd_protected = true
 };
 cmd_t act_pay_motors_cmd = {
@@ -117,9 +118,9 @@ cmd_t send_pay_can_msg_cmd = {
     .opcode = CMD_SEND_PAY_CAN_MSG,
     .pwd_protected = true
 };
-cmd_t read_eeprom_cmd = {
-    .fn = read_eeprom_fn,
-    .opcode = CMD_READ_EEPROM,
+cmd_t read_obc_eeprom_cmd = {
+    .fn = read_obc_eeprom_fn,
+    .opcode = CMD_READ_OBC_EEPROM,
     .pwd_protected = true
 };
 cmd_t get_cur_block_num_cmd = {
@@ -142,9 +143,9 @@ cmd_t set_mem_sec_end_addr_cmd = {
     .opcode = CMD_SET_MEM_SEC_END_ADDR,
     .pwd_protected = true
 };
-cmd_t erase_eeprom_cmd = {
-    .fn = erase_eeprom_fn,
-    .opcode = CMD_ERASE_EEPROM,
+cmd_t erase_obc_eeprom_cmd = {
+    .fn = erase_obc_eeprom_fn,
+    .opcode = CMD_ERASE_OBC_EEPROM,
     .pwd_protected = true
 };
 cmd_t erase_all_mem_cmd = {
@@ -166,7 +167,7 @@ cmd_t erase_mem_phy_block_cmd = {
 // If the ALL_CMDS_LEN is too big, no warnings
 // NOTE: MAKE SURE TO UPDATE ALL_CMDS_LEN WHEN ADDING/DELETING
 cmd_t* all_cmds_list[ALL_CMDS_LEN] = {
-    &ping_cmd,
+    &ping_obc_cmd,
     &read_rec_status_info_cmd,
     &get_rtc_cmd,
     &set_rtc_cmd,
@@ -177,17 +178,17 @@ cmd_t* all_cmds_list[ALL_CMDS_LEN] = {
     &read_data_block_cmd,
     &set_auto_data_col_enable_cmd,
     &set_auto_data_col_period_cmd,
-    &resync_auto_data_col_cmd,
+    &resync_auto_data_col_timers_cmd,
     &act_pay_motors_cmd,
     &reset_subsys_cmd,
     &send_eps_can_msg_cmd,
     &send_pay_can_msg_cmd,
-    &read_eeprom_cmd,
+    &read_obc_eeprom_cmd,
     &get_cur_block_num_cmd,
     &set_cur_block_num_cmd,
     &set_mem_sec_start_addr_cmd,
     &set_mem_sec_end_addr_cmd,
-    &erase_eeprom_cmd,
+    &erase_obc_eeprom_cmd,
     &erase_all_mem_cmd,
     &erase_mem_phy_block_cmd
 };
@@ -200,7 +201,7 @@ void nop_fn(void) {
     // will start a newly requested command if nop is the current command
 }
 
-void ping_fn(void) {
+void ping_obc_fn(void) {
     can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
@@ -456,7 +457,7 @@ void set_auto_data_col_period_fn(void) {
     finish_current_cmd(true);
 }
 
-void resync_auto_data_col_fn(void) {
+void resync_auto_data_col_timers_fn(void) {
     can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         eps_hk_auto_data_col.count = 0;
@@ -540,7 +541,7 @@ void send_pay_can_msg_fn(void) {
     // Will continue from CAN callbacks
 }
 
-void read_eeprom_fn(void) {
+void read_obc_eeprom_fn(void) {
     can_countdown = 30;
 
     // Need to represent address as uint32_t* for EEPROM function
@@ -665,7 +666,7 @@ void set_mem_sec_end_addr_fn(void) {
     finish_current_cmd(true);
 }
 
-void erase_eeprom_fn(void) {
+void erase_obc_eeprom_fn(void) {
     can_countdown = 30;
 
     // Need to represent address as uint32_t* for EEPROM function

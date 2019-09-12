@@ -81,7 +81,7 @@ cmd_t read_all_mem_blocks_to_local_cmd = {
 uart_cmd_t all_cmds[] = {
     {
         .description = "Ping OBC",
-        .cmd = &ping_cmd,
+        .cmd = &ping_obc_cmd,
         .arg1 = 0,
         .arg2 = 0,
         .bypass_trans = false
