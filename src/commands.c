@@ -8,14 +8,18 @@ void get_rtc_fn(void);
 void set_rtc_fn(void);
 void read_obc_eeprom_fn(void);
 void erase_obc_eeprom_fn(void);
+void read_obc_ram_byte_fn(void);
 void send_eps_can_msg_fn(void);
 void send_pay_can_msg_fn(void);
 void act_pay_motors_fn(void);
 void reset_subsys_fn(void);
+void set_indef_lpm_enable_fn(void);
 
 void read_rec_status_info_fn(void);
 void read_data_block_fn(void);
 void read_rec_loc_data_block_fn(void);
+void read_prim_cmd_blocks_fn(void);
+void read_sec_cmd_blocks_fn(void);
 void read_raw_mem_bytes_fn(void);
 void erase_mem_phy_sector_fn(void);
 void erase_mem_phy_block_fn(void);
@@ -24,10 +28,15 @@ void erase_all_mem_fn(void);
 void col_data_block_fn(void);
 void get_cur_block_num_fn(void);
 void set_cur_block_num_fn(void);
+void get_mem_sec_start_addr_fn(void);
 void set_mem_sec_start_addr_fn(void);
+void get_mem_sec_end_addr_fn(void);
 void set_mem_sec_end_addr_fn(void);
+void get_auto_data_col_enable_fn(void);
 void set_auto_data_col_enable_fn(void);
+void get_auto_data_col_period_fn(void);
 void set_auto_data_col_period_fn(void);
+void get_auto_data_col_timers_fn(void);
 void resync_auto_data_col_timers_fn(void);
 
 
@@ -69,6 +78,11 @@ cmd_t erase_obc_eeprom_cmd = {
     .opcode = CMD_ERASE_OBC_EEPROM,
     .pwd_protected = true
 };
+cmd_t read_obc_ram_byte_cmd = {
+    .fn = read_obc_ram_byte_fn,
+    .opcode = CMD_READ_OBC_RAM_BYTE,
+    .pwd_protected = true
+};
 cmd_t send_eps_can_msg_cmd = {
     .fn = send_eps_can_msg_fn,
     .opcode = CMD_SEND_EPS_CAN_MSG,
@@ -89,6 +103,11 @@ cmd_t reset_subsys_cmd = {
     .opcode = CMD_RESET_SUBSYS,
     .pwd_protected = true
 };
+cmd_t set_indef_lpm_enable_cmd = {
+    .fn = set_indef_lpm_enable_fn,
+    .opcode = CMD_SET_INDEF_LPM_ENABLE,
+    .pwd_protected = true
+};
 
 
 cmd_t read_rec_status_info_cmd = {
@@ -104,6 +123,16 @@ cmd_t read_data_block_cmd = {
 cmd_t read_rec_loc_data_block_cmd = {
     .fn = read_rec_loc_data_block_fn,
     .opcode = CMD_READ_REC_LOC_DATA_BLOCK,
+    .pwd_protected = false
+};
+cmd_t read_prim_cmd_blocks_cmd = {
+    .fn = read_prim_cmd_blocks_fn,
+    .opcode = CMD_READ_PRIM_CMD_BLOCKS,
+    .pwd_protected = false
+};
+cmd_t read_sec_cmd_blocks_cmd = {
+    .fn = read_sec_cmd_blocks_fn,
+    .opcode = CMD_READ_SEC_CMD_BLOCKS,
     .pwd_protected = false
 };
 cmd_t read_raw_mem_bytes_cmd = {
@@ -143,9 +172,19 @@ cmd_t set_cur_block_num_cmd = {
     .opcode = CMD_SET_CUR_BLOCK_NUM,
     .pwd_protected = true
 };
+cmd_t get_mem_sec_start_addr_cmd = {
+    .fn = get_mem_sec_start_addr_fn,
+    .opcode = CMD_GET_MEM_SEC_START_ADDR,
+    .pwd_protected = true
+};
 cmd_t set_mem_sec_start_addr_cmd = {
     .fn = set_mem_sec_start_addr_fn,
     .opcode = CMD_SET_MEM_SEC_START_ADDR,
+    .pwd_protected = true
+};
+cmd_t get_mem_sec_end_addr_cmd = {
+    .fn = get_mem_sec_end_addr_fn,
+    .opcode = CMD_GET_MEM_SEC_END_ADDR,
     .pwd_protected = true
 };
 cmd_t set_mem_sec_end_addr_cmd = {
@@ -153,15 +192,30 @@ cmd_t set_mem_sec_end_addr_cmd = {
     .opcode = CMD_SET_MEM_SEC_END_ADDR,
     .pwd_protected = true
 };
+cmd_t get_auto_data_col_enable_cmd = {
+    .fn = get_auto_data_col_enable_fn,
+    .opcode = CMD_GET_AUTO_DATA_COL_ENABLE,
+    .pwd_protected = false
+};
 cmd_t set_auto_data_col_enable_cmd = {
     .fn = set_auto_data_col_enable_fn,
     .opcode = CMD_SET_AUTO_DATA_COL_ENABLE,
     .pwd_protected = true
 };
+cmd_t get_auto_data_col_period_cmd = {
+    .fn = get_auto_data_col_period_fn,
+    .opcode = CMD_GET_AUTO_DATA_COL_PERIOD,
+    .pwd_protected = false
+};
 cmd_t set_auto_data_col_period_cmd = {
     .fn = set_auto_data_col_period_fn,
     .opcode = CMD_SET_AUTO_DATA_COL_PERIOD,
     .pwd_protected = true
+};
+cmd_t get_auto_data_col_timers_cmd = {
+    .fn = get_auto_data_col_timers_fn,
+    .opcode = CMD_GET_AUTO_DATA_COL_TIMERS,
+    .pwd_protected = false
 };
 cmd_t resync_auto_data_col_timers_cmd = {
     .fn = resync_auto_data_col_timers_fn,
@@ -179,19 +233,24 @@ cmd_t resync_auto_data_col_timers_cmd = {
 // If the ALL_CMDS_LEN is too small, gives warning "excess elements in array initializer"
 // If the ALL_CMDS_LEN is too big, no warnings
 // NOTE: MAKE SURE TO UPDATE ALL_CMDS_LEN WHEN ADDING/DELETING
+// TODO - refactor to use sizeof
 cmd_t* all_cmds_list[ALL_CMDS_LEN] = {
     &ping_obc_cmd,
     &get_rtc_cmd,
     &set_rtc_cmd,
     &read_obc_eeprom_cmd,
     &erase_obc_eeprom_cmd,
+    &read_obc_ram_byte_cmd,
     &send_eps_can_msg_cmd,
     &send_pay_can_msg_cmd,
     &act_pay_motors_cmd,
     &reset_subsys_cmd,
+    &set_indef_lpm_enable_cmd,
     &read_rec_status_info_cmd,
     &read_data_block_cmd,
     &read_rec_loc_data_block_cmd,
+    &read_prim_cmd_blocks_cmd,
+    &read_sec_cmd_blocks_cmd,
     &read_raw_mem_bytes_cmd,
     &erase_mem_phy_sector_cmd,
     &erase_mem_phy_block_cmd,
@@ -199,10 +258,15 @@ cmd_t* all_cmds_list[ALL_CMDS_LEN] = {
     &col_data_block_cmd,
     &get_cur_block_num_cmd,
     &set_cur_block_num_cmd,
+    &get_mem_sec_start_addr_cmd,
     &set_mem_sec_start_addr_cmd,
+    &get_mem_sec_end_addr_cmd,
     &set_mem_sec_end_addr_cmd,
+    &get_auto_data_col_enable_cmd,
     &set_auto_data_col_enable_cmd,
+    &get_auto_data_col_period_cmd,
     &set_auto_data_col_period_cmd,
+    &get_auto_data_col_timers_cmd,
     &resync_auto_data_col_timers_cmd,
 };
 
@@ -303,6 +367,8 @@ void erase_obc_eeprom_fn(void) {
     finish_current_cmd(true);
 }
 
+void read_obc_ram_byte_fn(void) {}
+
 void send_eps_can_msg_fn(void) {
     can_countdown = 30;
     enqueue_eps_tx_msg(current_cmd_arg1, current_cmd_arg2);
@@ -370,6 +436,8 @@ void reset_subsys_fn(void) {
         finish_current_cmd(false);
     }
 }
+
+void set_indef_lpm_enable_fn(void) {}
 
 void read_rec_status_info_fn(void) {
     can_countdown = 30;
@@ -455,6 +523,10 @@ void read_rec_loc_data_block_fn(void) {
 
     finish_current_cmd(true);
 }
+
+void read_prim_cmd_blocks_fn(void) {}
+
+void read_sec_cmd_blocks_fn(void) {}
 
 void read_raw_mem_bytes_fn(void) {
     can_countdown = 30;
@@ -600,6 +672,8 @@ void set_cur_block_num_fn(void) {
     finish_current_cmd(true);
 }
 
+void get_mem_sec_start_addr_fn(void) {}
+
 void set_mem_sec_start_addr_fn(void) {
     can_countdown = 30;
 
@@ -625,6 +699,8 @@ void set_mem_sec_start_addr_fn(void) {
     finish_current_cmd(true);
 }
 
+void get_mem_sec_end_addr_fn(void) {}
+
 void set_mem_sec_end_addr_fn(void) {
     can_countdown = 30;
 
@@ -649,6 +725,8 @@ void set_mem_sec_end_addr_fn(void) {
     
     finish_current_cmd(true);
 }
+
+void get_auto_data_col_enable_fn(void) {}
 
 void set_auto_data_col_enable_fn(void) {
     can_countdown = 30;
@@ -678,6 +756,8 @@ void set_auto_data_col_enable_fn(void) {
     finish_current_cmd(true);
 }
 
+void get_auto_data_col_period_fn(void) {}
+
 void set_auto_data_col_period_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
@@ -705,6 +785,8 @@ void set_auto_data_col_period_fn(void) {
 
     finish_current_cmd(true);
 }
+
+void get_auto_data_col_timers_fn(void) {}
 
 void resync_auto_data_col_timers_fn(void) {
     can_countdown = 30;
