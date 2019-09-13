@@ -399,18 +399,14 @@ void send_pay_can_msg_fn(void) {
 
 void act_pay_motors_fn(void) {
     can_countdown = 30;
-    // TODO - temp low-power
-    switch (current_cmd_arg1) {
-        case 1:
-            enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_ACT_UP, 0);
-            break;
-        case 2:
-            enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_ACT_DOWN, 0);
-            break;
-        default:
-            finish_current_cmd(false);
-            break;
-    }
+
+    // Enqueue temporary low-power mode CAN commands
+    // These will both be sent before the actuate motors CAN command
+    enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_START_TEMP_LPM, 0);
+    enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_START_TEMP_LPM, 0);
+
+    // TODO - what if not a valid motor field number?
+    enqueue_pay_ctrl_tx_msg(current_cmd_arg1, 0);
 
     // Continues from CAN callbacks
 }
@@ -457,8 +453,8 @@ void reset_subsys_fn(void) {
 void set_indef_lpm_enable_fn(void) {
     can_countdown = 30;
 
-    enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM);
-    enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM);
+    enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
+    enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
@@ -511,35 +507,47 @@ void read_rec_status_info_fn(void) {
 
 void read_data_block_fn(void) {
     can_countdown = 30;
-    switch (current_cmd_arg1) {
-        case CMD_EPS_HK:
-            read_mem_data_block(&eps_hk_mem_section, current_cmd_arg2,
-                &eps_hk_header, eps_hk_fields);
-            break;
 
-        case CMD_PAY_HK:
-            read_mem_data_block(&pay_hk_mem_section, current_cmd_arg2,
-                &pay_hk_header, pay_hk_fields);
-            break;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
 
-        case CMD_PAY_OPT:
-            read_mem_data_block(&pay_opt_mem_section, current_cmd_arg2,
-                &pay_opt_header, pay_opt_fields);
-            break;
+        switch (current_cmd_arg1) {
+            case CMD_EPS_HK:
+                read_mem_data_block(&eps_hk_mem_section, current_cmd_arg2,
+                    &eps_hk_header, eps_hk_fields);
+                append_header_to_tx_msg(&eps_hk_header);
+                append_fields_to_tx_msg(eps_hk_fields, CAN_EPS_HK_FIELD_COUNT);
+                break;
 
-        default:
-            finish_current_cmd(false);
-            return;
+            case CMD_PAY_HK:
+                read_mem_data_block(&pay_hk_mem_section, current_cmd_arg2,
+                    &pay_hk_header, pay_hk_fields);
+                append_header_to_tx_msg(&pay_hk_header);
+                append_fields_to_tx_msg(pay_hk_fields, CAN_PAY_HK_FIELD_COUNT);
+                break;
+
+            case CMD_PAY_OPT:
+                read_mem_data_block(&pay_opt_mem_section, current_cmd_arg2,
+                    &pay_opt_header, pay_opt_fields);
+                append_header_to_tx_msg(&pay_opt_header);
+                append_fields_to_tx_msg(pay_opt_fields, CAN_PAY_OPT_FIELD_COUNT);
+                break;
+
+            default:
+                finish_current_cmd(false);
+                // TODO - will it properly terminate the trans msg?
+                return;
+        }
+
+        finish_trans_tx_dec_msg();
     }
 
-    // TODO - will this give the correct behavaiour? maybe refactor both with common functionality?
-    read_rec_loc_data_block_fn();
-
-    // TODO - finish_current_cmd(true)?
+    finish_current_cmd(true);
 }
 
 void read_rec_loc_data_block_fn(void) {
     can_countdown = 30;
+
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
 
@@ -567,9 +575,13 @@ void read_rec_loc_data_block_fn(void) {
     finish_current_cmd(true);
 }
 
-void read_prim_cmd_blocks_fn(void) {}
+void read_prim_cmd_blocks_fn(void) {
+    // TODO
+}
 
-void read_sec_cmd_blocks_fn(void) {}
+void read_sec_cmd_blocks_fn(void) {
+    // TODO
+}
 
 void read_raw_mem_bytes_fn(void) {
     can_countdown = 30;
@@ -634,7 +646,7 @@ void erase_all_mem_fn(void) {
 }
 
 // Starts requesting block data (field 0)
-// TODO - set error byte to error by default at beginning, clear error after receiving last field of data
+// TODO - don't write success byte later, write at end in CAN RX processing
 void col_data_block_fn(void) {
     can_countdown = 30;
     switch (current_cmd_arg1) {
@@ -690,6 +702,8 @@ void get_cur_block_num_fn(void) {
     finish_current_cmd(true);
 }
 
+// TODO - OBC needs to erase memory sectors automatically when resetting current
+// block numbers on its own or writing to a previously written address
 void set_cur_block_num_fn(void) {
     can_countdown = 30;
 
@@ -715,7 +729,35 @@ void set_cur_block_num_fn(void) {
     finish_current_cmd(true);
 }
 
-void get_mem_sec_start_addr_fn(void) {}
+void get_mem_sec_start_addr_fn(void) {
+    can_countdown = 30;
+
+    uint32_t start_addr = 0;
+    switch (current_cmd_arg1) {
+        case CMD_EPS_HK:
+            start_addr = eps_hk_mem_section.start_addr;
+            break;
+        case CMD_PAY_HK:
+            start_addr = pay_hk_mem_section.start_addr;
+            break;
+        case CMD_PAY_OPT:
+            start_addr = pay_opt_mem_section.start_addr;
+            break;
+        default:
+            break;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg((start_addr >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((start_addr >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((start_addr >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(start_addr & 0xFF);
+        finish_trans_tx_dec_msg();
+    }
+    
+    finish_current_cmd(true);
+}
 
 void set_mem_sec_start_addr_fn(void) {
     can_countdown = 30;
@@ -742,7 +784,35 @@ void set_mem_sec_start_addr_fn(void) {
     finish_current_cmd(true);
 }
 
-void get_mem_sec_end_addr_fn(void) {}
+void get_mem_sec_end_addr_fn(void) {
+    can_countdown = 30;
+
+    uint32_t end_addr = 0;
+    switch (current_cmd_arg1) {
+        case CMD_EPS_HK:
+            end_addr = eps_hk_mem_section.end_addr;
+            break;
+        case CMD_PAY_HK:
+            end_addr = pay_hk_mem_section.end_addr;
+            break;
+        case CMD_PAY_OPT:
+            end_addr = pay_opt_mem_section.end_addr;
+            break;
+        default:
+            break;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg((end_addr >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((end_addr >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((end_addr >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(end_addr & 0xFF);
+        finish_trans_tx_dec_msg();
+    }
+    
+    finish_current_cmd(true);
+}
 
 void set_mem_sec_end_addr_fn(void) {
     can_countdown = 30;
@@ -769,7 +839,32 @@ void set_mem_sec_end_addr_fn(void) {
     finish_current_cmd(true);
 }
 
-void get_auto_data_col_enable_fn(void) {}
+void get_auto_data_col_enable_fn(void) {
+    can_countdown = 30;
+
+    bool enabled = false;
+    switch (current_cmd_arg1) {
+        case CMD_EPS_HK:
+            enabled = eps_hk_auto_data_col.enabled;
+            break;
+        case CMD_PAY_HK:
+            enabled = pay_hk_auto_data_col.enabled;
+            break;
+        case CMD_PAY_OPT:
+            enabled = pay_opt_auto_data_col.enabled;
+            break;
+        default:
+            break;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg((uint8_t) enabled);
+        finish_trans_tx_dec_msg();
+    }
+    
+    finish_current_cmd(true);
+}
 
 void set_auto_data_col_enable_fn(void) {
     can_countdown = 30;
@@ -799,7 +894,35 @@ void set_auto_data_col_enable_fn(void) {
     finish_current_cmd(true);
 }
 
-void get_auto_data_col_period_fn(void) {}
+void get_auto_data_col_period_fn(void) {
+    can_countdown = 30;
+
+    uint32_t period = 0;
+    switch (current_cmd_arg1) {
+        case CMD_EPS_HK:
+            period = eps_hk_auto_data_col.period;
+            break;
+        case CMD_PAY_HK:
+            period = pay_hk_auto_data_col.period;
+            break;
+        case CMD_PAY_OPT:
+            period = pay_opt_auto_data_col.period;
+            break;
+        default:
+            break;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg((period >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((period >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((period >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(period & 0xFF);
+        finish_trans_tx_dec_msg();
+    }
+    
+    finish_current_cmd(true);
+}
 
 void set_auto_data_col_period_fn(void) {
     can_countdown = 30;
@@ -829,7 +952,28 @@ void set_auto_data_col_period_fn(void) {
     finish_current_cmd(true);
 }
 
-void get_auto_data_col_timers_fn(void) {}
+void get_auto_data_col_timers_fn(void) {
+    can_countdown = 30;
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg();
+        append_to_trans_tx_dec_msg((eps_hk_auto_data_col.count >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((eps_hk_auto_data_col.count >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((eps_hk_auto_data_col.count >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(eps_hk_auto_data_col.count & 0xFF);
+        append_to_trans_tx_dec_msg((pay_hk_auto_data_col.count >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((pay_hk_auto_data_col.count >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((pay_hk_auto_data_col.count >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(pay_hk_auto_data_col.count & 0xFF);
+        append_to_trans_tx_dec_msg((pay_opt_auto_data_col.count >> 24) & 0xFF);
+        append_to_trans_tx_dec_msg((pay_opt_auto_data_col.count >> 16) & 0xFF);
+        append_to_trans_tx_dec_msg((pay_opt_auto_data_col.count >> 8) & 0xFF);
+        append_to_trans_tx_dec_msg(pay_opt_auto_data_col.count & 0xFF);
+        finish_trans_tx_dec_msg();
+    }
+    
+    finish_current_cmd(true);
+}
 
 void resync_auto_data_col_timers_fn(void) {
     can_countdown = 30;
