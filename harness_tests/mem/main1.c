@@ -16,18 +16,13 @@
 #include <spi/spi.h>
 #include "../../src/mem.h"
 
-// NOTE: should change ERASE_SEED periodically
-#define ERASE_SEED              0x162FAF13
 #define ERASE_ADDR_COUNT        20
 #define DATA_LENGTH             5
-#define RANDOM_SEED             0x5729AB7D
-#define RANDOM_MAX_LEN          255
 #define ROLLOVER_ADDR_1         0x1FFFFC
 #define ROLLOVER_ADDR_2         0x3FFFFB
 #define NUM_ROLLOVER            2
 #define ROLLOVER_DATA           {0xDE, 0xAD, 0xBE, 0xEF, 0xBA, 0xF0, 0x0D, 0x12}
 #define ROLLOVER_DATA_LEN       8
-#define FIELD_TEST_RANDOM_SEED  0x4357D43A
 
 // Macros to compare structs without having to do it for each of the fields every time
 #define ASSERT_EQ_DATE(date1, date2) \
@@ -84,7 +79,6 @@ void erase_mem_test(void) {
 	erase_mem();
 	// take a random sample of the memory to see if erase works
 	// values should all be 0xff
-	srandom(ERASE_SEED);
 	uint32_t num_addrs = MEM_NUM_CHIPS * (1UL << MEM_CHIP_ADDR_WIDTH);
 
 	for(uint8_t i = 0; i < ERASE_ADDR_COUNT; i++){
@@ -169,7 +163,6 @@ void multiple_write_read_test_2(void) {
 void random_read_write_test(void) {
     erase_mem();
 
-	srandom(RANDOM_SEED);
 	uint32_t num_addrs = MEM_NUM_CHIPS * (1UL << MEM_CHIP_ADDR_WIDTH);
 	uint32_t addr = random() % num_addrs;
 
@@ -287,7 +280,6 @@ void mem_field_test_individual( mem_section_t* section) {
 }
 
 void mem_field_test(void) {
-	srandom(FIELD_TEST_RANDOM_SEED);
 	mem_field_test_individual(&eps_hk_mem_section);
 	mem_field_test_individual(&pay_hk_mem_section);
 	mem_field_test_individual(&pay_opt_mem_section);
@@ -557,7 +549,6 @@ void mem_sector_erase_test(void){
     uint8_t read[1] = {0};
 
     /* Generate random address by seeding and calling random */
-    srandom(ERASE_SEED);
     uint32_t address = random() % MEM_NUM_ADDRESSES;
     /* Write to location in sector and verify that write worked */
     write_mem_bytes(address, data, DATA_LENGTH);
@@ -580,8 +571,6 @@ void mem_block_erase_test(void){
     uint8_t data[DATA_LENGTH] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
     uint8_t read[1] = {0};
 
-    /* Generate random address by seeding and calling random */
-    srandom(ERASE_SEED);
     uint32_t address = random() % MEM_NUM_ADDRESSES;
 
     /* Write to location in block and verify that write worked */
