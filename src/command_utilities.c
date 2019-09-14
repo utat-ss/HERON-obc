@@ -36,6 +36,7 @@ mem_header_t pay_hk_header;
 uint32_t pay_hk_fields[CAN_PAY_HK_FIELD_COUNT] = { 0 };
 mem_header_t pay_opt_header;
 uint32_t pay_opt_fields[CAN_PAY_OPT_FIELD_COUNT] = { 0 };
+mem_header_t cmd_log_header;
 
 
 volatile auto_data_col_t obc_hk_auto_data_col = {
@@ -234,6 +235,9 @@ void dequeue_cmd(void) {
         current_cmd = (cmd_t*) cmd_ptr;
         current_cmd_arg1 = arg1;
         current_cmd_arg2 = arg2;
+        populate_header(&cmd_log_header, cmd_log_mem_section.curr_block, 0xFF);
+        write_mem_cmd_block(cmd_log_mem_section.curr_block, &cmd_log_header,
+            trans_cmd_to_msg_type((cmd_t*) current_cmd), current_cmd_arg1, current_cmd_arg2);
     }
 
     print("dequeue_cmd: cmd = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", current_cmd,
@@ -259,6 +263,7 @@ void finish_current_cmd(bool succeeded) {
         current_cmd_arg2 = 0;
         prev_cmd_succeeded = succeeded;
         can_countdown = 0;
+        write_mem_cmd_success(cmd_log_mem_section.curr_block);
     }
     print("Finished cmd\n");
 }

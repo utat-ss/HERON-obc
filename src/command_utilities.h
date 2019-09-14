@@ -120,6 +120,7 @@ extern mem_header_t pay_hk_header;
 extern uint32_t pay_hk_fields[];
 extern mem_header_t pay_opt_header;
 extern uint32_t pay_opt_fields[];
+extern mem_header_t cmd_log_header;
 
 extern volatile auto_data_col_t obc_hk_auto_data_col;
 extern volatile auto_data_col_t eps_hk_auto_data_col;

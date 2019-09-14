@@ -211,9 +211,9 @@ void read_mem_data_block(mem_section_t* section, uint32_t block_num,
 
 // Command was a success
 void write_mem_cmd_success(uint32_t block_num) {
-    //uint32_t start_address = mem_block_section_addr(block_num); // header starting addr
+    //uint32_t start_address = mem_cmd_section_addr(block_num); // header starting addr
     //uint8_t bytes[1] = { 0x00 };
-    //write_mem_section_bytes(&cmd_log_mem_section, (start_address + 3), bytes, 1)
+    //write_mem_section_bytes(&cmd_log_mem_section, (start_address + 3), bytes, 1);
     uint8_t success = 0x00;
     mem_header_t dummy_header = {
         .block_num = 0xFFFFFFFF,
@@ -251,6 +251,7 @@ uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_head
     };
     if (write_mem_section_bytes(section, start_address,
         bytes, MEM_BYTES_PER_CMD)) {
+        inc_mem_section_curr_block(&cmd_log_mem_section);
         return 1;
     } else {
         return 0;
