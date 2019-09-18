@@ -131,7 +131,7 @@ void clear_mem_header(mem_header_t* header) {
     }
 
     header->block_num = 0;
-    header->error = 0;
+    header->success = 0;
     header->date.yy = 0;
     header->date.mm = 0;
     header->date.dd = 0;
@@ -210,22 +210,11 @@ void read_mem_data_block(mem_section_t* section, uint32_t block_num,
 }
 
 // Command was a success
-void write_mem_cmd_success(uint32_t block_num) {
-    //uint32_t start_address = mem_cmd_section_addr(block_num); // header starting addr
-    //uint8_t bytes[1] = { 0x00 };
-    //write_mem_section_bytes(&cmd_log_mem_section, (start_address + 3), bytes, 1);
-    uint8_t success = 0x00;
-    mem_header_t dummy_header = {
-        .block_num = 0xFFFFFFFF,
-        .error = success,
-        .date.yy = 0xFF,
-        .date.mm = 0xFF,
-        .date.dd = 0xFF,
-        .time.hh = 0xFF,
-        .time.mm = 0xFF,
-        .time.ss = 0xFF,
+void write_mem_cmd_success(uint32_t block_num, uint8_t success) {
+    uint8_t data_bytes[1] = {
+        success,
     };
-    write_mem_header(&cmd_log_mem_section, block_num, &dummy_header);
+    write_mem_section_bytes(&cmd_log_mem_section, (mem_block_section_addr(&cmd_log_mem_section, block_num) + MEM_SUCCESS_HEADER_OFFSET), data_bytes, 1);
 }
 
 uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
@@ -251,7 +240,6 @@ uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_head
     };
     if (write_mem_section_bytes(section, start_address,
         bytes, MEM_BYTES_PER_CMD)) {
-        inc_mem_section_curr_block(&cmd_log_mem_section);
         return 1;
     } else {
         return 0;
@@ -301,9 +289,9 @@ void write_mem_header(mem_section_t* section, uint32_t block_num,
         (header->block_num >> 16) & 0xFF,
         (header->block_num >> 8) & 0xFF,
         header->block_num & 0xFF,
-        header->error,
         header->date.yy, header->date.mm, header->date.dd,
-        header->time.hh, header->time.mm, header->time.ss
+        header->time.hh, header->time.mm, header->time.ss,
+        header->success
     };
 
     write_mem_section_bytes(section, mem_block_section_addr(section, block_num), bytes, MEM_BYTES_PER_HEADER);
@@ -327,13 +315,13 @@ void read_mem_header(mem_section_t* section, uint32_t block_num,
         (((uint32_t) bytes[0]) << 16) |
         (((uint32_t) bytes[1]) << 8) |
         ((uint32_t) bytes[2]);
-    header->error = bytes[3];
-    header->date.yy = bytes[4];
-    header->date.mm = bytes[5];
-    header->date.dd = bytes[6];
-    header->time.hh = bytes[7];
-    header->time.mm = bytes[8];
-    header->time.ss = bytes[9];
+    header->date.yy = bytes[3];
+    header->date.mm = bytes[4];
+    header->date.dd = bytes[5];
+    header->time.hh = bytes[6];
+    header->time.mm = bytes[7];
+    header->time.ss = bytes[8];
+    header->success = bytes[9];
 }
 
 

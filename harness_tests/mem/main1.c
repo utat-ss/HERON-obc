@@ -241,7 +241,7 @@ void mem_header_test_individual( mem_section_t* section ) {
 	// eps_hk_mem_section
 	mem_header_t write = {
         .block_num = section->curr_block,
-        .error = 0x00,
+        .success = 0x00,
         .date = rand_rtc_date(),
         .time = rand_rtc_time()
     };
@@ -251,7 +251,7 @@ void mem_header_test_individual( mem_section_t* section ) {
     read_mem_header(section, section->curr_block, &read);
 
     ASSERT_EQ(write.block_num, read.block_num);
-    ASSERT_EQ(write.error, read.error);
+    ASSERT_EQ(write.success, read.success);
     ASSERT_EQ_DATE(write.date, read.date);
     ASSERT_EQ_TIME(write.time, read.time);
 }
@@ -318,7 +318,7 @@ void mem_block_test_1(void){
         section->curr_block = 1;////////////////
         block_num[i] = section->curr_block;
         (write_header[i]).block_num = section->curr_block;
-        (write_header[i]).error = 0x00;
+        (write_header[i]).success = 0x00;
         (write_header[i]).date = rand_rtc_date();
         (write_header[i]).time = rand_rtc_time();
         uint32_t prev_block = section->curr_block;
@@ -350,7 +350,7 @@ void mem_block_test_1(void){
     //check headers
     for (int i = 0; i < 4; i++){
         ASSERT_EQ((write_header[i]).block_num, (read_header[i]).block_num); //this should be the case right.
-        ASSERT_EQ((write_header[i]).error, (read_header[i]).error);
+        ASSERT_EQ((write_header[i]).success, (read_header[i]).success);
         ASSERT_EQ_DATE((write_header[i]).date, (read_header[i]).date);
         ASSERT_EQ_TIME((write_header[i]).time, (read_header[i]).time);
     }
@@ -406,7 +406,7 @@ void mem_block_test_2(void){
     mem_header_t write_header;
     mem_header_t read_header;
     write_header.block_num = section->curr_block;
-    write_header.error = 0x00;
+    write_header.success = 0x00;
     write_header.date = rand_rtc_date();
     write_header.time = rand_rtc_time();
 
@@ -416,7 +416,7 @@ void mem_block_test_2(void){
     ASSERT_EQ(block_num,0);
 
     ASSERT_EQ(write_header.block_num, read_header.block_num);
-    ASSERT_EQ(write_header.error, read_header.error);
+    ASSERT_EQ(write_header.success, read_header.success);
 
     for (uint8_t i=0; i<eps_hk_mem_section.fields_per_block; i++){
         ASSERT_EQ(write_fields_1[i], read_fields_1[i]);
@@ -428,7 +428,7 @@ void mem_block_test_2(void){
 
     block_num = section->curr_block;
     write_header.block_num = section->curr_block;
-    write_header.error = 0x00;
+    write_header.success = 0x00;
     write_header.date = rand_rtc_date();
     write_header.time = rand_rtc_time();
 
@@ -438,7 +438,7 @@ void mem_block_test_2(void){
     ASSERT_EQ(block_num,0);
 
     ASSERT_EQ(write_header.block_num, read_header.block_num);
-    ASSERT_EQ(write_header.error, read_header.error);
+    ASSERT_EQ(write_header.success, read_header.success);
 
     for (uint8_t i=0; i<pay_hk_mem_section.fields_per_block; i++){
         ASSERT_EQ(write_fields_2[i], read_fields_2[i]);
@@ -450,7 +450,7 @@ void mem_block_test_2(void){
 
     block_num = section->curr_block;
     write_header.block_num = section->curr_block;
-    write_header.error = 0x00;
+    write_header.success = 0x00;
     write_header.date = rand_rtc_date();
     write_header.time = rand_rtc_time();
 
@@ -460,7 +460,7 @@ void mem_block_test_2(void){
     ASSERT_EQ(block_num,0);
 
     ASSERT_EQ(write_header.block_num, read_header.block_num);
-    ASSERT_EQ(write_header.error, read_header.error);
+    ASSERT_EQ(write_header.success, read_header.success);
 
     for (uint8_t i=0; i<pay_opt_mem_section.fields_per_block; i++){
         ASSERT_EQ(write_fields_3[i], read_fields_3[i]);
@@ -520,7 +520,7 @@ void cmd_block_test(void) {
     // eps_hk_mem_section
 	mem_header_t write_header = {
         .block_num = prim_cmd_log_mem_section.curr_block,
-        .error = 0x00,
+        .success = 0x00,
         .date = rand_rtc_date(),
         .time = rand_rtc_time()
     };
@@ -544,7 +544,7 @@ void cmd_block_test(void) {
 
     read_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &read_header, &read_cmd_num, &read_arg1, &read_arg2);
     ASSERT_EQ(write_header.block_num, read_header.block_num);
-    ASSERT_EQ(write_header.error, read_header.error);
+    ASSERT_EQ(write_header.success, read_header.success);
     ASSERT_EQ_DATE(write_header.date, read_header.date);
     ASSERT_EQ_TIME(write_header.time, read_header.time);
     ASSERT_EQ(write_cmd_num, read_cmd_num);
