@@ -330,7 +330,7 @@ void auto_data_col_timer_cb(void) {
         if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
             print("Auto collecting EPS_HK\n");
             eps_hk_auto_data_col.count = 0;
-            enqueue_cmd(&col_data_block_cmd, CMD_EPS_HK, 0);
+            enqueue_cmd(&col_data_block_cmd, CMD_EPS_HK, 1);    // auto
         }
     }
 
@@ -340,7 +340,7 @@ void auto_data_col_timer_cb(void) {
         if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
             print("Auto collecting PAY_HK\n");
             pay_hk_auto_data_col.count = 0;
-            enqueue_cmd(&col_data_block_cmd, CMD_PAY_HK, 0);
+            enqueue_cmd(&col_data_block_cmd, CMD_PAY_HK, 1);    // auto
         }
     }
 
@@ -350,7 +350,7 @@ void auto_data_col_timer_cb(void) {
         if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
             print("Auto collecting PAY_OPT\n");
             pay_opt_auto_data_col.count = 0;
-            enqueue_cmd(&col_data_block_cmd, CMD_PAY_OPT, 0);
+            enqueue_cmd(&col_data_block_cmd, CMD_PAY_OPT, 1);   // auto
         }
     }
 }

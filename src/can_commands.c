@@ -86,6 +86,19 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
             &eps_hk_header, eps_hk_fields);
         inc_mem_section_curr_block(&eps_hk_mem_section);
 
+        // Only send back a transceiver packet if the command was sent from
+        // ground (arg2 = 0)
+        if (current_cmd_arg2 == 0) {
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                start_trans_tx_dec_msg();
+                append_to_trans_tx_dec_msg((eps_hk_mem_section.curr_block >> 24) & 0xFF);
+                append_to_trans_tx_dec_msg((eps_hk_mem_section.curr_block >> 16) & 0xFF);
+                append_to_trans_tx_dec_msg((eps_hk_mem_section.curr_block >> 8) & 0xFF);
+                append_to_trans_tx_dec_msg(eps_hk_mem_section.curr_block & 0xFF);
+                finish_trans_tx_dec_msg();
+            }
+        }
+
         print("Done EPS_HK\n");
         finish_current_cmd(true);
     }
@@ -114,6 +127,19 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
             &pay_hk_header, pay_hk_fields);
         inc_mem_section_curr_block(&pay_hk_mem_section);
 
+        // Only send back a transceiver packet if the command was sent from
+        // ground (arg2 = 0)
+        if (current_cmd_arg2 == 0) {
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                start_trans_tx_dec_msg();
+                append_to_trans_tx_dec_msg((pay_hk_mem_section.curr_block >> 24) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_hk_mem_section.curr_block >> 16) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_hk_mem_section.curr_block >> 8) & 0xFF);
+                append_to_trans_tx_dec_msg(pay_hk_mem_section.curr_block & 0xFF);
+                finish_trans_tx_dec_msg();
+            }
+        }
+
         print("Done PAY_HK\n");
         finish_current_cmd(true);
     }
@@ -140,6 +166,19 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
         write_mem_data_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
             &pay_opt_header, pay_opt_fields);
         inc_mem_section_curr_block(&pay_opt_mem_section);
+
+        // Only send back a transceiver packet if the command was sent from
+        // ground (arg2 = 0)
+        if (current_cmd_arg2 == 0) {
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                start_trans_tx_dec_msg();
+                append_to_trans_tx_dec_msg((pay_opt_mem_section.curr_block >> 24) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_opt_mem_section.curr_block >> 16) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_opt_mem_section.curr_block >> 8) & 0xFF);
+                append_to_trans_tx_dec_msg(pay_opt_mem_section.curr_block & 0xFF);
+                finish_trans_tx_dec_msg();
+            }
+        }
 
         print("Done PAY_OPT\n");
         finish_current_cmd(true);
