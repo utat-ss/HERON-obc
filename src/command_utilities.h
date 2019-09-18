@@ -14,7 +14,7 @@ typedef void(*cmd_fn_t)(void);
 
 typedef struct {
     cmd_fn_t fn;
-    uint8_t num;
+    uint8_t opcode;
     // true if password needs to be correct to execute
     bool pwd_protected;
 } cmd_t;
@@ -25,53 +25,53 @@ typedef struct {
 
 
 // Subsystem
-#define TRANS_CMD_OBC       0
-#define TRANS_CMD_EPS       1
-#define TRANS_CMD_PAY       2
+#define CMD_OBC       1
+#define CMD_EPS       2
+#define CMD_PAY       3
 
 // Block types
-#define TRANS_CMD_EPS_HK    0
-#define TRANS_CMD_PAY_HK    1
-#define TRANS_CMD_PAY_OPT   2
+#define CMD_OBC_HK    1
+#define CMD_EPS_HK    2
+#define CMD_PAY_HK    3
+#define CMD_PAY_OPT   4
 
 // Command types
-#define TRANS_CMD_PING                      0x00
-#define TRANS_CMD_GET_SUBSYS_STATUS         0x01
-#define TRANS_CMD_GET_RTC                   0x02
-#define TRANS_CMD_SET_RTC                   0x03
-#define TRANS_CMD_READ_MEM_BYTES            0x04
-#define TRANS_CMD_ERASE_MEM_PHY_SECTOR      0x05
-#define TRANS_CMD_COL_BLOCK                 0x06
-#define TRANS_CMD_READ_LOC_BLOCK            0x07
-#define TRANS_CMD_READ_MEM_BLOCK            0x08
-#define TRANS_CMD_AUTO_DATA_COL_ENABLE      0x09
-#define TRANS_CMD_AUTO_DATA_COL_PERIOD      0x0A
-#define TRANS_CMD_AUTO_DATA_COL_RESYNC      0x0B
-#define TRANS_CMD_PAY_ACT_MOTORS            0x0E
-#define TRANS_CMD_RESET_SUBSYS              0x0F
-#define TRANS_CMD_EPS_CAN                   0x10
-#define TRANS_CMD_PAY_CAN                   0x11
-#define TRANS_CMD_READ_EEPROM               0x12
-#define TRANS_CMD_GET_CUR_BLOCK_NUM         0x13
-#define TRANS_CMD_SET_CUR_BLOCK_NUM         0x14
-#define TRANS_CMD_SET_MEM_SEC_START_ADDR    0x15
-#define TRANS_CMD_SET_MEM_SEC_END_ADDR      0x16
-#define TRANS_CMD_ERASE_EEPROM              0x17
-#define TRANS_CMD_ERASE_ALL_MEM             0x19
-#define TRANS_CMD_ERASE_MEM_PHY_BLOCK       0x1A
-
-// Subsystems
-#define CMD_SUBSYS_OBC  0
-#define CMD_SUBSYS_EPS  1
-#define CMD_SUBSYS_PAY  2
-
-// Block types
-#define CMD_BLOCK_EPS_HK    0
-#define CMD_BLOCK_PAY_HK    1
-#define CMD_BLOCK_PAY_OPT   2
+#define CMD_PING_OBC                    0x00
+#define CMD_GET_RTC                     0x01
+#define CMD_SET_RTC                     0x02
+#define CMD_READ_OBC_EEPROM             0x03
+#define CMD_ERASE_OBC_EEPROM            0x04
+#define CMD_READ_OBC_RAM_BYTE           0x05
+#define CMD_SEND_EPS_CAN_MSG            0x06
+#define CMD_SEND_PAY_CAN_MSG            0x07
+#define CMD_ACT_PAY_MOTORS              0x08
+#define CMD_RESET_SUBSYS                0x09
+#define CMD_SET_INDEF_LPM_ENABLE        0x0A
+#define CMD_READ_REC_STATUS_INFO        0x10
+#define CMD_READ_DATA_BLOCK             0x11
+#define CMD_READ_REC_LOC_DATA_BLOCK     0x12
+#define CMD_READ_PRIM_CMD_BLOCKS        0x13
+#define CMD_READ_SEC_CMD_BLOCKS         0x14
+#define CMD_READ_RAW_MEM_BYTES          0x15
+#define CMD_ERASE_MEM_PHY_SECTOR        0x16
+#define CMD_ERASE_MEM_PHY_BLOCK         0x17
+#define CMD_ERASE_ALL_MEM               0x18
+#define CMD_COL_DATA_BLOCK              0x20
+#define CMD_GET_CUR_BLOCK_NUM           0x21
+#define CMD_SET_CUR_BLOCK_NUM           0x22
+#define CMD_GET_MEM_SEC_START_ADDR      0x23
+#define CMD_SET_MEM_SEC_START_ADDR      0x24
+#define CMD_GET_MEM_SEC_END_ADDR        0x25
+#define CMD_SET_MEM_SEC_END_ADDR        0x26
+#define CMD_GET_AUTO_DATA_COL_ENABLE    0x27
+#define CMD_SET_AUTO_DATA_COL_ENABLE    0x28
+#define CMD_GET_AUTO_DATA_COL_PERIOD    0x29
+#define CMD_SET_AUTO_DATA_COL_PERIOD    0x2A
+#define CMD_GET_AUTO_DATA_COL_TIMERS    0x2B
+#define CMD_RESYNC_AUTO_DATA_COL_TIMERS 0x2C
 
 // Max memory read
-#define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 9)
+#define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 13)
 
 // Default period for automatic data collection for each block type
 // (time between timer callbacks, in seconds)

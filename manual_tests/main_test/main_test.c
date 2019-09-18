@@ -81,14 +81,14 @@ cmd_t read_all_mem_blocks_to_local_cmd = {
 uart_cmd_t all_cmds[] = {
     {
         .description = "Ping OBC",
-        .cmd = &ping_cmd,
+        .cmd = &ping_obc_cmd,
         .arg1 = 0,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Get restart and uptime",
-        .cmd = &get_subsys_status_cmd,
+        .cmd = &read_rec_status_info_cmd,
         .arg1 = 0,
         .arg2 = 0,
         .bypass_trans = false
@@ -116,35 +116,35 @@ uart_cmd_t all_cmds[] = {
     },
     {
         .description = "Request EPS HK",
-        .cmd = &col_block_cmd,
-        .arg1 = CMD_BLOCK_EPS_HK,
+        .cmd = &col_data_block_cmd,
+        .arg1 = CMD_EPS_HK,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Request PAY HK",
-        .cmd = &col_block_cmd,
-        .arg1 = CMD_BLOCK_PAY_HK,
+        .cmd = &col_data_block_cmd,
+        .arg1 = CMD_PAY_HK,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Request PAY OPT",
-        .cmd = &col_block_cmd,
-        .arg1 = CMD_BLOCK_PAY_OPT,
+        .cmd = &col_data_block_cmd,
+        .arg1 = CMD_PAY_OPT,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Actuate motors up",
-        .cmd = &pay_act_motors_cmd,
+        .cmd = &act_pay_motors_cmd,
         .arg1 = CAN_PAY_CTRL_ACT_UP,
         .arg2 = 0,
         .bypass_trans = false
     },
     {
         .description = "Actuate motors down",
-        .cmd = &pay_act_motors_cmd,
+        .cmd = &act_pay_motors_cmd,
         .arg1 = CAN_PAY_CTRL_ACT_DOWN,
         .arg2 = 0,
         .bypass_trans = false
@@ -199,18 +199,6 @@ void print_local_data_fn(void) {
     }
     print("\n");
 
-    print("BB Vol:");
-    print_voltage(eps_hk_fields[CAN_EPS_HK_BB_VOL]);
-    print("BB Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_BB_CUR]);
-    print("-Y Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_NY_CUR]);
-    print("+X Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_PX_CUR]);
-    print("+Y Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_PY_CUR]);
-    print("-X Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_NX_CUR]);
     print("Bat Temp 1:");
     print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP1]);
     print("Bat Temp 2:");
@@ -219,14 +207,6 @@ void print_local_data_fn(void) {
     print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
     print("Bat Cur:");
     print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
-    print("BT Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_BT_CUR]);
-    print("BT Vol:");
-    print_voltage(eps_hk_fields[CAN_EPS_HK_BT_VOL]);
-    print("Heater Setpt 1:");
-    print_therm_temp(eps_hk_fields[CAN_EPS_HK_HEAT_SP1]);
-    print("Heater Setpt 2:");
-    print_therm_temp(eps_hk_fields[CAN_EPS_HK_HEAT_SP2]);
     print("Gyro (uncal) X:");
     print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_UNCAL_X]);
     print("Gyro (uncal) Y:");
@@ -252,20 +232,10 @@ void print_local_data_fn(void) {
     }
     print("\n");
 
-    print("Temp: 0x%.6lX = %.3f C\n", pay_hk_fields[CAN_PAY_HK_TEMP],
-        temp_raw_data_to_temperature(pay_hk_fields[CAN_PAY_HK_TEMP]));
     print("Hum: 0x%.6lX = %.3f %%RH\n", pay_hk_fields[CAN_PAY_HK_HUM],
         hum_raw_data_to_humidity(pay_hk_fields[CAN_PAY_HK_HUM]));
     print("Pres: 0x%.6lX = %.3f kPa\n", pay_hk_fields[CAN_PAY_HK_PRES],
         pres_raw_data_to_pressure(pay_hk_fields[CAN_PAY_HK_PRES]));
-    for (uint8_t i = 0; i < 10; i++) {
-        print("Temp %u:", i);
-        print_therm_temp(pay_hk_fields[CAN_PAY_HK_THERM0 + i]);
-    }
-    print("Heater Setpt 1:");
-    print_therm_temp(pay_hk_fields[CAN_PAY_HK_HEAT_SP1]);
-    print("Heater Setpt 2:");
-    print_therm_temp(pay_hk_fields[CAN_PAY_HK_HEAT_SP2]);
 
 
     print("\nPAY OPT:\n");
@@ -442,11 +412,11 @@ void clear_local_data_fn(void) {
 
 void read_all_mem_blocks_to_local_fn(void) {
     // TODO
-    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_EPS_HK,
+    enqueue_cmd(&read_data_block_cmd, CMD_EPS_HK,
         eps_hk_mem_section.curr_block - 1);
-    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_PAY_HK,
+    enqueue_cmd(&read_data_block_cmd, CMD_PAY_HK,
         pay_hk_mem_section.curr_block - 1);
-    enqueue_cmd(&read_mem_block_cmd, CMD_BLOCK_PAY_OPT,
+    enqueue_cmd(&read_data_block_cmd, CMD_PAY_OPT,
         pay_opt_mem_section.curr_block - 1);
 
     finish_current_cmd(true);
@@ -523,15 +493,12 @@ void sim_send_next_eps_tx_msg(void) {
     // Can return early to not send a message back
     switch (msg_type) {
         case CAN_EPS_HK:
-            if (CAN_EPS_HK_BB_VOL <= field_num && field_num <= CAN_EPS_HK_HEAT_SP2) {
-                // 12-bit data - ADC (fields 0-11) or DAC (fields 12-13)
-                populate_msg_data(rx_msg, rand_bits(12));
-            } else if (CAN_EPS_HK_GYR_UNCAL_X <= field_num && field_num <= CAN_EPS_HK_GYR_CAL_Z) {
+            if (CAN_EPS_HK_GYR_UNCAL_X <= field_num && field_num <= CAN_EPS_HK_GYR_CAL_Z) {
                 // 16-bit data - IMU gyro
                 populate_msg_data(rx_msg, rand_bits(16));
-            } else if (CAN_EPS_HK_HEAT_SHADOW_SP1 <= field_num && field_num <= CAN_EPS_HK_HEAT_SUN_SP2) {
-                // 12-bit data - DAC
-                populate_msg_data(rx_msg, rand_bits(12));
+            } else if (field_num < CAN_EPS_HK_FIELD_COUNT) {
+                // TODO
+                populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 return;
             }
@@ -540,9 +507,6 @@ void sim_send_next_eps_tx_msg(void) {
         case CAN_EPS_CTRL:
             if (field_num == CAN_EPS_CTRL_PING) {
                 // Nothing
-            } else if ((CAN_EPS_CTRL_HEAT_SHADOW_SP1 <= field_num) &&
-                (field_num <= CAN_EPS_CTRL_HEAT_CUR_THRESH_UPPER)) {
-                // Don't need to populate anything
             } else if (field_num == CAN_EPS_CTRL_RESET) {
                 // Don't send a message back for reset
                 return;
@@ -550,8 +514,8 @@ void sim_send_next_eps_tx_msg(void) {
                 populate_msg_data(rx_msg, rand_bits(32));
             } else if (field_num == CAN_EPS_CTRL_ERASE_EEPROM) {
                 // Nothing
-            } else if ((CAN_EPS_CTRL_RESTART_COUNT <= field_num) &&
-                (field_num <= CAN_EPS_CTRL_UPTIME)) {
+            } else if (field_num < CAN_EPS_CTRL_FIELD_COUNT) {
+                // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 return;
@@ -591,21 +555,13 @@ void sim_send_next_pay_tx_msg(void) {
     // Can return early to not send a message back
     switch (msg_type) {
         case CAN_PAY_HK:
-            if (field_num == CAN_PAY_HK_TEMP) {
-                populate_msg_data(rx_msg, rand_bits(16));
-            } else if (field_num == CAN_PAY_HK_HUM) {
+            if (field_num == CAN_PAY_HK_HUM) {
                 populate_msg_data(rx_msg, rand_bits(14));
             } else if (field_num == CAN_PAY_HK_PRES) {
                 populate_msg_data(rx_msg, rand_bits(24));
-            } else if (CAN_PAY_HK_THERM0 <= field_num &&
-                    field_num <= CAN_PAY_HK_THERM9) {
-                populate_msg_data(rx_msg, rand_bits(12));
-            } else if (field_num == CAN_PAY_HK_HEAT_SP1 ||
-                    field_num == CAN_PAY_HK_HEAT_SP2) {
-                populate_msg_data(rx_msg, rand_bits(12));
-            } else if (field_num == CAN_PAY_HK_PROX_LEFT ||
-                    field_num == CAN_PAY_HK_PROX_RIGHT) {
-                populate_msg_data(rx_msg, rand_bits(12));
+            } else if (field_num < CAN_PAY_HK_FIELD_COUNT) {
+                // TODO
+                populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 return;
             }
@@ -622,8 +578,6 @@ void sim_send_next_pay_tx_msg(void) {
 
         case CAN_PAY_CTRL:
             if ((field_num == CAN_PAY_CTRL_PING) ||
-                (field_num == CAN_PAY_CTRL_HEAT_SP1) ||
-                (field_num == CAN_PAY_CTRL_HEAT_SP2) ||
                 (field_num == CAN_PAY_CTRL_ACT_UP) ||
                 (field_num == CAN_PAY_CTRL_ACT_DOWN) ||
                 (field_num == CAN_PAY_CTRL_ERASE_EEPROM)) {
@@ -631,10 +585,10 @@ void sim_send_next_pay_tx_msg(void) {
             } else if (field_num == CAN_PAY_CTRL_RESET) {
                 // Don't send a message back for reset
                 return;
-            } else if ((field_num == CAN_PAY_CTRL_READ_EEPROM) ||
-                (field_num == CAN_PAY_CTRL_RESTART_COUNT) ||
-                (field_num == CAN_PAY_CTRL_RESTART_REASON) ||
-                (field_num == CAN_PAY_CTRL_UPTIME)) {
+            } else if (field_num == CAN_PAY_CTRL_READ_EEPROM) {
+                populate_msg_data(rx_msg, rand_bits(32));
+            } else if (field_num < CAN_PAY_CTRL_FIELD_COUNT) {
+                // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 return;

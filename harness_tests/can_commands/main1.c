@@ -28,7 +28,7 @@ void eps_hk_test( void ){
 	}
 
 	// request data from EPS, and then proceed to simulate responses
-	enqueue_cmd(&col_block_cmd, CMD_BLOCK_EPS_HK, 0);
+	enqueue_cmd(&col_data_block_cmd, CMD_EPS_HK, 0);
 	execute_next_cmd();
 	uint8_t queue_data[8] = { 0 };
 	uint8_t field_num = 0;
@@ -70,7 +70,7 @@ void pay_hk_test( void ){
 	}
 
 	// request data from PAY, and then proceed to simulate responses
-	enqueue_cmd(&col_block_cmd, CMD_BLOCK_PAY_HK, 0);
+	enqueue_cmd(&col_data_block_cmd, CMD_PAY_HK, 0);
 	execute_next_cmd();
 	uint8_t queue_data[8] = { 0 };
 	uint8_t field_num = 0;
@@ -112,7 +112,7 @@ void pay_opt_test( void ){
 	}
 
 	// request data from PAY_OPT, and then proceed to simulate responses
-	enqueue_cmd(&col_block_cmd, CMD_BLOCK_PAY_OPT, 0);
+	enqueue_cmd(&col_data_block_cmd, CMD_PAY_OPT, 0);
 	execute_next_cmd();
 	uint8_t queue_data[8] = { 0 };
 	uint8_t field_num = 0;
