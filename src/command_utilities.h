@@ -75,17 +75,20 @@ typedef struct {
 
 // Default period for automatic data collection for each block type
 // (time between timer callbacks, in seconds)
+#define OBC_HK_AUTO_DATA_COL_PERIOD     60
 #define EPS_HK_AUTO_DATA_COL_PERIOD     60
 #define PAY_HK_AUTO_DATA_COL_PERIOD     120
 #define PAY_OPT_AUTO_DATA_COL_PERIOD    300
 
 // TODO change
-#define EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR    ((uint32_t*) 0x100)
-#define EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR     ((uint32_t*) 0x104)
-#define PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR    ((uint32_t*) 0x110)
-#define PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR     ((uint32_t*) 0x114)
-#define PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR   ((uint32_t*) 0x120)
-#define PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR    ((uint32_t*) 0x124)
+#define OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR    ((uint32_t*) 0x100)
+#define OBC_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR     ((uint32_t*) 0x104)
+#define EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR    ((uint32_t*) 0x110)
+#define EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR     ((uint32_t*) 0x114)
+#define PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR    ((uint32_t*) 0x120)
+#define PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR     ((uint32_t*) 0x124)
+#define PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR   ((uint32_t*) 0x130)
+#define PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR    ((uint32_t*) 0x134)
 
 
 // Automatic data collection for one block type
@@ -109,6 +112,8 @@ extern volatile bool prev_cmd_succeeded;
 
 extern volatile uint8_t can_countdown;
 
+extern mem_header_t obc_hk_header;
+extern uint32_t obc_hk_fields[];
 extern mem_header_t eps_hk_header;
 extern uint32_t eps_hk_fields[];
 extern mem_header_t pay_hk_header;
@@ -116,6 +121,7 @@ extern uint32_t pay_hk_fields[];
 extern mem_header_t pay_opt_header;
 extern uint32_t pay_opt_fields[];
 
+extern volatile auto_data_col_t obc_hk_auto_data_col;
 extern volatile auto_data_col_t eps_hk_auto_data_col;
 extern volatile auto_data_col_t pay_hk_auto_data_col;
 extern volatile auto_data_col_t pay_opt_auto_data_col;
