@@ -81,11 +81,17 @@ void encode_trans_tx_msg_test(void){
 
 // Verifies that a randomly-generated decoded message is the same after an encode-decode sequence
 void random_encode_decode_test(void){
-    // Generate random message of arbitrary length (max length 13)
-    uint8_t dec_msg_len = rand() % 13;
+    // Decoded -> encoded ------------------------------------------------------
+
+    // Generate random message of arbitrary length (max length 13, must be at least 1)
+    uint8_t dec_msg_len = (rand() % 13) + 1;// TODO
     uint8_t dec_msg[13] = {0};
     for (uint8_t i = 0; i < dec_msg_len; i++){
         dec_msg[i] = (uint8_t)(rand() % 256);
+    }
+    // Fill rest of buffer with 0s just in case
+    for (uint8_t i = dec_msg_len; i < 13; i++) {
+        dec_msg[i] = 0;
     }
 
     // Set up decoded message buffer and encode message
@@ -96,14 +102,31 @@ void random_encode_decode_test(void){
     trans_tx_dec_avail = true;
     encode_trans_tx_msg();
 
-    // Assert that encoded message is terminated correctly
+    // Check available flags
+    ASSERT_FALSE(trans_tx_dec_avail);
+    ASSERT_TRUE(trans_tx_enc_avail);
+
+    // Check minimum length
+    ASSERT_GREATER(trans_tx_enc_len, 4);
+    
+    // Assert that encoded message is terminated correctly with 0 bytes in the
+    // proper places
+    ASSERT_EQ(trans_tx_enc_msg[0], 0x00);
+    ASSERT_EQ(trans_tx_enc_msg[2], 0x00);
     ASSERT_EQ(trans_tx_enc_msg[trans_tx_enc_len-1], 0x00);
 
-    // Assert that no value of encoded message is 0x00 or 0x0D (escape cmd)
-    for (uint8_t i = 0; i < trans_tx_enc_len - 1; i++){
+    // Check that the length byte is greater than 0x10, which also ensures it is
+    // not 0x00 or 0x0D
+    ASSERT_GREATER(trans_tx_enc_msg[1], 0x10);
+
+    // Assert that no values in the main data section of the encoded message are 0x00
+    // or 0x0D (escape cmd)
+    for (uint8_t i = 3; i < trans_tx_enc_len - 1; i++){
         ASSERT_NEQ(trans_tx_enc_msg[i], 0x00);
         ASSERT_NEQ(trans_tx_enc_msg[i], 0x0D);
     }
+
+    // Encoded -> decoded ------------------------------------------------------
 
     // Set up rx encoded message buffer and decode message
     trans_rx_enc_len = trans_tx_enc_len;
@@ -113,8 +136,17 @@ void random_encode_decode_test(void){
     trans_rx_enc_avail = true;
     decode_trans_rx_msg();
 
+    // Check available flags
+    ASSERT_FALSE(trans_rx_enc_avail);
+    ASSERT_TRUE(trans_rx_dec_avail);
+
+    // Check minimum length
+    ASSERT_GREATER(trans_rx_dec_len, 0);
+    // Check length is same as length of originally generated message
+    ASSERT_EQ(trans_rx_dec_len, dec_msg_len);
+
     // Assert that decoded values are same as initial values
-    for (uint8_t i = 0; i < trans_rx_dec_len; i++){
+    for (uint8_t i = 0; i < dec_msg_len; i++){
         ASSERT_EQ(trans_rx_dec_msg[i], dec_msg[i]);
     }
 }
