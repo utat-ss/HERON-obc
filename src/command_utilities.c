@@ -235,17 +235,17 @@ void dequeue_cmd(void) {
         current_cmd = (cmd_t*) cmd_ptr;
         current_cmd_arg1 = arg1;
         current_cmd_arg2 = arg2;
-        mem_section_t cmd_log_mem_section;
+        mem_section_t* cmd_log_mem_section;
         if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
             || current_cmd == &read_sec_cmd_blocks_cmd) {
-            cmd_log_mem_section = sec_cmd_log_mem_section;
+            cmd_log_mem_section = &sec_cmd_log_mem_section;
         } else {
-            cmd_log_mem_section = prim_cmd_log_mem_section;
+            cmd_log_mem_section = &prim_cmd_log_mem_section;
         }
-        populate_header(&cmd_log_header, cmd_log_mem_section.curr_block, 0xFF);
-        write_mem_cmd_block(&cmd_log_mem_section, cmd_log_mem_section.curr_block, &cmd_log_header,
+        populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, 0xFF);
+        write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block, &cmd_log_header,
             trans_cmd_to_msg_type((cmd_t*) current_cmd), current_cmd_arg1, current_cmd_arg2);
-        inc_mem_section_curr_block(&cmd_log_mem_section);
+        inc_mem_section_curr_block(cmd_log_mem_section);
     }
 
     print("dequeue_cmd: cmd = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", current_cmd,
