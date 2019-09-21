@@ -210,11 +210,11 @@ void read_mem_data_block(mem_section_t* section, uint32_t block_num,
 }
 
 // Command was a success
-void write_mem_cmd_success(uint32_t block_num, uint8_t success) {
+void write_mem_cmd_success(mem_section_t* section, uint32_t block_num, uint8_t success) {
     uint8_t data_bytes[1] = {
         success,
     };
-    write_mem_section_bytes(&cmd_log_mem_section, (mem_block_section_addr(&cmd_log_mem_section, block_num) + MEM_SUCCESS_HEADER_OFFSET), data_bytes, 1);
+    write_mem_section_bytes(section, (mem_block_section_addr(section, block_num) + MEM_SUCCESS_HEADER_OFFSET), data_bytes, 1);
 }
 
 uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,

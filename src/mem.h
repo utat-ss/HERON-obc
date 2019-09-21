@@ -139,7 +139,7 @@ void write_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
 void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
-void write_mem_cmd_success(uint32_t block_num, uint8_t success);
+void write_mem_cmd_success(mem_section_t* section, uint32_t block_num, uint8_t success);
 uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
     uint8_t cmd_num, uint32_t arg1, uint32_t arg2);
 void read_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,

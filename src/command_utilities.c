@@ -235,8 +235,15 @@ void dequeue_cmd(void) {
         current_cmd = (cmd_t*) cmd_ptr;
         current_cmd_arg1 = arg1;
         current_cmd_arg2 = arg2;
+        mem_section_t cmd_log_mem_section;
+        if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
+            || current_cmd == &read_sec_cmd_blocks_cmd) {
+            cmd_log_mem_section = sec_cmd_log_mem_section;
+        } else {
+            cmd_log_mem_section = prim_cmd_log_mem_section;
+        }
         populate_header(&cmd_log_header, cmd_log_mem_section.curr_block, 0xFF);
-        write_mem_cmd_block(cmd_log_mem_section.curr_block, &cmd_log_header,
+        write_mem_cmd_block(&cmd_log_mem_section, cmd_log_mem_section.curr_block, &cmd_log_header,
             trans_cmd_to_msg_type((cmd_t*) current_cmd), current_cmd_arg1, current_cmd_arg2);
         inc_mem_section_curr_block(&cmd_log_mem_section);
     }
@@ -262,19 +269,26 @@ void finish_current_cmd(bool succeeded) {
         // The erase flash command erases the command log as well, therefore re-write the command log
         // for the erase flash command
         if (current_cmd == &erase_all_mem_cmd) {
-            write_mem_cmd_block(cmd_log_mem_section.curr_block - 1, &cmd_log_header,
+            write_mem_cmd_block(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, &cmd_log_header,
                 trans_cmd_to_msg_type((cmd_t*) current_cmd), current_cmd_arg1, current_cmd_arg2);
+        }
+        uint8_t success_byte;
+        if (succeeded == true) {
+            success_byte = 0x01;
+        } else {
+            success_byte = 0x00;
+        }
+        if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
+            || current_cmd == &read_sec_cmd_blocks_cmd) {
+            write_mem_cmd_success(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, success_byte);
+        } else {
+            write_mem_cmd_success(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, success_byte);
         }
         current_cmd = &nop_cmd;
         current_cmd_arg1 = 0;
         current_cmd_arg2 = 0;
         prev_cmd_succeeded = succeeded;
         can_countdown = 0;
-        if (succeeded == true) {
-            write_mem_cmd_success(cmd_log_mem_section.curr_block - 1, 0x01);
-        } else {
-            write_mem_cmd_success(cmd_log_mem_section.curr_block - 1, 0x00);
-        }
     }
     print("Finished cmd\n");
 }
