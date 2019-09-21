@@ -28,6 +28,8 @@ volatile bool prev_cmd_succeeded = false;
 // received after 30 seconds
 volatile uint8_t can_countdown = 0;
 
+mem_header_t obc_hk_header;
+uint32_t obc_hk_fields[CAN_OBC_HK_FIELD_COUNT] = { 0 };
 mem_header_t eps_hk_header;
 uint32_t eps_hk_fields[CAN_EPS_HK_FIELD_COUNT] = { 0 };
 mem_header_t pay_hk_header;
@@ -36,6 +38,11 @@ mem_header_t pay_opt_header;
 uint32_t pay_opt_fields[CAN_PAY_OPT_FIELD_COUNT] = { 0 };
 
 
+volatile auto_data_col_t obc_hk_auto_data_col = {
+    .enabled = false,
+    .period = OBC_HK_AUTO_DATA_COL_PERIOD,
+    .count = 0
+};
 volatile auto_data_col_t eps_hk_auto_data_col = {
     .enabled = false,
     .period = EPS_HK_AUTO_DATA_COL_PERIOD,
@@ -303,6 +310,8 @@ uint32_t read_eeprom(uint32_t* addr, uint32_t default_val) {
 
 
 void init_auto_data_col(void) {
+    obc_hk_auto_data_col.enabled = read_eeprom(
+        OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
     eps_hk_auto_data_col.enabled = read_eeprom(
         EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
     pay_hk_auto_data_col.enabled = read_eeprom(
@@ -310,6 +319,8 @@ void init_auto_data_col(void) {
     pay_opt_auto_data_col.enabled = read_eeprom(
         PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
     
+    obc_hk_auto_data_col.period = read_eeprom(
+        OBC_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, OBC_HK_AUTO_DATA_COL_PERIOD);
     eps_hk_auto_data_col.period = read_eeprom(
         EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, EPS_HK_AUTO_DATA_COL_PERIOD);
     pay_hk_auto_data_col.period = read_eeprom(
@@ -322,13 +333,23 @@ void init_auto_data_col(void) {
 
 // Automatic data collection timer callback (for 16-bit timer)
 void auto_data_col_timer_cb(void) {
-    // print("Aut data col timer cb\n");
+    // print("Auto data col timer cb\n");
+
+    if (obc_hk_auto_data_col.enabled) {
+        obc_hk_auto_data_col.count += 1;
+
+        if (obc_hk_auto_data_col.count >= obc_hk_auto_data_col.period) {
+            print("Auto OBC_HK\n");
+            obc_hk_auto_data_col.count = 0;
+            enqueue_cmd(&col_data_block_cmd, CMD_OBC_HK, 1);    // auto
+        }
+    }
 
     if (eps_hk_auto_data_col.enabled) {
         eps_hk_auto_data_col.count += 1;
 
         if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
-            print("Auto collecting EPS_HK\n");
+            print("Auto EPS_HK\n");
             eps_hk_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_EPS_HK, 1);    // auto
         }
@@ -338,7 +359,7 @@ void auto_data_col_timer_cb(void) {
         pay_hk_auto_data_col.count += 1;
 
         if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
-            print("Auto collecting PAY_HK\n");
+            print("Auto PAY_HK\n");
             pay_hk_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_PAY_HK, 1);    // auto
         }
@@ -348,7 +369,7 @@ void auto_data_col_timer_cb(void) {
         pay_opt_auto_data_col.count += 1;
 
         if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
-            print("Auto collecting PAY_OPT\n");
+            print("Auto PAY_OPT\n");
             pay_opt_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_PAY_OPT, 1);   // auto
         }

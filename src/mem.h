@@ -52,7 +52,7 @@
 // Because one chip is 2MB and each address is for one byte
 #define MEM_CHIP_ADDR_WIDTH     21
 // Number of sections in memory layout
-#define MEM_NUM_SECTIONS        4
+#define MEM_NUM_SECTIONS        6
 // Number of bytes in a header
 #define MEM_BYTES_PER_HEADER    10
 // Number of bytes in one field (one measurement)
@@ -62,25 +62,26 @@
 // Number of bytes per memory sector
 #define MEM_BYTES_PER_SECTOR    4096
 
+#define MEM_OBC_HK_START_ADDR       0x000000UL
+#define MEM_OBC_HK_END_ADDR         0x0FFFFFUL
+#define MEM_EPS_HK_START_ADDR       0x100000UL
+#define MEM_EPS_HK_END_ADDR         0x1FFFFFUL
+#define MEM_PAY_HK_START_ADDR       0x200000UL
+#define MEM_PAY_HK_END_ADDR         0x2FFFFFUL
+#define MEM_PAY_OPT_START_ADDR      0x300000UL
+#define MEM_PAY_OPT_END_ADDR        0x3FFFFFUL
+#define MEM_PRIM_CMD_LOG_START_ADDR 0x400000UL
+#define MEM_PRIM_CMD_LOG_END_ADDR   0x4FFFFFUL
+#define MEM_SEC_CMD_LOG_START_ADDR  0x500000UL
+#define MEM_SEC_CMD_LOG_END_ADDR    0x5FFFFFUL
+#define MEM_NUM_ADDRESSES           0x600000UL
 
-#define MEM_EPS_HK_START_ADDR   0x000000UL
-#define MEM_EPS_HK_END_ADDR     0x1FFFFFUL
-
-#define MEM_PAY_HK_START_ADDR   0x200000UL
-#define MEM_PAY_HK_END_ADDR     0x2FFFFFUL
-
-#define MEM_PAY_OPT_START_ADDR  0x300000UL
-#define MEM_PAY_OPT_END_ADDR    0x3FFFFFUL
-
-#define MEM_CMD_LOG_START_ADDR  0x400000UL
-#define MEM_CMD_LOG_END_ADDR    0x5FFFFFUL
-
-#define MEM_NUM_ADDRESSES       0x600000UL
-
-#define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x20)
-#define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR   ((uint32_t*) 0x24)
-#define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x28)
-#define MEM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x2C)
+#define MEM_OBC_HK_CURR_BLOCK_EEPROM_ADDR       ((uint32_t*) 0x20)
+#define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR       ((uint32_t*) 0x24)
+#define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR       ((uint32_t*) 0x28)
+#define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR      ((uint32_t*) 0x2C)
+#define MEM_PRIM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR ((uint32_t*) 0x30)
+#define MEM_SEC_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x34)
 
 
 // Sections in memory
@@ -94,7 +95,7 @@ typedef struct {
     // Address in EEPROM that stores the current block number
     uint32_t* curr_block_eeprom_addr;
     // Number of fields in one block (NOT including the header)
-    // This does not matter for the cmd_log section
+    // This only matters for the data block sections, not the command log block sections
     uint8_t fields_per_block;
 } mem_section_t;
 
@@ -111,10 +112,12 @@ typedef struct {
 } mem_header_t;
 
 // Make the memory sections visible to other files so they can write data to sections
+extern mem_section_t obc_hk_mem_section;
 extern mem_section_t eps_hk_mem_section;
 extern mem_section_t pay_hk_mem_section;
 extern mem_section_t pay_opt_mem_section;
-extern mem_section_t cmd_log_mem_section;
+extern mem_section_t prim_cmd_log_mem_section;
+extern mem_section_t sec_cmd_log_mem_section;
 extern mem_section_t* all_mem_sections[];
 
 
@@ -133,9 +136,9 @@ void write_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
 void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
-uint8_t write_mem_cmd_block(uint32_t block_num, mem_header_t* header,
+uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
     uint8_t cmd_num, uint32_t arg1, uint32_t arg2);
-void read_mem_cmd_block(uint32_t block_num, mem_header_t* header,
+void read_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
     uint8_t* cmd_num, uint32_t* arg1, uint32_t* arg2);
 
 // High-level operations - headers and fields
@@ -153,7 +156,7 @@ uint32_t mem_block_size(mem_section_t* section);
 uint32_t mem_block_section_addr(mem_section_t* section, uint32_t block_num);
 uint32_t mem_field_section_addr(mem_section_t* section, uint32_t block_num,
     uint32_t field_num);
-uint32_t mem_cmd_section_addr(uint32_t block_num);
+uint32_t mem_cmd_section_addr(mem_section_t* section, uint32_t block_num);
 void process_mem_addr(uint32_t address, uint8_t* chip_num, uint8_t* addr1,
     uint8_t* addr2, uint8_t* addr3);
 
