@@ -16,18 +16,14 @@
 #include <spi/spi.h>
 #include "../../src/mem.h"
 
-// NOTE: should change ERASE_SEED periodically
-#define ERASE_SEED              0x162FAF13
 #define ERASE_ADDR_COUNT        20
 #define DATA_LENGTH             5
-#define RANDOM_SEED             0x5729AB7D
 #define RANDOM_MAX_LEN          255
 #define ROLLOVER_ADDR_1         0x1FFFFC
 #define ROLLOVER_ADDR_2         0x3FFFFB
 #define NUM_ROLLOVER            2
 #define ROLLOVER_DATA           {0xDE, 0xAD, 0xBE, 0xEF, 0xBA, 0xF0, 0x0D, 0x12}
 #define ROLLOVER_DATA_LEN       8
-#define FIELD_TEST_RANDOM_SEED  0x4357D43A
 
 // Macros to compare structs without having to do it for each of the fields every time
 #define ASSERT_EQ_DATE(date1, date2) \
@@ -84,7 +80,6 @@ void erase_mem_test(void) {
 	erase_mem();
 	// take a random sample of the memory to see if erase works
 	// values should all be 0xff
-	srandom(ERASE_SEED);
 	uint32_t num_addrs = MEM_NUM_CHIPS * (1UL << MEM_CHIP_ADDR_WIDTH);
 
 	for(uint8_t i = 0; i < ERASE_ADDR_COUNT; i++){
@@ -169,7 +164,6 @@ void multiple_write_read_test_2(void) {
 void random_read_write_test(void) {
     erase_mem();
 
-	srandom(RANDOM_SEED);
 	uint32_t num_addrs = MEM_NUM_CHIPS * (1UL << MEM_CHIP_ADDR_WIDTH);
 	uint32_t addr = random() % num_addrs;
 
@@ -287,7 +281,6 @@ void mem_field_test_individual( mem_section_t* section) {
 }
 
 void mem_field_test(void) {
-	srandom(FIELD_TEST_RANDOM_SEED);
 	mem_field_test_individual(&eps_hk_mem_section);
 	mem_field_test_individual(&pay_hk_mem_section);
 	mem_field_test_individual(&pay_opt_mem_section);
@@ -297,26 +290,30 @@ void mem_field_test(void) {
 void mem_block_test_1(void){
     erase_mem();
 
-    uint32_t write_fields_1[eps_hk_mem_section.fields_per_block];
-    uint32_t write_fields_2[pay_hk_mem_section.fields_per_block];
-    uint32_t write_fields_3[pay_opt_mem_section.fields_per_block];
+    uint32_t write_fields_1[obc_hk_mem_section.fields_per_block];
+    uint32_t write_fields_2[eps_hk_mem_section.fields_per_block];
+    uint32_t write_fields_3[pay_hk_mem_section.fields_per_block];
+    uint32_t write_fields_4[pay_opt_mem_section.fields_per_block];
     //random 32 bit numbers
-    for (int a = 0; a < eps_hk_mem_section.fields_per_block; a++){
+    for (int a = 0; a < obc_hk_mem_section.fields_per_block; a++){
         write_fields_1[a] = (random() & 0xFFFFFF);
     }
-    for (int a = 0; a < pay_hk_mem_section.fields_per_block; a++){
+    for (int a = 0; a < eps_hk_mem_section.fields_per_block; a++){
         write_fields_2[a] = (random() & 0xFFFFFF);
     }
-    for (int a = 0; a < pay_opt_mem_section.fields_per_block; a++){
+    for (int a = 0; a < pay_hk_mem_section.fields_per_block; a++){
         write_fields_3[a] = (random() & 0xFFFFFF);
     }
-    uint32_t* write_test_fields[3] = {write_fields_1, write_fields_2, write_fields_3};
+    for (int a = 0; a < pay_opt_mem_section.fields_per_block; a++){
+        write_fields_4[a] = (random() & 0xFFFFFF);
+    }
+    uint32_t* write_test_fields[4] = {write_fields_1, write_fields_2, write_fields_3, write_fields_4};
 
-    mem_header_t write_header[3];
+    mem_header_t write_header[4];
 
-    uint32_t block_num[3];
+    uint32_t block_num[4];
     //write to all sections
-    for (int i = 0; i < 3; i++){
+    for (int i = 0; i < 4; i++){
         mem_section_t* section = all_mem_sections[i];
         section->curr_block = 1;////////////////
         block_num[i] = section->curr_block;
@@ -329,28 +326,29 @@ void mem_block_test_1(void){
         ASSERT_EQ(prev_block, block_num[i]);///////////////
     }
 
-    uint32_t read_fields_1[eps_hk_mem_section.fields_per_block];
-    uint32_t read_fields_2[pay_hk_mem_section.fields_per_block];
-    uint32_t read_fields_3[pay_opt_mem_section.fields_per_block];
-    uint32_t* read_test_fields[3] = {read_fields_1, read_fields_2, read_fields_3};
+    uint32_t read_fields_1[obc_hk_mem_section.fields_per_block];
+    uint32_t read_fields_2[eps_hk_mem_section.fields_per_block];
+    uint32_t read_fields_3[pay_hk_mem_section.fields_per_block];
+    uint32_t read_fields_4[pay_opt_mem_section.fields_per_block];
+    uint32_t* read_test_fields[4] = {read_fields_1, read_fields_2, read_fields_3, read_fields_4};
 
-    mem_header_t read_header[3];
-    uint32_t read_block_num[3];
+    mem_header_t read_header[4];
+    uint32_t read_block_num[4];
 
     //read from all sections
-    for (int i = 0; i < 3; i++){
+    for (int i = 0; i < 4; i++){
         mem_section_t* section = all_mem_sections[i];
         section->curr_block = 1;////////////////////
         read_block_num[i] = section->curr_block;
         read_mem_data_block(section, read_block_num[i], &(read_header[i]), read_test_fields[i]);
     }
 
-    for (int i=0; i<3; i++){
+    for (int i=0; i<4; i++){
         ASSERT_EQ(block_num[i], read_block_num[i]);
     }
 
     //check headers
-    for (int i = 0; i < 3; i++){
+    for (int i = 0; i < 4; i++){
         ASSERT_EQ((write_header[i]).block_num, (read_header[i]).block_num); //this should be the case right.
         ASSERT_EQ((write_header[i]).error, (read_header[i]).error);
         ASSERT_EQ_DATE((write_header[i]).date, (read_header[i]).date);
@@ -358,21 +356,25 @@ void mem_block_test_1(void){
     }
 
     //check fields
-    for (uint8_t a = 0; a < eps_hk_mem_section.fields_per_block; a++){
+    for (uint8_t a = 0; a < obc_hk_mem_section.fields_per_block; a++){
         ASSERT_EQ(write_fields_1[a], read_fields_1[a]);
-
     }
-    for (uint8_t a = 0; a < pay_hk_mem_section.fields_per_block; a++){
+    for (uint8_t a = 0; a < eps_hk_mem_section.fields_per_block; a++){
         ASSERT_EQ(write_fields_2[a], read_fields_2[a]);
     }
-    for (uint8_t a = 0; a < pay_opt_mem_section.fields_per_block; a++){
+    for (uint8_t a = 0; a < pay_hk_mem_section.fields_per_block; a++){
         ASSERT_EQ(write_fields_3[a], read_fields_3[a]);
+    }
+    for (uint8_t a = 0; a < pay_opt_mem_section.fields_per_block; a++){
+        ASSERT_EQ(write_fields_4[a], read_fields_4[a]);
     }
 }
 
 //actually test blocks
 void mem_block_test_2(void){
     erase_mem();
+
+    // TODO - add OBC_HK
 
     uint32_t write_fields_1[eps_hk_mem_section.fields_per_block];
     uint32_t write_fields_2[pay_hk_mem_section.fields_per_block];
@@ -397,7 +399,7 @@ void mem_block_test_2(void){
     }
 
     //test eps housekeeping
-    mem_section_t* section = all_mem_sections[0];
+    mem_section_t* section = all_mem_sections[1];
     section->curr_block = 0;//
 
     uint32_t block_num = section->curr_block;
@@ -421,7 +423,7 @@ void mem_block_test_2(void){
     }
 
     //test pay housekeeping
-    section = all_mem_sections[1];
+    section = all_mem_sections[2];
     section->curr_block = 0;//
 
     block_num = section->curr_block;
@@ -443,7 +445,7 @@ void mem_block_test_2(void){
     }
 
     //test pay optical
-    section = all_mem_sections[2];
+    section = all_mem_sections[3];
     section->curr_block = 0;//
 
     block_num = section->curr_block;
@@ -489,20 +491,22 @@ void section_byte_isolation_test(void) {
 
     // Write EPS_HK, don't overwrite PAY_HK
 
-    uint32_t eps_hk_addr = 0x1FFFFBUL;
+    // Address offset from beginning of EPS_HK, should be 0x0FFFFB
+    uint32_t eps_hk_section_addr = eps_hk_mem_section.end_addr - eps_hk_mem_section.start_addr - 4;
     uint8_t write_eps_hk[10] = {0x00};
     for (uint8_t i = 0; i < 10; i++) {
         write_eps_hk[i] = i + 13;
     }
     uint8_t read_eps_hk[10] = {0x00};
 
-    read_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, read_eps_hk, 5);
+    read_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, read_eps_hk, 5);
     ASSERT_EQ_ARRAY(read_eps_hk, ones, 5);
 
-    ASSERT_FALSE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, write_eps_hk, 10));
-    ASSERT_FALSE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, write_eps_hk, 6));
-    ASSERT_TRUE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, write_eps_hk, 5));
-    read_mem_section_bytes(&eps_hk_mem_section, eps_hk_addr, read_eps_hk, 5);
+    // TODO - probably need to erase in between writes
+    ASSERT_FALSE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, write_eps_hk, 10));
+    ASSERT_FALSE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, write_eps_hk, 6));
+    ASSERT_TRUE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, write_eps_hk, 5));
+    read_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, read_eps_hk, 5);
     ASSERT_EQ_ARRAY(read_eps_hk, write_eps_hk, 5);
 
     // Check that PAY_HK is unchanged
@@ -515,7 +519,7 @@ void cmd_block_test(void) {
 
     // eps_hk_mem_section
 	mem_header_t write_header = {
-        .block_num = cmd_log_mem_section.curr_block,
+        .block_num = prim_cmd_log_mem_section.curr_block,
         .error = 0x00,
         .date = rand_rtc_date(),
         .time = rand_rtc_time()
@@ -536,9 +540,9 @@ void cmd_block_test(void) {
     write_cmd_num = 5;
     write_arg1 = 1000000000;
     write_arg2 = 132497;
-    ASSERT_TRUE(write_mem_cmd_block(block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
+    ASSERT_TRUE(write_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
 
-    read_mem_cmd_block(block_num, &read_header, &read_cmd_num, &read_arg1, &read_arg2);
+    read_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &read_header, &read_cmd_num, &read_arg1, &read_arg2);
     ASSERT_EQ(write_header.block_num, read_header.block_num);
     ASSERT_EQ(write_header.error, read_header.error);
     ASSERT_EQ_DATE(write_header.date, read_header.date);
@@ -548,7 +552,7 @@ void cmd_block_test(void) {
     ASSERT_EQ(write_arg2, read_arg2);
 
     block_num = 1000000;
-    ASSERT_FALSE(write_mem_cmd_block(block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
+    ASSERT_FALSE(write_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
 }
 
 /* Test the ability to erase a 4kb sector of memory given an address */
@@ -557,7 +561,6 @@ void mem_sector_erase_test(void){
     uint8_t read[1] = {0};
 
     /* Generate random address by seeding and calling random */
-    srandom(ERASE_SEED);
     uint32_t address = random() % MEM_NUM_ADDRESSES;
     /* Write to location in sector and verify that write worked */
     write_mem_bytes(address, data, DATA_LENGTH);
@@ -580,8 +583,6 @@ void mem_block_erase_test(void){
     uint8_t data[DATA_LENGTH] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
     uint8_t read[1] = {0};
 
-    /* Generate random address by seeding and calling random */
-    srandom(ERASE_SEED);
     uint32_t address = random() % MEM_NUM_ADDRESSES;
 
     /* Write to location in block and verify that write worked */
