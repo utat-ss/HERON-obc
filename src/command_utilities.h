@@ -120,6 +120,7 @@ extern mem_header_t pay_hk_header;
 extern uint32_t pay_hk_fields[];
 extern mem_header_t pay_opt_header;
 extern uint32_t pay_opt_fields[];
+extern mem_header_t cmd_log_header;
 
 extern volatile auto_data_col_t obc_hk_auto_data_col;
 extern volatile auto_data_col_t eps_hk_auto_data_col;
@@ -145,7 +146,7 @@ void dequeue_cmd(void);
 void execute_next_cmd(void);
 void finish_current_cmd(bool succeeded);
 
-void populate_header(mem_header_t* header, uint32_t block_num, uint8_t error);
+void populate_header(mem_header_t* header, uint32_t block_num, uint8_t success);
 
 void append_header_to_tx_msg(mem_header_t* header);
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);

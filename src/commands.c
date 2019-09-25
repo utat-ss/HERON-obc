@@ -827,7 +827,7 @@ void get_cur_block_num_fn(void) {
         append_to_trans_tx_dec_msg(block_num & 0xFF);
         finish_trans_tx_dec_msg();
     }
-    
+
     finish_current_cmd(true);
 }
 
@@ -857,7 +857,7 @@ void set_cur_block_num_fn(void) {
         start_trans_tx_dec_msg();
         finish_trans_tx_dec_msg();
     }
-    
+
     finish_current_cmd(true);
 }
 
@@ -918,7 +918,7 @@ void set_mem_sec_start_addr_fn(void) {
         start_trans_tx_dec_msg();
         finish_trans_tx_dec_msg();
     }
-    
+
     finish_current_cmd(true);
 }
 
@@ -979,7 +979,7 @@ void set_mem_sec_end_addr_fn(void) {
         start_trans_tx_dec_msg();
         finish_trans_tx_dec_msg();
     }
-    
+
     finish_current_cmd(true);
 }
 

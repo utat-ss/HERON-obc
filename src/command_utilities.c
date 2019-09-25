@@ -36,6 +36,7 @@ mem_header_t pay_hk_header;
 uint32_t pay_hk_fields[CAN_PAY_HK_FIELD_COUNT] = { 0 };
 mem_header_t pay_opt_header;
 uint32_t pay_opt_fields[CAN_PAY_OPT_FIELD_COUNT] = { 0 };
+mem_header_t cmd_log_header;
 
 
 volatile auto_data_col_t obc_hk_auto_data_col = {
@@ -234,6 +235,17 @@ void dequeue_cmd(void) {
         current_cmd = (cmd_t*) cmd_ptr;
         current_cmd_arg1 = arg1;
         current_cmd_arg2 = arg2;
+        mem_section_t* cmd_log_mem_section;
+        if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
+            || current_cmd == &read_sec_cmd_blocks_cmd) {
+            cmd_log_mem_section = &sec_cmd_log_mem_section;
+        } else {
+            cmd_log_mem_section = &prim_cmd_log_mem_section;
+        }
+        populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, 0xFF);
+        write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block, &cmd_log_header,
+            trans_cmd_to_msg_type((cmd_t*) current_cmd), current_cmd_arg1, current_cmd_arg2);
+        inc_mem_section_curr_block(cmd_log_mem_section);
     }
 
     print("dequeue_cmd: cmd = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", current_cmd,
@@ -254,6 +266,24 @@ void execute_next_cmd(void) {
 // Finishes executing the current command and sets the succeeded flag
 void finish_current_cmd(bool succeeded) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        // The erase flash command erases the command log as well, therefore re-write the command log
+        // for the erase flash command
+        if (current_cmd == &erase_all_mem_cmd) {
+            write_mem_cmd_block(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, &cmd_log_header,
+                trans_cmd_to_msg_type((cmd_t*) current_cmd), current_cmd_arg1, current_cmd_arg2);
+        }
+        uint8_t success_byte;
+        if (succeeded == true) {
+            success_byte = 0x01;
+        } else {
+            success_byte = 0x00;
+        }
+        if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
+            || current_cmd == &read_sec_cmd_blocks_cmd) {
+            write_mem_cmd_success(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, success_byte);
+        } else {
+            write_mem_cmd_success(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, success_byte);
+        }
         current_cmd = &nop_cmd;
         current_cmd_arg1 = 0;
         current_cmd_arg2 = 0;
@@ -267,11 +297,11 @@ void finish_current_cmd(bool succeeded) {
 
 
 /*
-Populates the block number, error, and current live date/time.
+Populates the block number, success, and current live date/time.
 */
-void populate_header(mem_header_t* header, uint32_t block_num, uint8_t error) {
+void populate_header(mem_header_t* header, uint32_t block_num, uint8_t success) {
     header->block_num = block_num;
-    header->error = error;
+    header->success = success;
     header->date = read_rtc_date();
     header->time = read_rtc_time();
 }
@@ -281,7 +311,7 @@ void append_header_to_tx_msg(mem_header_t* header) {
     append_to_trans_tx_dec_msg((header->block_num >> 16) & 0xFF);
     append_to_trans_tx_dec_msg((header->block_num >> 8) & 0xFF);
     append_to_trans_tx_dec_msg(header->block_num & 0xFF);
-    append_to_trans_tx_dec_msg(header->error);
+    append_to_trans_tx_dec_msg(header->success);
     append_to_trans_tx_dec_msg(header->date.yy);
     append_to_trans_tx_dec_msg(header->date.mm);
     append_to_trans_tx_dec_msg(header->date.dd);
