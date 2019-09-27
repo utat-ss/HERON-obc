@@ -183,7 +183,7 @@ void print_gyro_data(uint16_t raw_data) {
 }
 
 void print_header(mem_header_t header) {
-    print("block_num = %lu, error = %u, ", header.block_num, header.error);
+    print("block_num = %lu, success = %u, ", header.block_num, header.success);
     print("date = %02u:%02u:%02u, time = %02u:%02u:%02u\n",
         header.date.yy, header.date.mm, header.date.dd,
         header.time.hh, header.time.mm, header.time.ss);

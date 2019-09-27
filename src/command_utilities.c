@@ -99,7 +99,7 @@ void handle_trans_rx_dec_msg(void) {
             ((uint32_t) msg[8]);
 
         cmd_t* cmd = trans_msg_type_to_cmd(msg_type);
-        if (cmd == NULL) {
+        if (cmd == &nop_cmd) {
             add_trans_tx_ack(msg_type, arg1, arg2, 0x03);
             return;
         }
@@ -340,13 +340,13 @@ void append_header_to_tx_msg(mem_header_t* header) {
     append_to_trans_tx_dec_msg((header->block_num >> 16) & 0xFF);
     append_to_trans_tx_dec_msg((header->block_num >> 8) & 0xFF);
     append_to_trans_tx_dec_msg(header->block_num & 0xFF);
-    append_to_trans_tx_dec_msg(header->success);
     append_to_trans_tx_dec_msg(header->date.yy);
     append_to_trans_tx_dec_msg(header->date.mm);
     append_to_trans_tx_dec_msg(header->date.dd);
     append_to_trans_tx_dec_msg(header->time.hh);
     append_to_trans_tx_dec_msg(header->time.mm);
     append_to_trans_tx_dec_msg(header->time.ss);
+    append_to_trans_tx_dec_msg(header->success);
 }
 
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields) {
