@@ -815,6 +815,12 @@ void get_cur_block_num_fn(void) {
         case CMD_PAY_OPT:
             block_num = pay_opt_mem_section.curr_block;
             break;
+        case CMD_PRIM_CMD_LOG:
+            block_num = prim_cmd_log_mem_section.curr_block;
+            break;
+        case CMD_SEC_CMD_LOG:
+            block_num = sec_cmd_log_mem_section.curr_block;
+            break;
         default:
             break;
     }
@@ -849,6 +855,12 @@ void set_cur_block_num_fn(void) {
         case CMD_PAY_OPT:
             pay_opt_mem_section.curr_block = current_cmd_arg2;
             break;
+        case CMD_PRIM_CMD_LOG:
+            prim_cmd_log_mem_section.curr_block = current_cmd_arg2;
+            break;
+        case CMD_SEC_CMD_LOG:
+            sec_cmd_log_mem_section.curr_block = current_cmd_arg2;
+            break;
         default:
             break;
     }
@@ -877,6 +889,12 @@ void get_mem_sec_start_addr_fn(void) {
             break;
         case CMD_PAY_OPT:
             start_addr = pay_opt_mem_section.start_addr;
+            break;
+        case CMD_PRIM_CMD_LOG:
+            start_addr = prim_cmd_log_mem_section.start_addr;
+            break;
+        case CMD_SEC_CMD_LOG:
+            start_addr = sec_cmd_log_mem_section.start_addr;
             break;
         default:
             break;
@@ -910,6 +928,12 @@ void set_mem_sec_start_addr_fn(void) {
         case CMD_PAY_OPT:
             pay_opt_mem_section.start_addr = current_cmd_arg2;
             break;
+        case CMD_PRIM_CMD_LOG:
+            prim_cmd_log_mem_section.start_addr = current_cmd_arg2;
+            break;
+        case CMD_SEC_CMD_LOG:
+            sec_cmd_log_mem_section.start_addr = current_cmd_arg2;
+            break;
         default:
             break;
     }
@@ -938,6 +962,12 @@ void get_mem_sec_end_addr_fn(void) {
             break;
         case CMD_PAY_OPT:
             end_addr = pay_opt_mem_section.end_addr;
+            break;
+        case CMD_PRIM_CMD_LOG:
+            end_addr = prim_cmd_log_mem_section.end_addr;
+            break;
+        case CMD_SEC_CMD_LOG:
+            end_addr = sec_cmd_log_mem_section.end_addr;
             break;
         default:
             break;
@@ -970,6 +1000,12 @@ void set_mem_sec_end_addr_fn(void) {
             break;
         case CMD_PAY_OPT:
             pay_opt_mem_section.end_addr = current_cmd_arg2;
+            break;
+        case CMD_PRIM_CMD_LOG:
+            prim_cmd_log_mem_section.end_addr = current_cmd_arg2;
+            break;
+        case CMD_SEC_CMD_LOG:
+            sec_cmd_log_mem_section.end_addr = current_cmd_arg2;
             break;
         default:
             break;

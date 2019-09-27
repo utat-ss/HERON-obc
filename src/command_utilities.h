@@ -30,10 +30,12 @@ typedef struct {
 #define CMD_PAY       3
 
 // Block types
-#define CMD_OBC_HK    1
-#define CMD_EPS_HK    2
-#define CMD_PAY_HK    3
-#define CMD_PAY_OPT   4
+#define CMD_OBC_HK          1
+#define CMD_EPS_HK          2
+#define CMD_PAY_HK          3
+#define CMD_PAY_OPT         4
+#define CMD_PRIM_CMD_LOG    5
+#define CMD_SEC_CMD_LOG     6
 
 // Command types
 #define CMD_PING_OBC                    0x00
