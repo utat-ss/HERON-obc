@@ -132,6 +132,7 @@ extern rtc_time_t restart_time;
 
 
 void handle_trans_rx_dec_msg(void);
+void process_trans_tx_ack(void);
 
 void start_trans_tx_dec_msg(void);
 void append_to_trans_tx_dec_msg(uint8_t byte);

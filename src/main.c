@@ -16,16 +16,21 @@ int main(void) {
 
         run_hb();
 
+        decode_trans_rx_msg();
+        handle_trans_rx_dec_msg();
+
+        process_trans_tx_ack();
+        encode_trans_tx_msg();
+        send_trans_tx_enc_msg();
+
+        execute_next_cmd();
+
         send_next_eps_tx_msg();
         send_next_pay_tx_msg();
         process_next_rx_msg();
 
-        execute_next_cmd();
-
-        send_trans_tx_enc_msg();
         encode_trans_tx_msg();
-        handle_trans_rx_dec_msg();
-        decode_trans_rx_msg();
+        send_trans_tx_enc_msg();
     }
 
     return 0;

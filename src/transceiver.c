@@ -84,6 +84,13 @@ volatile uint8_t    trans_rx_dec_msg[TRANS_RX_DEC_MSG_MAX_SIZE] = {0x00};
 volatile uint8_t    trans_rx_dec_len = 0;
 volatile bool       trans_rx_dec_avail = false;
 
+// ACK/NACK to send to ground
+volatile uint8_t    trans_tx_ack_opcode = 0;
+volatile uint32_t   trans_tx_ack_arg1 = 0;
+volatile uint32_t   trans_tx_ack_arg2 = 0;
+volatile uint8_t    trans_tx_ack_status = 0xFF;
+volatile bool       trans_tx_ack_avail = false;
+
 // Decoded TX message (to ground station)
 volatile uint8_t    trans_tx_dec_msg[TRANS_TX_DEC_MSG_MAX_SIZE] = {0x00};
 volatile uint8_t    trans_tx_dec_len = 0;
@@ -127,6 +134,8 @@ void trans_uptime_cb(void) {
         print_bytes((uint8_t*) uart_rx_buf, get_uart_rx_buf_count());
         clear_uart_rx_buf();
         print("\nTimed out, cleared UART RX buf\n");
+
+        add_trans_tx_ack(0xFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x01);   // TODO - status constants
     }
 }
 
@@ -223,23 +232,16 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
     }
 }
 
-// // This should be called in an atomic block!
-// void add_tx_ack_msg(uint8_t opcode, uint32_t arg1, uint32_t arg2, uint8_t status) {
-//     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-//         start_trans_tx_dec_msg();
-//         append_to_trans_tx_dec_msg(opcode);
-//         append_to_trans_tx_dec_msg((arg1 >> 24) & 0xFF);
-//         append_to_trans_tx_dec_msg((arg1 >> 16) & 0xFF);
-//         append_to_trans_tx_dec_msg((arg1 >> 8) & 0xFF);
-//         append_to_trans_tx_dec_msg(arg1 & 0xFF);
-//         append_to_trans_tx_dec_msg((arg2 >> 24) & 0xFF);
-//         append_to_trans_tx_dec_msg((arg2 >> 16) & 0xFF);
-//         append_to_trans_tx_dec_msg((arg2 >> 8) & 0xFF);
-//         append_to_trans_tx_dec_msg(arg2 & 0xFF);
-//         append_to_trans_tx_dec_msg(status);
-//         finish_trans_tx_dec_msg();
-//     }
-// }
+// TODO - look for a better way to do this
+void add_trans_tx_ack(uint8_t opcode, uint32_t arg1, uint32_t arg2, uint8_t status) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        trans_tx_ack_opcode = opcode;
+        trans_tx_ack_arg1 = arg1;
+        trans_tx_ack_arg2 = arg2;
+        trans_tx_ack_status = status;
+        trans_tx_ack_avail = true;
+    }
+}
 
 void print_uint64(uint64_t num) {
     print("0x%.8lx%.8lx",
