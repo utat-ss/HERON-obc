@@ -78,6 +78,12 @@ extern volatile uint8_t    trans_rx_dec_msg[];
 extern volatile uint8_t    trans_rx_dec_len;
 extern volatile bool       trans_rx_dec_avail;
 
+extern volatile uint8_t    trans_tx_ack_opcode;
+extern volatile uint32_t   trans_tx_ack_arg1;
+extern volatile uint32_t   trans_tx_ack_arg2;
+extern volatile uint8_t    trans_tx_ack_status;
+extern volatile bool       trans_tx_ack_avail;
+
 extern volatile uint8_t    trans_tx_dec_msg[];
 extern volatile uint8_t    trans_tx_dec_len;
 extern volatile bool       trans_tx_dec_avail;
@@ -93,6 +99,7 @@ void trans_uptime_cb(void);
 uint8_t trans_uart_rx_cb(const uint8_t* buf, uint8_t len);
 void scan_trans_cmd_resp(const uint8_t* buf, uint8_t len);
 void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len);
+void add_trans_tx_ack(uint8_t opcode, uint32_t arg1, uint32_t arg2, uint8_t status);
 void decode_trans_rx_msg(void);
 void encode_trans_tx_msg(void);
 void send_trans_tx_enc_msg(void);

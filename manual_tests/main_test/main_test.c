@@ -45,6 +45,8 @@ bool print_can_msgs = false;
 bool print_cmds = false;
 // Set to true to print transceiver messages
 bool print_trans_msgs = false;
+// Set to true to print ACKs
+bool print_trans_tx_acks = false;
 
 
 // Normal command with a string description to print on UART
@@ -310,6 +312,19 @@ void print_next_rx_msg(void) {
     // Extra spaces to align with CAN TX messages
     print("CAN RX:       ");
     print_bytes(rx_msg, 8);
+}
+
+void print_next_trans_tx_ack(void) {
+    if (!print_trans_tx_acks) {
+        return;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (!trans_tx_ack_avail) {
+            return;
+        }
+        print("ACK: op = 0x%.2x, arg1 = 0x%.8lx, arg2 = 0x%.8lx, stat = 0x%.2x\n", trans_tx_ack_opcode, trans_tx_ack_arg1, trans_tx_ack_arg2, trans_tx_ack_status);
+    }
 }
 
 void print_next_cmd(void) {
@@ -691,6 +706,7 @@ int main(void){
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;
+    print_trans_tx_acks = true;
 
     // NOTE: Leaving all these print statements in will likely overflow the data section/stack, so generally they should be commented out
     // Run `avr-size main_test.elf`
@@ -716,11 +732,11 @@ int main(void){
         init_hb(HB_OBC);
     }
 
-    print("Mem blocks: eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
-        eps_hk_mem_section.curr_block,
-        pay_hk_mem_section.curr_block,
-        pay_opt_mem_section.curr_block);
-    print("\n");
+    // print("Mem blocks: eps_hk = %lu, pay_hk = %lu, pay_opt = %lu\n",
+    //     eps_hk_mem_section.curr_block,
+    //     pay_hk_mem_section.curr_block,
+    //     pay_opt_mem_section.curr_block);
+    // print("\n");
 
     if (reset_comms_delay_eeprom) {
         eeprom_write_dword(COMMS_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
@@ -756,6 +772,40 @@ int main(void){
             run_hb();
         }
 
+        // Trans RX (encoded)
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_trans_rx_enc_msg();
+            decode_trans_rx_msg();
+        }
+        // Trans RX (decoded)
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_trans_rx_dec_msg();
+            handle_trans_rx_dec_msg();
+        }
+
+        // Trans TX ACK
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_trans_tx_ack();
+            process_trans_tx_ack();
+        }
+        // TODO - better way to do this than to repeat TX twice in a loop iteration?
+        // Trans TX (decoded)
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_trans_tx_dec_msg();
+            encode_trans_tx_msg();
+        }
+        // Trans TX (encoded)
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_trans_tx_enc_msg();
+            send_trans_tx_enc_msg();
+        }
+
+        // Command
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            print_next_cmd();
+            execute_next_cmd();
+        }
+
         // EPS TX
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             print_next_eps_tx_msg();
@@ -766,7 +816,6 @@ int main(void){
                 send_next_eps_tx_msg();
             }
         }
-
         // PAY TX
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             print_next_pay_tx_msg();
@@ -777,23 +826,10 @@ int main(void){
                 send_next_pay_tx_msg();
             }
         }
-
-        // CAN RX
+        // EPS/PAY RX
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             print_next_rx_msg();
             process_next_rx_msg();
-        }
-
-        // Command
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_cmd();
-            execute_next_cmd();
-        }
-
-        // Trans TX (encoded)
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_tx_enc_msg();
-            send_trans_tx_enc_msg();
         }
 
         // Trans TX (decoded)
@@ -801,17 +837,10 @@ int main(void){
             print_next_trans_tx_dec_msg();
             encode_trans_tx_msg();
         }
-
-        // Trans RX (decoded)
+        // Trans TX (encoded)
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_rx_dec_msg();
-            handle_trans_rx_dec_msg();
-        }
-
-        // Trans RX (encoded)
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_rx_enc_msg();
-            decode_trans_rx_msg();
+            print_next_trans_tx_enc_msg();
+            send_trans_tx_enc_msg();
         }
     }
 

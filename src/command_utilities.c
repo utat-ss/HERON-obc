@@ -80,6 +80,7 @@ void handle_trans_rx_dec_msg(void) {
         trans_rx_dec_avail = false;
         // Only accept 13 byte messages
         if (trans_rx_dec_len < 13) {
+            add_trans_tx_ack(0xFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x02);
             return;
         }
 
@@ -99,6 +100,7 @@ void handle_trans_rx_dec_msg(void) {
 
         cmd_t* cmd = trans_msg_type_to_cmd(msg_type);
         if (cmd == NULL) {
+            add_trans_tx_ack(msg_type, arg1, arg2, 0x03);
             return;
         }
 
@@ -106,13 +108,40 @@ void handle_trans_rx_dec_msg(void) {
         if (cmd->pwd_protected) {
             for (uint8_t i = 0; i < 4; i++) {
                 if (msg[9 + i] != correct_pwd[i]) {
-                    // TODO - NACK
+                    // NACK
+                    add_trans_tx_ack(msg_type, arg1, arg2, 0x04);
                     return;
                 }
             }
         }
         
+        add_trans_tx_ack(msg_type, arg1, arg2, 0x00);
         enqueue_cmd(cmd, arg1, arg2);
+    }
+}
+
+void process_trans_tx_ack(void) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (!trans_tx_ack_avail) {
+            return;
+        }
+        trans_tx_ack_avail = false;
+
+        // Can't use the standard trans_tx_dec functions because they use the current_cmd variables
+        // TODO - better way?
+        trans_tx_dec_msg[0] = trans_tx_ack_opcode | (0x1 << 7);
+        trans_tx_dec_msg[1] = (trans_tx_ack_arg1 >> 24) & 0xFF;
+        trans_tx_dec_msg[2] = (trans_tx_ack_arg1 >> 16) & 0xFF;
+        trans_tx_dec_msg[3] = (trans_tx_ack_arg1 >> 8) & 0xFF;
+        trans_tx_dec_msg[4] = (trans_tx_ack_arg1 >> 0) & 0xFF;
+        trans_tx_dec_msg[5] = (trans_tx_ack_arg2 >> 24) & 0xFF;
+        trans_tx_dec_msg[6] = (trans_tx_ack_arg2 >> 16) & 0xFF;
+        trans_tx_dec_msg[7] = (trans_tx_ack_arg2 >> 8) & 0xFF;
+        trans_tx_dec_msg[8] = (trans_tx_ack_arg2 >> 0) & 0xFF;
+        trans_tx_dec_msg[9] = trans_tx_ack_status;
+
+        trans_tx_dec_len = 10;
+        trans_tx_dec_avail = true;
     }
 }
 
