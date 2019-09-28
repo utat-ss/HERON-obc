@@ -19,19 +19,21 @@ Other Notes:
 
 int main(void){
     init_uart();
-    print("\n\n");
-
     init_uptime();
 
-    print("Starting test\n");
+    print("\n\n");
+    print("Starting test\n\n");
+    print("Delaying 5 seconds...\n");
+    _delay_ms(5000);
+    print("Done delay\n");
 
-    // For simulated transceiver
-    // init_trans_uart();
+    // Minimum UART needed for sending/receiving packets
+    init_trans_uart();
+    // Can use this instead to also correct the baud rate
+    // init_trans();
 
-    // For actual transceiver - enable pipe mode from OBC
-    init_trans();
-    turn_on_trans_pipe();
-    print("Pipe mode on\n");
+    // turn_on_trans_pipe();
+    // print("Pipe mode on\n");
 
     while (1) {
         if (trans_cmd_resp_avail) {

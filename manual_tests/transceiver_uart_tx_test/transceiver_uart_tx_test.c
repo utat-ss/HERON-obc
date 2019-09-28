@@ -71,8 +71,8 @@ void test_standard_message(uint8_t msg_type, uint32_t arg1, uint32_t arg2) {
     print_encoded();
     send_trans_tx_enc_msg();
     print("\n");
-    print_decoded();
-    print_encoded();
+    // print_decoded();
+    // print_encoded();
     print("\n\n");
 }
 
@@ -83,40 +83,41 @@ void test_string_message(char* string) {
     print_encoded();
     send_trans_tx_enc_msg();
     print("\n");
-    print_decoded();
-    print_encoded();
+    // print_decoded();
+    // print_encoded();
     print("\n\n");
 }
 
 int main(void) {
     init_uart();
-    print("\n\n");
     init_uptime();
 
+    print("\n\n");
     print("Starting test\n\n");
+    print("Delaying 5 seconds...\n");
+    _delay_ms(5000);
+    print("Done delay\n");
 
-    // For simulated transceiver
-    // init_trans_uart();
+    // Minimum UART needed for sending/receiving packets
+    init_trans_uart();
+    // Can use this instead to also correct the baud rate
+    // init_trans();
 
-    // For actual transceiver - enable pipe mode from OBC
-    init_trans();
-    turn_on_trans_pipe();
-    print("Pipe mode on\n");
-
+    // turn_on_trans_pipe();
+    // print("Pipe mode on\n");
 
     // while (1) {
     //     test_string_message("hello");
     //     _delay_ms(3000);
     // }
 
-
     test_string_message("hello");
     test_string_message("world!");
     test_string_message("UTAT");
 
-    test_standard_message(0, 0, 0);
-    test_standard_message(12, UINT32_MAX, 5);
-    test_standard_message(UINT8_MAX, 17, UINT32_MAX);
+    // test_standard_message(0, 0, 0);
+    // test_standard_message(12, UINT32_MAX, 5);
+    // test_standard_message(UINT8_MAX, 17, UINT32_MAX);
 
     print("Done test\n");
 }
