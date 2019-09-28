@@ -88,6 +88,18 @@ void test_string_message(char* string) {
     print("\n\n");
 }
 
+void test_enc_message(char* string) {
+    for (uint8_t i = 0; i < strlen(string); i++) {
+        trans_tx_enc_msg[i] = string[i];
+    }
+    trans_tx_enc_len = strlen(string);
+    trans_tx_enc_avail = true;
+
+    print_encoded();
+    send_trans_tx_enc_msg();
+    print("\n");
+}
+
 int main(void) {
     init_uart();
     init_uptime();
@@ -106,10 +118,15 @@ int main(void) {
     // turn_on_trans_pipe();
     // print("Pipe mode on\n");
 
-    // while (1) {
-    //     test_string_message("hello");
-    //     _delay_ms(3000);
-    // }
+    while (1) {
+        test_enc_message("hello");
+        _delay_ms(2000);
+    }
+
+    while (1) {
+        test_string_message("hello");
+        _delay_ms(2000);
+    }
 
     test_string_message("hello");
     test_string_message("world!");
