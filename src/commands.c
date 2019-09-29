@@ -748,10 +748,10 @@ void col_data_block_fn(void) {
                 ((uint32_t) restart_time.mm << 8) |
                 ((uint32_t) restart_time.ss << 0);
 
-            // Increment the current block and then write to the section
+            // Write data to the section and increment the block number
             write_mem_data_block(&obc_hk_mem_section, obc_hk_mem_section.curr_block,
                 &obc_hk_header, obc_hk_fields);
-            inc_mem_section_curr_block(&obc_hk_mem_section);
+            inc_and_prepare_mem_section_curr_block(&obc_hk_mem_section);
 
             // Only send back a transceiver packet if the command was sent from
             // ground (arg2 = 0)

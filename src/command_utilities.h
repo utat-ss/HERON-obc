@@ -149,6 +149,8 @@ void dequeue_cmd(void);
 void execute_next_cmd(void);
 void finish_current_cmd(bool succeeded);
 
+void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block);
+void inc_and_prepare_mem_section_curr_block(mem_section_t* section);
 void populate_header(mem_header_t* header, uint32_t block_num, uint8_t success);
 
 void append_header_to_tx_msg(mem_header_t* header);

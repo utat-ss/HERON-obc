@@ -132,7 +132,7 @@ void clear_mem_header(mem_header_t* header);
 void write_mem_section_eeprom(mem_section_t* section);
 void read_mem_section_eeprom(mem_section_t* section);
 void read_all_mem_sections_eeprom(void);
-void inc_mem_section_curr_block(mem_section_t* section);
+void set_mem_section_curr_block(mem_section_t* section, uint32_t curr_block);
 
 // High-level operations - blocks
 void write_mem_data_block(mem_section_t* section, uint32_t block_num,
@@ -156,8 +156,13 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
     uint8_t field_num);
 
 // Address calculations
+uint32_t mem_sector_for_addr(uint32_t address);
+uint32_t mem_addr_for_sector(uint32_t sector);
 uint32_t mem_block_size(mem_section_t* section);
 uint32_t mem_block_section_addr(mem_section_t* section, uint32_t block_num);
+uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num);
+uint32_t mem_block_end_section_addr(mem_section_t* section, uint32_t block_num);
+uint32_t mem_block_end_addr(mem_section_t* section, uint32_t block_num);
 uint32_t mem_field_section_addr(mem_section_t* section, uint32_t block_num,
     uint32_t field_num);
 uint32_t mem_cmd_section_addr(mem_section_t* section, uint32_t block_num);
