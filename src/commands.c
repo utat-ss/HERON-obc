@@ -848,22 +848,22 @@ void set_cur_block_num_fn(void) {
 
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
-            obc_hk_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&obc_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_EPS_HK:
-            eps_hk_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&eps_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_PAY_HK:
-            pay_hk_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&pay_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_PAY_OPT:
-            pay_opt_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&pay_opt_mem_section, current_cmd_arg2);
             break;
         case CMD_PRIM_CMD_LOG:
-            prim_cmd_log_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&prim_cmd_log_mem_section, current_cmd_arg2);
             break;
         case CMD_SEC_CMD_LOG:
-            sec_cmd_log_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&sec_cmd_log_mem_section, current_cmd_arg2);
             break;
         default:
             break;
