@@ -693,9 +693,13 @@ void erase_mem_phy_sector_fn(void) {
 
     erase_mem_sector(current_cmd_arg1);
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
+    // Only send a transceiver packet if the erase was initiated by the ground
+    // station (argument 2 = 0)
+    if (current_cmd_arg2 == 0) {
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_tx_dec_msg();
+            finish_trans_tx_dec_msg();
+        }
     }
 
     finish_current_cmd(true);
@@ -748,10 +752,10 @@ void col_data_block_fn(void) {
                 ((uint32_t) restart_time.mm << 8) |
                 ((uint32_t) restart_time.ss << 0);
 
-            // Increment the current block and then write to the section
+            // Write data to the section and increment the block number
             write_mem_data_block(&obc_hk_mem_section, obc_hk_mem_section.curr_block,
                 &obc_hk_header, obc_hk_fields);
-            inc_mem_section_curr_block(&obc_hk_mem_section);
+            inc_and_prepare_mem_section_curr_block(&obc_hk_mem_section);
 
             // Only send back a transceiver packet if the command was sent from
             // ground (arg2 = 0)
@@ -844,22 +848,22 @@ void set_cur_block_num_fn(void) {
 
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
-            obc_hk_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&obc_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_EPS_HK:
-            eps_hk_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&eps_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_PAY_HK:
-            pay_hk_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&pay_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_PAY_OPT:
-            pay_opt_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&pay_opt_mem_section, current_cmd_arg2);
             break;
         case CMD_PRIM_CMD_LOG:
-            prim_cmd_log_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&prim_cmd_log_mem_section, current_cmd_arg2);
             break;
         case CMD_SEC_CMD_LOG:
-            sec_cmd_log_mem_section.curr_block = current_cmd_arg2;
+            prepare_mem_section_curr_block(&sec_cmd_log_mem_section, current_cmd_arg2);
             break;
         default:
             break;

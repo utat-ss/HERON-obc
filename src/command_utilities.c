@@ -274,7 +274,7 @@ void dequeue_cmd(void) {
         populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, 0xFF);
         write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block, &cmd_log_header,
             trans_cmd_to_msg_type((cmd_t*) current_cmd), current_cmd_arg1, current_cmd_arg2);
-        inc_mem_section_curr_block(cmd_log_mem_section);
+        inc_and_prepare_mem_section_curr_block(cmd_log_mem_section);
     }
 
     print("dequeue_cmd: cmd = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", current_cmd,
@@ -293,6 +293,7 @@ void execute_next_cmd(void) {
 }
 
 // Finishes executing the current command and sets the succeeded flag
+// TODO - integrate with success byte
 void finish_current_cmd(bool succeeded) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // The erase flash command erases the command log as well, therefore re-write the command log
@@ -324,6 +325,46 @@ void finish_current_cmd(bool succeeded) {
 
 
 
+
+void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block) {
+    // TODO - unit test properly, test edge cases
+
+    // If the next block is going into a different memory sector,
+    // erase it
+    // Use the end address because it reaches the farthest possible address
+    uint32_t curr_sector = mem_sector_for_addr(mem_block_end_addr(
+        section, section->curr_block));
+    uint32_t next_sector = mem_sector_for_addr(mem_block_end_addr(
+        section, next_block));
+    if (next_sector != curr_sector) {
+        // TODO - should use enqueue_front to guaranteed to be executed next
+        enqueue_cmd(&erase_mem_phy_sector_cmd,
+            mem_addr_for_sector(next_sector), 1);    // auto
+    }
+
+    // Set the new block number
+    set_mem_section_curr_block(section, next_block);
+}
+
+void inc_and_prepare_mem_section_curr_block(mem_section_t* section) {
+    // TODO - unit test properly, test edge cases
+
+    uint32_t curr_block = section->curr_block;
+    uint32_t next_block = curr_block + 1;
+
+    // If the next block will go outside the bounds of the section,
+    // go back to block 0
+    // Use the end address because it reaches the farthest possible address
+    uint32_t next_end_section_addr = mem_block_end_section_addr(
+        section, next_block);
+    uint32_t max_section_addr =
+        section->end_addr - section->start_addr;
+    if (next_end_section_addr > max_section_addr) {
+        next_block = 0;
+    }
+
+    prepare_mem_section_curr_block(section, next_block);
+}
 
 /*
 Populates the block number, success, and current live date/time.

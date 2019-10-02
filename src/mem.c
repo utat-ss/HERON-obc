@@ -169,13 +169,12 @@ void read_all_mem_sections_eeprom(void) {
 }
 
 /*
-Increments the section's current block number by 1 and writes it to EEPROM.
+Sets the section's current block number and writes it to EEPROM.
 */
-void inc_mem_section_curr_block(mem_section_t* section) {
-    section->curr_block++;
+void set_mem_section_curr_block(mem_section_t* section, uint32_t curr_block) {
+    section->curr_block = curr_block;
     write_mem_section_eeprom(section);
 }
-
 
 
 void write_mem_data_block(mem_section_t* section, uint32_t block_num,
@@ -370,6 +369,19 @@ uint32_t read_mem_field(mem_section_t* section, uint32_t block_num,
 
 
 
+/*
+Calculates the sector number for the given address (each sector is 4 kB).
+*/
+uint32_t mem_sector_for_addr(uint32_t address) {
+    return address >> 12;
+}
+
+/*
+Calculates the starting address for the given sector number (each sector is 4 kB).
+*/
+uint32_t mem_addr_for_sector(uint32_t sector) {
+    return sector << 12;
+}
 
 /*
 Calculates the number of bytes per block for the section.
@@ -393,6 +405,29 @@ uint32_t mem_block_section_addr(mem_section_t* section, uint32_t block_num) {
     return block_address;
 }
 
+/*
+Calculates and returns the address of the start of a block (where the header starts).
+This is an offset from the beginning of all memory.
+*/
+uint32_t mem_block_addr(mem_section_t* section, uint32_t block_num) {
+    return section->start_addr + mem_block_section_addr(section, block_num);
+}
+
+/*
+Calculates and returns the address of the end of a block (the last byte written to by that block).
+This is an offset from the beginning of the section.
+*/
+uint32_t mem_block_end_section_addr(mem_section_t* section, uint32_t block_num) {
+    return mem_block_section_addr(section, block_num) + mem_block_size(section) - 1;
+}
+
+/*
+Calculates and returns the address of the end of a block (the last byte written to by that block).
+This is an offset from the beginning of all memory.
+*/
+uint32_t mem_block_end_addr(mem_section_t* section, uint32_t block_num) {
+    return section->start_addr + mem_block_end_section_addr(section, block_num);
+}
 
 /*
 Calculates and returns the address of the start of a field in a block (after the header).
@@ -696,6 +731,7 @@ void send_short_mem_command(uint8_t command, uint8_t chip){
 
 /* Takes an address and chip as input and erases the appropriate sector */
 /* Each sector is 4kb, see pg. 24 for more info on sector erase */
+/* address is in bytes */
  void erase_mem_sector(uint32_t address){
      uint8_t chip_num;
      uint8_t addr1;
