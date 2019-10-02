@@ -49,6 +49,7 @@ void test_all_gets(void);
 void test_all_sets(void);
 void test_scw_bits(void);
 void test_pipe(void);
+void test_beacon(void);
 void test_reset(void);
 
 
@@ -70,6 +71,7 @@ int main(void){
     test_scw_bits();
     test_pipe();
     test_reset();
+    test_beacon();
 
     // Get values again
     test_all_gets();
@@ -156,6 +158,10 @@ void test_all_sets(void) {
     ret = set_trans_beacon_period(2);
     print("set_trans_beacon_period: ret = %u\n", ret);
 
+    char beacon_content[] = "Test beacon!";
+    ret = set_trans_beacon_content(beacon_content);
+    print("set_trans_beacon_content: ret = %u\n", ret);
+
     // Random call sign
     char dest_call_sign[TRANS_CALL_SIGN_LEN + 1] = "ABCDEF";
     ret = set_trans_dest_call_sign(dest_call_sign);
@@ -212,6 +218,27 @@ void test_pipe(void) {
     _delay_ms(10000);
     print("Pipe mode should be timed out\n");
     print("\n");
+}
+
+
+void test_beacon(void) {
+    uint8_t ret = 0;
+
+    ret = set_trans_beacon_content(TRANS_BEACON_DEF_MSG);
+    print("set_trans_beacon_content: ret = %u\n", ret);
+
+    // Get trans beacon content
+    // This function is not implemented in the library due to variable content size
+    // Can just view the response on the transceiver's TxD UART for testing
+    clear_trans_cmd_resp();
+    print("\rES+R%02XFB\r", TRANS_ADDR);
+    clear_trans_cmd_resp();
+
+    ret = turn_on_trans_beacon();
+    print("turn_on_trans_beacon: ret = %u\n", ret);
+
+    ret = turn_off_trans_beacon();
+    print("turn_off_trans_beacon: ret = %u\n", ret);
 }
 
 

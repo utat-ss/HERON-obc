@@ -112,8 +112,6 @@ Initializes the transceiver for UART RX callbacks (does not change any settings)
 */
 void init_trans(void) {
     init_trans_uart();
-    uart_baud_rate_t previous_baud = UART_BAUD_9600;
-    correct_transceiver_baud_rate(previous_baud, &previous_baud);
 }
 
 void init_trans_uart(void) {
@@ -1015,6 +1013,39 @@ uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
     }
     return ret;
 }
+
+
+uint8_t set_trans_beacon_content_attempt(char* content) {
+    clear_trans_cmd_resp();
+    print("\rES+W%02XFB%02X%s\r", TRANS_ADDR, strlen(content), content);
+
+    //Wait for response
+    //check validity
+    uint8_t validity = wait_for_trans_cmd_resp(2);
+    if (validity == 0) {
+        return 0;
+    }
+
+    clear_trans_cmd_resp();
+
+    return 1;
+}
+
+/*
+2.2.6. Set beacon message content configuration - default is "Hello, world!" (p.6)
+content - string, must be zero-terminated, but '\0' will not be included in the message
+    - it must NOT include the <CR> (13 character), see datasheet
+Returns - 1 for success, 0 for failure
+*/
+uint8_t set_trans_beacon_content(char* content) {
+    uint8_t ret = 0;
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        ret = set_trans_beacon_content_attempt(content);
+    }
+    return ret;
+}
+
+// Don't need to implement a get content function
 
 
 uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {

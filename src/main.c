@@ -9,7 +9,7 @@ int main(void) {
     
     run_comms_delay();
     deploy_antenna();
-    init_obc_comms();
+    init_obc_trans();
 
     while (1) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);

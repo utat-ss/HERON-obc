@@ -19,6 +19,6 @@
 #include "transceiver.h"
 
 void init_obc_core(void);
-void init_obc_comms(void);
+void init_obc_trans(void);
 
 #endif
