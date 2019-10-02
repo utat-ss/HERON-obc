@@ -693,9 +693,13 @@ void erase_mem_phy_sector_fn(void) {
 
     erase_mem_sector(current_cmd_arg1);
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
+    // Only send a transceiver packet if the erase was initiated by the ground
+    // station (argument 2 = 0)
+    if (current_cmd_arg2 == 0) {
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_tx_dec_msg();
+            finish_trans_tx_dec_msg();
+        }
     }
 
     finish_current_cmd(true);
