@@ -28,7 +28,9 @@ void init_obc_core(void) {
 
     restart_date = read_rtc_date();
     restart_time = read_rtc_time();
+
     init_uptime();
+    init_cmd_timer();
 
     init_auto_data_col();
     add_uptime_callback(can_timer_cb);
