@@ -335,13 +335,13 @@ void print_next_cmd(void) {
     uint8_t cmd[8] = { 0x00 };
     uint8_t args[8] = { 0x00 };
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (queue_empty(&cmd_queue)) {
+        if (queue_empty(&cmd_opcode_queue)) {
             return;
         }
         if (queue_empty(&cmd_args_queue)) {
             return;
         }
-        peek_queue(&cmd_queue, cmd);
+        peek_queue(&cmd_opcode_queue, cmd);
         peek_queue(&cmd_args_queue, args);
     }
 
@@ -645,15 +645,15 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
         if (all_cmds[i].bypass_trans) {
             enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
         } else {
-            uint8_t msg_type = trans_cmd_to_msg_type(all_cmds[i].cmd);
+            uint8_t opcode = all_cmds[i].cmd->opcode;
             uint32_t arg1 = all_cmds[i].arg1;
             uint32_t arg2 = all_cmds[i].arg2;
 
             // Encode one byte to two ASCII hex bytes
             trans_rx_enc_msg[0] = 0x00;
             trans_rx_enc_msg[1] = 9 * 2;
-            trans_rx_enc_msg[2] = hex_to_char((msg_type >> 4) & 0x0F);
-            trans_rx_enc_msg[3] = hex_to_char((msg_type >> 0) & 0x0F);
+            trans_rx_enc_msg[2] = hex_to_char((opcode >> 4) & 0x0F);
+            trans_rx_enc_msg[3] = hex_to_char((opcode >> 0) & 0x0F);
             trans_rx_enc_msg[4] = hex_to_char((arg1 >> 28) & 0x0F);
             trans_rx_enc_msg[5] = hex_to_char((arg1 >> 24) & 0x0F);
             trans_rx_enc_msg[6] = hex_to_char((arg1 >> 20) & 0x0F);

@@ -226,15 +226,9 @@ cmd_t resync_auto_data_col_timers_cmd = {
 
 
 
+// List of all command structs
 // Should not include nop_cmd
-// Explicitly specify the length because using sizeof(all_cmds_list) gives an error
-// "invalid application of 'sizeof' to incomplete type 'cmd_t *[]' {aka 'struct
-// <anonymous> *[]'}"
-// If the ALL_CMDS_LEN is too small, gives warning "excess elements in array initializer"
-// If the ALL_CMDS_LEN is too big, no warnings
-// NOTE: MAKE SURE TO UPDATE ALL_CMDS_LEN WHEN ADDING/DELETING
-// TODO - refactor to use sizeof
-cmd_t* all_cmds_list[ALL_CMDS_LEN] = {
+cmd_t* all_cmds_list[] = {
     &ping_obc_cmd,
     &get_rtc_cmd,
     &set_rtc_cmd,
@@ -269,6 +263,9 @@ cmd_t* all_cmds_list[ALL_CMDS_LEN] = {
     &get_auto_data_col_timers_cmd,
     &resync_auto_data_col_timers_cmd,
 };
+
+// Length of `all_cmds_list` array
+const uint8_t all_cmds_list_len = sizeof(all_cmds_list) / sizeof(all_cmds_list[0]);
 
 
 // Command callback functions
@@ -369,23 +366,23 @@ void read_obc_ram_byte_fn(void) {
 }
 
 void send_eps_can_msg_fn(void) {
-    enqueue_eps_tx_msg(current_cmd_arg1, current_cmd_arg2);
+    enqueue_tx_msg_bytes(&eps_tx_msg_queue, current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
 }
 
 void send_pay_can_msg_fn(void) {
-    enqueue_pay_tx_msg(current_cmd_arg1, current_cmd_arg2);
+    enqueue_tx_msg_bytes(&pay_tx_msg_queue, current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
 }
 
 void act_pay_motors_fn(void) {
     // Enqueue temporary low-power mode CAN commands
     // These will both be sent before the actuate motors CAN command
-    enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_START_TEMP_LPM, 0);
-    enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_START_TEMP_LPM, 0);
+    enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_START_TEMP_LPM, 0);
+    enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_START_TEMP_LPM, 0);
 
     // TODO - what if not a valid motor field number?
-    enqueue_pay_ctrl_tx_msg(current_cmd_arg1, 0);
+    enqueue_pay_tx_msg(CAN_PAY_CTRL, current_cmd_arg1, 0);
 
     // Continues from CAN callbacks
 }
@@ -404,7 +401,7 @@ void reset_subsys_fn(void) {
     // PAY/EPS will not respond so don't expect a CAN message back
     // Just finish the current command
     else if (current_cmd_arg1 == CMD_EPS) {
-        enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_RESET, 0);
+        enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_RESET, 0);
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             start_trans_tx_dec_msg();
@@ -413,7 +410,7 @@ void reset_subsys_fn(void) {
         finish_current_cmd(CMD_STATUS_OK);
     }
     else if (current_cmd_arg1 == CMD_PAY) {
-        enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_RESET, 0);
+        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_RESET, 0);
 
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             start_trans_tx_dec_msg();
@@ -428,8 +425,8 @@ void reset_subsys_fn(void) {
 
 // TODO - should only send TX packet after receiving both responses
 void set_indef_lpm_enable_fn(void) {
-    enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
-    enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
+    enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
+    enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
@@ -735,19 +732,19 @@ void col_data_block_fn(void) {
         case CMD_EPS_HK:
             print("Start EPS_HK\n");
             populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, 0x00);
-            enqueue_eps_hk_tx_msg(0);
+            enqueue_eps_tx_msg(CAN_EPS_HK, 0, 0);
             break;
 
         case CMD_PAY_HK:
             print ("Start PAY_HK\n");
             populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, 0x00);
-            enqueue_pay_hk_tx_msg(0);
+            enqueue_pay_tx_msg(CAN_PAY_HK, 0, 0);
             break;
 
         case CMD_PAY_OPT:
             print ("Start PAY_OPT\n");
             populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, 0x00);
-            enqueue_pay_opt_tx_msg(0);
+            enqueue_pay_tx_msg(CAN_PAY_OPT, 0, 0);
             break;
 
         default:

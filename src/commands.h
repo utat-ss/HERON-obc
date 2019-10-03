@@ -12,9 +12,6 @@
 #include "command_utilities.h"
 #include "mem.h"
 
-// Length of `all_cmds_list` array
-#define ALL_CMDS_LEN 33
-
 extern cmd_t nop_cmd;
 
 extern cmd_t ping_obc_cmd;
@@ -54,5 +51,6 @@ extern cmd_t get_auto_data_col_timers_cmd;
 extern cmd_t resync_auto_data_col_timers_cmd;
 
 extern cmd_t* all_cmds_list[];
+extern const uint8_t all_cmds_list_len;
 
 #endif
