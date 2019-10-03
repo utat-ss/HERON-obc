@@ -183,7 +183,7 @@ void print_gyro_data(uint16_t raw_data) {
 }
 
 void print_header(mem_header_t header) {
-    print("block_num = %lu, success = %u, ", header.block_num, header.success);
+    print("block_num = %lu, status = %u, ", header.block_num, header.status);
     print("date = %02u:%02u:%02u, time = %02u:%02u:%02u\n",
         header.date.yy, header.date.mm, header.date.dd,
         header.time.hh, header.time.mm, header.time.ss);
@@ -256,7 +256,7 @@ void print_local_data_fn(void) {
             ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 
@@ -422,7 +422,7 @@ void clear_local_data_fn(void) {
 
     print("Cleared local data\n");
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void read_all_mem_blocks_to_local_fn(void) {
@@ -434,7 +434,7 @@ void read_all_mem_blocks_to_local_fn(void) {
     enqueue_cmd(&read_data_block_cmd, CMD_PAY_OPT,
         pay_opt_mem_section.curr_block - 1);
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 

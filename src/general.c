@@ -33,7 +33,7 @@ void init_obc_core(void) {
     init_cmd_timer();
 
     init_auto_data_col();
-    add_uptime_callback(can_timer_cb);
+    add_uptime_callback(cmd_timeout_timer_cb);
 }
 
 // Initializes the transceiver parts of OBC that must be delayed after initial startup

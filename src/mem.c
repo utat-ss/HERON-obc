@@ -131,13 +131,13 @@ void clear_mem_header(mem_header_t* header) {
     }
 
     header->block_num = 0;
-    header->success = 0;
     header->date.yy = 0;
     header->date.mm = 0;
     header->date.dd = 0;
     header->time.hh = 0;
     header->time.mm = 0;
     header->time.ss = 0;
+    header->status = 0xFF;
 }
 
 
@@ -208,14 +208,6 @@ void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     }
 }
 
-// Command was a success
-void write_mem_cmd_success(mem_section_t* section, uint32_t block_num, uint8_t success) {
-    uint8_t data_bytes[1] = {
-        success,
-    };
-    write_mem_section_bytes(section, (mem_block_section_addr(section, block_num) + MEM_SUCCESS_HEADER_OFFSET), data_bytes, 1);
-}
-
 uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
     uint8_t cmd_num, uint32_t arg1, uint32_t arg2) {
     /*
@@ -274,7 +266,6 @@ void read_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t
 }
 
 
-
 void write_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header) {
 
@@ -290,12 +281,21 @@ void write_mem_header(mem_section_t* section, uint32_t block_num,
         header->block_num & 0xFF,
         header->date.yy, header->date.mm, header->date.dd,
         header->time.hh, header->time.mm, header->time.ss,
-        header->success
+        header->status
     };
 
     write_mem_section_bytes(section, mem_block_section_addr(section, block_num), bytes, MEM_BYTES_PER_HEADER);
 }
 
+// Command was a success/failure
+void write_mem_header_status(mem_section_t* section, uint32_t block_num,
+    uint8_t status) {
+    
+    uint8_t data_bytes[1] = {
+        status
+    };
+    write_mem_section_bytes(section, (mem_block_section_addr(section, block_num) + MEM_STATUS_HEADER_OFFSET), data_bytes, 1);
+}
 
 /*
 Reads the header data for the specified block number.
@@ -320,7 +320,7 @@ void read_mem_header(mem_section_t* section, uint32_t block_num,
     header->time.hh = bytes[6];
     header->time.mm = bytes[7];
     header->time.ss = bytes[8];
-    header->success = bytes[9];
+    header->status = bytes[9];
 }
 
 

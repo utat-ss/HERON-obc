@@ -72,8 +72,18 @@ typedef struct {
 #define CMD_GET_AUTO_DATA_COL_TIMERS    0x2B
 #define CMD_RESYNC_AUTO_DATA_COL_TIMERS 0x2C
 
+#define CMD_STATUS_OK           0x00
+#define CMD_STATUS_INVALID_ARGS 0x01
+#define CMD_STATUS_TIMED_OUT    0x02
+#define CMD_STATUS_UNKNOWN      0xFF
+
+// TODO - change value
+#define CMD_TIMEOUT_DEF_PERIOD_S    5
+
 // Max memory read
 #define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 13)
+
+
 
 // Default period for automatic data collection for each block type
 // (time between timer callbacks, in seconds)
@@ -112,7 +122,8 @@ extern volatile uint32_t current_cmd_arg1;
 extern volatile uint32_t current_cmd_arg2;
 extern volatile bool prev_cmd_succeeded;
 
-extern volatile uint8_t can_countdown;
+extern volatile uint8_t cmd_timeout_count_s;
+extern uint8_t cmd_timeout_period_s;
 
 extern mem_header_t obc_hk_header;
 extern uint32_t obc_hk_fields[];
@@ -147,17 +158,17 @@ void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2);
 void dequeue_cmd(void);
 
 void execute_next_cmd(void);
-void finish_current_cmd(bool succeeded);
+void finish_current_cmd(uint8_t status);
 
 void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block);
 void inc_and_prepare_mem_section_curr_block(mem_section_t* section);
-void populate_header(mem_header_t* header, uint32_t block_num, uint8_t success);
+void populate_header(mem_header_t* header, uint32_t block_num, uint8_t status);
 
 void append_header_to_tx_msg(mem_header_t* header);
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);
 
 void init_auto_data_col(void);
 void auto_data_col_timer_cb(void);
-void can_timer_cb(void);
+void cmd_timeout_timer_cb(void);
 
 #endif

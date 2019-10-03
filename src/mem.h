@@ -83,8 +83,8 @@
 #define MEM_PRIM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR ((uint32_t*) 0x30)
 #define MEM_SEC_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x34)
 
-// Location of success byte in header
-#define MEM_SUCCESS_HEADER_OFFSET   9
+// Location of status byte in header
+#define MEM_STATUS_HEADER_OFFSET   9
 
 
 // Sections in memory
@@ -106,12 +106,12 @@ typedef struct {
 typedef struct {
     // Block number within section
     uint32_t block_num;
-    // Success data - Whether command has been completed
-    uint8_t success;
     // RTC data
     rtc_date_t date;
     // RTC time
     rtc_time_t time;
+    // Status - result of command (pass/fail and reason)
+    uint8_t status;
 } mem_header_t;
 
 // Make the memory sections visible to other files so they can write data to sections
@@ -139,7 +139,7 @@ void write_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
 void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
-void write_mem_cmd_success(mem_section_t* section, uint32_t block_num, uint8_t success);
+
 uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
     uint8_t cmd_num, uint32_t arg1, uint32_t arg2);
 void read_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
@@ -148,6 +148,8 @@ void read_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t
 // High-level operations - headers and fields
 void write_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header);
+void write_mem_header_status(mem_section_t* section, uint32_t block_num,
+    uint8_t status);
 void read_mem_header(mem_section_t* section, uint32_t block_num,
     mem_header_t* header);
 void write_mem_field(mem_section_t* section, uint32_t block_num,

@@ -279,16 +279,14 @@ void nop_fn(void) {
 }
 
 void ping_obc_fn(void) {
-    can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
         finish_trans_tx_dec_msg();
     }
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void get_rtc_fn(void) {
-    can_countdown = 30;
     rtc_date_t date = read_rtc_date();
     rtc_time_t time = read_rtc_time();
 
@@ -303,11 +301,10 @@ void get_rtc_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void set_rtc_fn(void) {
-    can_countdown = 30;
     rtc_date_t date = {
         .yy = (current_cmd_arg1 >> 16) & 0xFF,
         .mm = (current_cmd_arg1 >> 8) & 0xFF,
@@ -327,12 +324,10 @@ void set_rtc_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void read_obc_eeprom_fn(void) {
-    can_countdown = 30;
-
     // Need to represent address as uint32_t* for EEPROM function
     // Must first cast to uint16_t or else we get warning: cast to pointer
     // from integer of different size -Wint-to-pointer-cast]
@@ -347,12 +342,10 @@ void read_obc_eeprom_fn(void) {
         append_to_trans_tx_dec_msg(data & 0xFF);
         finish_trans_tx_dec_msg();
     }
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void erase_obc_eeprom_fn(void) {
-    can_countdown = 30;
-
     // Need to represent address as uint32_t* for EEPROM function
     // Must first cast to uint16_t or else we get warning: cast to pointer
     // from integer of different size -Wint-to-pointer-cast]
@@ -364,12 +357,10 @@ void erase_obc_eeprom_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void read_obc_ram_byte_fn(void) {
-    can_countdown = 30;
-
     // Need to represent address as uint8_t* to read RAM
     // Must first cast to uint16_t or else we get warning: cast to pointer
     // from integer of different size -Wint-to-pointer-cast]
@@ -382,24 +373,20 @@ void read_obc_ram_byte_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void send_eps_can_msg_fn(void) {
-    can_countdown = 30;
     enqueue_eps_tx_msg(current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
 }
 
 void send_pay_can_msg_fn(void) {
-    can_countdown = 30;
     enqueue_pay_tx_msg(current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
 }
 
 void act_pay_motors_fn(void) {
-    can_countdown = 30;
-
     // Enqueue temporary low-power mode CAN commands
     // These will both be sent before the actuate motors CAN command
     enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_START_TEMP_LPM, 0);
@@ -412,8 +399,6 @@ void act_pay_motors_fn(void) {
 }
 
 void reset_subsys_fn(void) {
-    can_countdown = 30;
-
     if (current_cmd_arg1 == CMD_OBC) {
         reset_self_mcu(UPTIME_RESTART_REASON_RESET_CMD);
         // Program should stop here and restart from the beginning
@@ -422,7 +407,7 @@ void reset_subsys_fn(void) {
             start_trans_tx_dec_msg();
             finish_trans_tx_dec_msg();
         }
-        finish_current_cmd(true);
+        finish_current_cmd(CMD_STATUS_OK);
     }
     // PAY/EPS will not respond so don't expect a CAN message back
     // Just finish the current command
@@ -433,7 +418,7 @@ void reset_subsys_fn(void) {
             start_trans_tx_dec_msg();
             finish_trans_tx_dec_msg();
         }
-        finish_current_cmd(true);
+        finish_current_cmd(CMD_STATUS_OK);
     }
     else if (current_cmd_arg1 == CMD_PAY) {
         enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_RESET, 0);
@@ -442,17 +427,15 @@ void reset_subsys_fn(void) {
             start_trans_tx_dec_msg();
             finish_trans_tx_dec_msg();
         }
-        finish_current_cmd(true);
+        finish_current_cmd(CMD_STATUS_OK);
     }
     else {
-        finish_current_cmd(false);
+        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
     }
 }
 
 // TODO - should only send TX packet after receiving both responses
 void set_indef_lpm_enable_fn(void) {
-    can_countdown = 30;
-
     enqueue_eps_ctrl_tx_msg(CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
     enqueue_pay_ctrl_tx_msg(CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
 
@@ -461,12 +444,10 @@ void set_indef_lpm_enable_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
-void read_rec_status_info_fn(void) {
-    can_countdown = 30;
-    
+void read_rec_status_info_fn(void) {    
     uint32_t obc_block = obc_hk_mem_section.curr_block;
     obc_block = (obc_block > 0) ? (obc_block - 1) : obc_block;
     uint32_t eps_block = eps_hk_mem_section.curr_block;
@@ -500,12 +481,10 @@ void read_rec_status_info_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void read_data_block_fn(void) {
-    can_countdown = 30;
-
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
 
@@ -539,7 +518,7 @@ void read_data_block_fn(void) {
                 break;
 
             default:
-                finish_current_cmd(false);
+                finish_current_cmd(CMD_STATUS_INVALID_ARGS);
                 // TODO - will it properly terminate the trans msg?
                 return;
         }
@@ -547,12 +526,10 @@ void read_data_block_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void read_rec_loc_data_block_fn(void) {
-    can_countdown = 30;
-
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
 
@@ -574,21 +551,19 @@ void read_rec_loc_data_block_fn(void) {
                 append_fields_to_tx_msg(pay_opt_fields, CAN_PAY_OPT_FIELD_COUNT);
                 break;
             default:
-                finish_current_cmd(false);
+                finish_current_cmd(CMD_STATUS_INVALID_ARGS);
                 return;
         }
 
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void read_prim_cmd_blocks_fn(void) {
-    can_countdown = 30;
-
     if (current_cmd_arg2 > 5) {
-        finish_current_cmd(false);
+        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
         return;
     }
 
@@ -621,15 +596,13 @@ void read_prim_cmd_blocks_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void read_sec_cmd_blocks_fn(void) {
     // TODO - refactor common with primary command?
-    can_countdown = 30;
-
     if (current_cmd_arg2 > 5) {
-        finish_current_cmd(false);
+        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
         return;
     }
 
@@ -662,15 +635,13 @@ void read_sec_cmd_blocks_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void read_raw_mem_bytes_fn(void) {
-    can_countdown = 30;
-
     // Enforce max number of bytes
     if (current_cmd_arg2 > CMD_READ_MEM_MAX_COUNT) {
-        finish_current_cmd(false);
+        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
         return;
     }
 
@@ -685,12 +656,10 @@ void read_raw_mem_bytes_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void erase_mem_phy_sector_fn(void) {
-    can_countdown = 30;
-
     erase_mem_sector(current_cmd_arg1);
 
     // Only send a transceiver packet if the erase was initiated by the ground
@@ -702,12 +671,10 @@ void erase_mem_phy_sector_fn(void) {
         }
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void erase_mem_phy_block_fn(void) {
-    can_countdown = 30;
-
     erase_mem_block(current_cmd_arg1);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -715,12 +682,10 @@ void erase_mem_phy_block_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void erase_all_mem_fn(void) {
-    can_countdown = 30;
-
     erase_mem();
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -728,13 +693,12 @@ void erase_all_mem_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 // Starts requesting block data (field 0)
 // TODO - don't write success byte later, write at end in CAN RX processing
 void col_data_block_fn(void) {
-    can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             print("Start OBC_HK\n");
@@ -771,7 +735,7 @@ void col_data_block_fn(void) {
             }
 
             print("Done OBC_HK\n");
-            finish_current_cmd(true);
+            finish_current_cmd(CMD_STATUS_OK);
             
             // Don't use CAN
             return;
@@ -795,7 +759,7 @@ void col_data_block_fn(void) {
             break;
 
         default:
-            finish_current_cmd(false);
+            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
             return;
     }
 
@@ -803,8 +767,6 @@ void col_data_block_fn(void) {
 }
 
 void get_cur_block_num_fn(void) {
-    can_countdown = 30;
-
     uint32_t block_num = 0;
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
@@ -838,14 +800,12 @@ void get_cur_block_num_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 // TODO - OBC needs to erase memory sectors automatically when resetting current
 // block numbers on its own or writing to a previously written address
 void set_cur_block_num_fn(void) {
-    can_countdown = 30;
-
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             prepare_mem_section_curr_block(&obc_hk_mem_section, current_cmd_arg2);
@@ -874,12 +834,10 @@ void set_cur_block_num_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void get_mem_sec_start_addr_fn(void) {
-    can_countdown = 30;
-
     uint32_t start_addr = 0;
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
@@ -913,12 +871,10 @@ void get_mem_sec_start_addr_fn(void) {
         finish_trans_tx_dec_msg();
     }
     
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void set_mem_sec_start_addr_fn(void) {
-    can_countdown = 30;
-
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             obc_hk_mem_section.start_addr = current_cmd_arg2;
@@ -947,12 +903,10 @@ void set_mem_sec_start_addr_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void get_mem_sec_end_addr_fn(void) {
-    can_countdown = 30;
-
     uint32_t end_addr = 0;
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
@@ -986,12 +940,10 @@ void get_mem_sec_end_addr_fn(void) {
         finish_trans_tx_dec_msg();
     }
     
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void set_mem_sec_end_addr_fn(void) {
-    can_countdown = 30;
-
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             obc_hk_mem_section.end_addr = current_cmd_arg2;
@@ -1020,12 +972,10 @@ void set_mem_sec_end_addr_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void get_auto_data_col_enable_fn(void) {
-    can_countdown = 30;
-
     bool enabled = false;
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
@@ -1050,11 +1000,10 @@ void get_auto_data_col_enable_fn(void) {
         finish_trans_tx_dec_msg();
     }
     
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void set_auto_data_col_enable_fn(void) {
-    can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             obc_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
@@ -1073,7 +1022,7 @@ void set_auto_data_col_enable_fn(void) {
             eeprom_update_dword(PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, pay_opt_auto_data_col.enabled);
             break;
         default:
-            finish_current_cmd(false);
+            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
             return;
     }
 
@@ -1082,12 +1031,10 @@ void set_auto_data_col_enable_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void get_auto_data_col_period_fn(void) {
-    can_countdown = 30;
-
     uint32_t period = 0;
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
@@ -1115,11 +1062,10 @@ void get_auto_data_col_period_fn(void) {
         finish_trans_tx_dec_msg();
     }
     
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void set_auto_data_col_period_fn(void) {
-    can_countdown = 30;
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             obc_hk_auto_data_col.period = current_cmd_arg2;
@@ -1138,7 +1084,7 @@ void set_auto_data_col_period_fn(void) {
             eeprom_update_dword(PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, pay_opt_auto_data_col.period);
             break;
         default:
-            finish_current_cmd(false);
+            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
             return;
     }
 
@@ -1147,12 +1093,10 @@ void set_auto_data_col_period_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void get_auto_data_col_timers_fn(void) {
-    can_countdown = 30;
-
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
         append_to_trans_tx_dec_msg((obc_hk_auto_data_col.count >> 24) & 0xFF);
@@ -1174,11 +1118,10 @@ void get_auto_data_col_timers_fn(void) {
         finish_trans_tx_dec_msg();
     }
     
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }
 
 void resync_auto_data_col_timers_fn(void) {
-    can_countdown = 30;
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         obc_hk_auto_data_col.count = 0;
         eps_hk_auto_data_col.count = 0;
@@ -1191,5 +1134,5 @@ void resync_auto_data_col_timers_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(true);
+    finish_current_cmd(CMD_STATUS_OK);
 }

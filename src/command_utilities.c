@@ -24,9 +24,10 @@ volatile bool prev_cmd_succeeded = false;
 // Don't need to store a variable for the password because it is checked in the
 // decoded message before enqueueing to the command queue
 
-// For the uptime interrupt to can_timer_cb to finish command if no response
-// received after 30 seconds
-volatile uint8_t can_countdown = 0;
+// For the uptime interrupt to cmd_timeout_cb to finish command if not completed
+// after some number of time
+volatile uint8_t cmd_timeout_count_s = 0;
+uint8_t cmd_timeout_period_s = CMD_TIMEOUT_DEF_PERIOD_S;
 
 mem_header_t obc_hk_header;
 uint32_t obc_hk_fields[CAN_OBC_HK_FIELD_COUNT] = { 0 };
@@ -271,7 +272,7 @@ void dequeue_cmd(void) {
         } else {
             cmd_log_mem_section = &prim_cmd_log_mem_section;
         }
-        populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, 0xFF);
+        populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, CMD_STATUS_UNKNOWN);
         write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block, &cmd_log_header,
             trans_cmd_to_msg_type((cmd_t*) current_cmd), current_cmd_arg1, current_cmd_arg2);
         inc_and_prepare_mem_section_curr_block(cmd_log_mem_section);
@@ -291,6 +292,8 @@ void execute_next_cmd(void) {
         
         // Fetch the next command
         dequeue_cmd();
+        // Start timeout timer at 0
+        cmd_timeout_count_s = 0;
         // Run the command's function
         (current_cmd->fn)();
     }
@@ -298,7 +301,7 @@ void execute_next_cmd(void) {
 
 // Finishes executing the current command and sets the succeeded flag
 // TODO - integrate with success byte
-void finish_current_cmd(bool succeeded) {
+void finish_current_cmd(uint8_t status) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // The erase flash command erases the command log as well, therefore re-write the command log
         // for the erase flash command
@@ -306,23 +309,17 @@ void finish_current_cmd(bool succeeded) {
             write_mem_cmd_block(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, &cmd_log_header,
                 trans_cmd_to_msg_type((cmd_t*) current_cmd), current_cmd_arg1, current_cmd_arg2);
         }
-        uint8_t success_byte;
-        if (succeeded == true) {
-            success_byte = 0x01;
-        } else {
-            success_byte = 0x00;
-        }
+
         if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
             || current_cmd == &read_sec_cmd_blocks_cmd) {
-            write_mem_cmd_success(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, success_byte);
+            write_mem_header_status(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, status);
         } else {
-            write_mem_cmd_success(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, success_byte);
+            write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
         }
         current_cmd = &nop_cmd;
         current_cmd_arg1 = 0;
         current_cmd_arg2 = 0;
-        prev_cmd_succeeded = succeeded;
-        can_countdown = 0;
+        cmd_timeout_count_s = 0;
     }
     print("Finished cmd\n");
 }
@@ -373,11 +370,11 @@ void inc_and_prepare_mem_section_curr_block(mem_section_t* section) {
 /*
 Populates the block number, success, and current live date/time.
 */
-void populate_header(mem_header_t* header, uint32_t block_num, uint8_t success) {
+void populate_header(mem_header_t* header, uint32_t block_num, uint8_t status) {
     header->block_num = block_num;
-    header->success = success;
     header->date = read_rtc_date();
     header->time = read_rtc_time();
+    header->status = status;
 }
 
 
@@ -391,7 +388,7 @@ void append_header_to_tx_msg(mem_header_t* header) {
     append_to_trans_tx_dec_msg(header->time.hh);
     append_to_trans_tx_dec_msg(header->time.mm);
     append_to_trans_tx_dec_msg(header->time.ss);
-    append_to_trans_tx_dec_msg(header->success);
+    append_to_trans_tx_dec_msg(header->status);
 }
 
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields) {
@@ -480,15 +477,15 @@ void auto_data_col_timer_cb(void) {
     }
 }
 
-// If no CAN response is received after 30 seconds, stop waiting for command
-void can_timer_cb(void) {
-    if (can_countdown > 155) {
-        finish_current_cmd(false);
+// If a command (e.g. waiting for a CAN response) is not finished after the
+// designated period, stop waiting to finish
+void cmd_timeout_timer_cb(void) {
+    if (current_cmd == &nop_cmd) {
+        return;
     }
-    else if (can_countdown > 0) {
-        can_countdown -= 1;
-        if (can_countdown == 0) {
-            finish_current_cmd(false);
-        }
+
+    cmd_timeout_count_s += 1;
+    if (cmd_timeout_count_s >= cmd_timeout_period_s) {
+        finish_current_cmd(CMD_STATUS_TIMED_OUT);
     }
 }

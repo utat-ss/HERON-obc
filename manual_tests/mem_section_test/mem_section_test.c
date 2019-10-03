@@ -34,8 +34,8 @@ void print_sections(void) {
 }
 
 void print_header(mem_header_t* header) {
-    print("block_num = %lu, success = %u, ",
-        header->block_num, header->success);
+    print("block_num = %lu, status = %u, ",
+        header->block_num, header->status);
     print("date = %u:%u:%u, time = %u:%u:%u\n",
         header->date.yy, header->date.mm, header->date.dd,
         header->time.hh, header->time.mm, header->time.ss);
@@ -78,9 +78,9 @@ void test_header(char* name, mem_section_t* section) {
 
     mem_header_t write = {
         .block_num = section->curr_block,
-        .success = 0x00,
         .date = read_rtc_date(),
-        .time = read_rtc_time()
+        .time = read_rtc_time(),
+        .status = 0x00,
     };
     mem_header_t read;
 

@@ -17,7 +17,6 @@ void handle_rx_msg(void) {
         return;
     }
 
-    can_countdown = 0; // Received message
     uint8_t msg[8] = {0x00};
     // print("Dequeued from data_rx_msg_queue\n");
     dequeue(&data_rx_msg_queue, msg);
@@ -39,7 +38,7 @@ void handle_rx_msg(void) {
             }
             finish_trans_tx_dec_msg();
         }
-        finish_current_cmd(true);
+        finish_current_cmd(CMD_STATUS_OK);
     }
     else {
         switch (msg_type) {
@@ -100,7 +99,7 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
         }
 
         print("Done EPS_HK\n");
-        finish_current_cmd(true);
+        finish_current_cmd(CMD_STATUS_OK);
     }
 }
 
@@ -141,7 +140,7 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
         }
 
         print("Done PAY_HK\n");
-        finish_current_cmd(true);
+        finish_current_cmd(CMD_STATUS_OK);
     }
 }
 
@@ -181,7 +180,7 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
         }
 
         print("Done PAY_OPT\n");
-        finish_current_cmd(true);
+        finish_current_cmd(CMD_STATUS_OK);
     }
 }
 
@@ -195,7 +194,7 @@ void handle_pay_ctrl(uint8_t field_num) {
             finish_trans_tx_dec_msg();
         }
 
-        finish_current_cmd(true);
+        finish_current_cmd(CMD_STATUS_OK);
     }
 }
 
@@ -252,7 +251,6 @@ void enqueue_tx_msg_general(queue_t* queue, uint32_t data1, uint32_t data2) {
     msg[6] = (data2 >> 8) & 0xFF;
     msg[7] = data2 & 0xFF;
 
-    can_countdown = 5;
     enqueue(queue, msg);
 }
 
@@ -281,7 +279,6 @@ void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num, uint32_
     msg[6] = (data >> 8) & 0xFF;
     msg[7] = data & 0xFF;
 
-    can_countdown = 5; // Wait 30 seconds for return message
     enqueue(queue, msg);
 }
 
