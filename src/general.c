@@ -24,6 +24,8 @@ void init_obc_phase1(void) {
     init_tx_mob(&pay_cmd_tx_mob);
     init_tx_mob(&eps_cmd_tx_mob);
 
+    init_ant();
+
     restart_date = read_rtc_date();
     restart_time = read_rtc_time();
 

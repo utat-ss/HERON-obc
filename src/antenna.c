@@ -26,7 +26,13 @@ void run_comms_delay(void) {
 
     // Use 100ms increments because that is tolerable for delay precision
     for (uint32_t seconds = 0; seconds < comms_delay_s; seconds++) {
-        for (uint8_t i = 0; i < 10; i++) {
+        // blink antenna warn light
+        set_pin_high(ANT_DEP_WARN, &PORT_ANT_WARN);
+        for (uint8_t i = 0; i < 5; i++) {
+            _delay_ms(100);
+        }
+        set_pin_low(ANT_DEP_WARN, &PORT_ANT_WARN);
+        for (uint8_t i = 0; i < 5; i++) {
             _delay_ms(100);
         }
     }
@@ -40,6 +46,17 @@ void run_comms_delay(void) {
 NOTE: Must call init_spi() followed by init_i2c() before this function
 */
 void deploy_antenna(void) {
+    // 5 second delay before start deploying antenna
+    for (uint32_t seconds = 0; seconds < 5; seconds++) {
+        for (uint8_t i = 0; i < 5; i++) {
+            // blink antenna warn light
+            set_pin_high(ANT_DEP_WARN, &PORT_ANT_WARN);
+            _delay_ms(100);
+            set_pin_low(ANT_DEP_WARN, &PORT_ANT_WARN);
+            _delay_ms(100);
+        }
+    }
+
     // TODO - set correct I2C clock and timeout settings
     // Set 369 kHz clock
     write_i2c_reg(I2C_CLOCK, 5);
