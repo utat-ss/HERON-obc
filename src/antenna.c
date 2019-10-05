@@ -7,6 +7,13 @@
 // Number of seconds to wait before initializing comms
 volatile uint32_t comms_delay_s = COMMS_DELAY_DEF_S;
 
+void init_ant(void) {
+    // Initialize pins
+    init_output_pin(ANT_REL_A, &DDR_ANT_REL, 0);
+    init_output_pin(ANT_REL_B, &DDR_ANT_REL, 0);
+    init_output_pin(ANT_DEP_WARN, &DDR_ANT_WARN, 0);
+}
+
 // Delays 30 minutes before we can init comms
 // Fetches previous value in EEPROM to see if we have already finished this
 void run_comms_delay(void) {

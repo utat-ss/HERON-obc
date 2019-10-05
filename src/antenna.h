@@ -23,6 +23,7 @@
 
 extern volatile uint32_t comms_delay_s;
 
+void init_ant(void);
 void run_comms_delay(void);
 void deploy_antenna(void);
 uint8_t read_antenna_data(uint8_t* door_positions, uint8_t* mode,
