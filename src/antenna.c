@@ -114,6 +114,16 @@ void deploy_antenna(void) {
 
     write_antenna_clear(&i2c_status);
     _delay_ms(1000);
+
+    // Manual release for 5 seconds
+    set_pin_high(ANT_REL_A, &PORT_ANT_REL);
+    set_pin_high(ANT_REL_B, &PORT_ANT_REL);
+    for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
+        _delay_ms(1000);
+    }
+    set_pin_low(ANT_REL_A, &PORT_ANT_REL);
+    set_pin_low(ANT_REL_B, &PORT_ANT_REL);
+
 #ifdef ANTENNA_DEBUG
     print("Done");
 #endif
