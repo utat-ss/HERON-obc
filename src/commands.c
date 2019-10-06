@@ -328,11 +328,7 @@ void set_rtc_fn(void) {
 }
 
 void read_obc_eeprom_fn(void) {
-    // Need to represent address as uint32_t* for EEPROM function
-    // Must first cast to uint16_t or else we get warning: cast to pointer
-    // from integer of different size -Wint-to-pointer-cast]
-    uint32_t data = eeprom_read_dword(
-        (uint32_t*) ((uint16_t) current_cmd_arg2));
+    uint32_t data = read_eeprom((uint16_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
@@ -346,11 +342,7 @@ void read_obc_eeprom_fn(void) {
 }
 
 void erase_obc_eeprom_fn(void) {
-    // Need to represent address as uint32_t* for EEPROM function
-    // Must first cast to uint16_t or else we get warning: cast to pointer
-    // from integer of different size -Wint-to-pointer-cast]
-    eeprom_update_dword(
-        (uint32_t*) ((uint16_t) current_cmd_arg2), EEPROM_DEF_DWORD);
+    write_eeprom((uint16_t) current_cmd_arg2, EEPROM_DEF_DWORD);
     
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg();
@@ -1007,19 +999,19 @@ void set_auto_data_col_enable_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             obc_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
-            eeprom_update_dword(OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  obc_hk_auto_data_col.enabled);
+            write_eeprom(OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  obc_hk_auto_data_col.enabled);
             break;
         case CMD_EPS_HK:
             eps_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
-            eeprom_update_dword(EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  eps_hk_auto_data_col.enabled);
+            write_eeprom(EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  eps_hk_auto_data_col.enabled);
             break;
         case CMD_PAY_HK:
             pay_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
-            eeprom_update_dword(PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  pay_hk_auto_data_col.enabled);
+            write_eeprom(PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  pay_hk_auto_data_col.enabled);
             break;
         case CMD_PAY_OPT:
             pay_opt_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
-            eeprom_update_dword(PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, pay_opt_auto_data_col.enabled);
+            write_eeprom(PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, pay_opt_auto_data_col.enabled);
             break;
         default:
             finish_current_cmd(CMD_STATUS_INVALID_ARGS);
@@ -1069,19 +1061,19 @@ void set_auto_data_col_period_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             obc_hk_auto_data_col.period = current_cmd_arg2;
-            eeprom_update_dword(OBC_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  obc_hk_auto_data_col.period);
+            write_eeprom(OBC_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  obc_hk_auto_data_col.period);
             break;
         case CMD_EPS_HK:
             eps_hk_auto_data_col.period = current_cmd_arg2;
-            eeprom_update_dword(EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  eps_hk_auto_data_col.period);
+            write_eeprom(EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  eps_hk_auto_data_col.period);
             break;
         case CMD_PAY_HK:
             pay_hk_auto_data_col.period = current_cmd_arg2;
-            eeprom_update_dword(PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  pay_hk_auto_data_col.period);
+            write_eeprom(PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  pay_hk_auto_data_col.period);
             break;
         case CMD_PAY_OPT:
             pay_opt_auto_data_col.period = current_cmd_arg2;
-            eeprom_update_dword(PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, pay_opt_auto_data_col.period);
+            write_eeprom(PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, pay_opt_auto_data_col.period);
             break;
         default:
             finish_current_cmd(CMD_STATUS_INVALID_ARGS);

@@ -10,7 +10,7 @@ volatile uint32_t comms_delay_s = COMMS_DELAY_DEF_S;
 // Delays 30 minutes before we can init comms
 // Fetches previous value in EEPROM to see if we have already finished this
 void run_comms_delay(void) {
-    if (eeprom_read_dword(COMMS_DELAY_DONE_EEPROM_ADDR) == COMMS_DELAY_DONE_FLAG) {
+    if (read_eeprom(COMMS_DELAY_DONE_EEPROM_ADDR) == COMMS_DELAY_DONE_FLAG) {
         print("Already done comms delay\n");
         return;
     }
@@ -24,7 +24,7 @@ void run_comms_delay(void) {
         }
     }
 
-    eeprom_write_dword(COMMS_DELAY_DONE_EEPROM_ADDR, COMMS_DELAY_DONE_FLAG);
+    write_eeprom(COMMS_DELAY_DONE_EEPROM_ADDR, COMMS_DELAY_DONE_FLAG);
 
     print("Comms delay done\n");
 }

@@ -10,7 +10,7 @@
 #include "i2c.h"
 
 // EEPROM address to store whether comms delay has finished
-#define COMMS_DELAY_DONE_EEPROM_ADDR ((uint32_t*) 0x34)
+#define COMMS_DELAY_DONE_EEPROM_ADDR    0x34
 // Write 1 when it has already been done
 #define COMMS_DELAY_DONE_FLAG   1
 // Antenna I2C addresses according to the datasheet

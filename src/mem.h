@@ -76,12 +76,12 @@
 #define MEM_SEC_CMD_LOG_END_ADDR    0x5FFFFFUL
 #define MEM_NUM_ADDRESSES           0x600000UL
 
-#define MEM_OBC_HK_CURR_BLOCK_EEPROM_ADDR       ((uint32_t*) 0x20)
-#define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR       ((uint32_t*) 0x24)
-#define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR       ((uint32_t*) 0x28)
-#define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR      ((uint32_t*) 0x2C)
-#define MEM_PRIM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR ((uint32_t*) 0x30)
-#define MEM_SEC_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  ((uint32_t*) 0x34)
+#define MEM_OBC_HK_CURR_BLOCK_EEPROM_ADDR       0x20
+#define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR       0x24
+#define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR       0x28
+#define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR      0x2C
+#define MEM_PRIM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR 0x30
+#define MEM_SEC_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  0x34
 
 // Location of status byte in header
 #define MEM_STATUS_HEADER_OFFSET   9
@@ -96,7 +96,7 @@ typedef struct {
     // Current block number being written to in this section of memory (starting from 0, increasing by 1)
     uint32_t curr_block;
     // Address in EEPROM that stores the current block number
-    uint32_t* curr_block_eeprom_addr;
+    uint16_t curr_block_eeprom_addr;
     // Number of fields in one block (NOT including the header)
     // This only matters for the data block sections, not the command log block sections
     uint8_t fields_per_block;
