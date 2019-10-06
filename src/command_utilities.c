@@ -285,6 +285,10 @@ void dequeue_cmd(void) {
 void execute_next_cmd(void) {
     if (!queue_empty(&cmd_queue) && current_cmd == &nop_cmd) {
         print("Starting cmd\n");
+
+        // Restart the counter for not receiving a command
+        restart_cmd_timer();
+        
         // Fetch the next command
         dequeue_cmd();
         // Run the command's function

@@ -701,6 +701,7 @@ int main(void){
     reset_comms_delay_eeprom = false;
     skip_comms_delay = true;
     skip_deploy_antenna = true;
+    cmd_timer_period_s = 600;
     hb_ping_period_s = 30;
     disable_hb = true;
     print_can_msgs = true;
@@ -720,6 +721,7 @@ int main(void){
     // print("reset_comms_delay_eeprom = %u\n", reset_comms_delay_eeprom);
     // print("skip_comms_delay = %u\n", skip_comms_delay);
     // print("skip_deploy_antenna = %u\n", skip_deploy_antenna);
+    // print("cmd_timer_period_s = %lu\n", cmd_timer_period_s);
     // print("hb_ping_period_s = %lu\n", hb_ping_period_s);
     // print("disable_hb = %u\n", disable_hb);
     // print("print_can_msgs = %u\n", print_can_msgs);
