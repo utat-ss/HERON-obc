@@ -77,8 +77,8 @@ typedef struct {
 #define CMD_STATUS_TIMED_OUT    0x02
 #define CMD_STATUS_UNKNOWN      0xFF
 
-// TODO - change value
-#define CMD_TIMEOUT_DEF_PERIOD_S    5
+// TODO - change value?
+#define CMD_TIMEOUT_DEF_PERIOD_S    30
 
 // Max memory read
 #define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 13)
