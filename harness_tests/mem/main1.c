@@ -220,17 +220,17 @@ void eeprom_test(void) {
 	// load all section data from eeprom
 	read_all_mem_sections_eeprom();
 
-	uint32_t eps_hk_block_prev = eeprom_read_dword(eps_hk_mem_section.curr_block_eeprom_addr);
-	uint32_t pay_hk_block_prev = eeprom_read_dword(pay_hk_mem_section.curr_block_eeprom_addr);
-	uint32_t pay_opt_block_prev = eeprom_read_dword(pay_opt_mem_section.curr_block_eeprom_addr);
+	uint32_t eps_hk_block_prev = read_eeprom_or_default(eps_hk_mem_section.curr_block_eeprom_addr, 0);
+	uint32_t pay_hk_block_prev = read_eeprom_or_default(pay_hk_mem_section.curr_block_eeprom_addr, 0);
+	uint32_t pay_opt_block_prev = read_eeprom_or_default(pay_opt_mem_section.curr_block_eeprom_addr, 0);
 
-	inc_mem_section_curr_block(&eps_hk_mem_section);
-    inc_mem_section_curr_block(&pay_hk_mem_section);
-    inc_mem_section_curr_block(&pay_opt_mem_section);
+	set_mem_section_curr_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block + 1);
+    set_mem_section_curr_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block + 1);
+    set_mem_section_curr_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block + 1);
 
-    ASSERT_EQ(eps_hk_block_prev + 1, eeprom_read_dword(eps_hk_mem_section.curr_block_eeprom_addr));
-    ASSERT_EQ(pay_hk_block_prev + 1, eeprom_read_dword(pay_hk_mem_section.curr_block_eeprom_addr));
-    ASSERT_EQ(pay_opt_block_prev + 1, eeprom_read_dword(pay_opt_mem_section.curr_block_eeprom_addr));
+    ASSERT_EQ(eps_hk_block_prev + 1, read_eeprom(eps_hk_mem_section.curr_block_eeprom_addr));
+    ASSERT_EQ(pay_hk_block_prev + 1, read_eeprom(pay_hk_mem_section.curr_block_eeprom_addr));
+    ASSERT_EQ(pay_opt_block_prev + 1, read_eeprom(pay_opt_mem_section.curr_block_eeprom_addr));
 }
 
 
@@ -241,9 +241,9 @@ void mem_header_test_individual( mem_section_t* section ) {
 	// eps_hk_mem_section
 	mem_header_t write = {
         .block_num = section->curr_block,
-        .success = 0x00,
         .date = rand_rtc_date(),
-        .time = rand_rtc_time()
+        .time = rand_rtc_time(),
+        .status = 0x00,
     };
     write_mem_header(section, section->curr_block, &write);
 
@@ -251,7 +251,7 @@ void mem_header_test_individual( mem_section_t* section ) {
     read_mem_header(section, section->curr_block, &read);
 
     ASSERT_EQ(write.block_num, read.block_num);
-    ASSERT_EQ(write.success, read.success);
+    ASSERT_EQ(write.status, read.status);
     ASSERT_EQ_DATE(write.date, read.date);
     ASSERT_EQ_TIME(write.time, read.time);
 }
@@ -318,9 +318,9 @@ void mem_block_test_1(void){
         section->curr_block = 1;////////////////
         block_num[i] = section->curr_block;
         (write_header[i]).block_num = section->curr_block;
-        (write_header[i]).success = 0x00;
         (write_header[i]).date = rand_rtc_date();
         (write_header[i]).time = rand_rtc_time();
+        (write_header[i]).status = 0x00;
         uint32_t prev_block = section->curr_block;
         write_mem_data_block(section, block_num[i], &(write_header[i]), write_test_fields[i]);
         ASSERT_EQ(prev_block, block_num[i]);///////////////
@@ -350,9 +350,9 @@ void mem_block_test_1(void){
     //check headers
     for (int i = 0; i < 4; i++){
         ASSERT_EQ((write_header[i]).block_num, (read_header[i]).block_num); //this should be the case right.
-        ASSERT_EQ((write_header[i]).success, (read_header[i]).success);
         ASSERT_EQ_DATE((write_header[i]).date, (read_header[i]).date);
         ASSERT_EQ_TIME((write_header[i]).time, (read_header[i]).time);
+        ASSERT_EQ((write_header[i]).status, (read_header[i]).status);
     }
 
     //check fields
@@ -406,9 +406,9 @@ void mem_block_test_2(void){
     mem_header_t write_header;
     mem_header_t read_header;
     write_header.block_num = section->curr_block;
-    write_header.success = 0x00;
     write_header.date = rand_rtc_date();
     write_header.time = rand_rtc_time();
+    write_header.status = 0x00;
 
     write_mem_data_block(section, block_num, &write_header, write_fields_1);
     ASSERT_EQ(block_num,0);
@@ -416,7 +416,7 @@ void mem_block_test_2(void){
     ASSERT_EQ(block_num,0);
 
     ASSERT_EQ(write_header.block_num, read_header.block_num);
-    ASSERT_EQ(write_header.success, read_header.success);
+    ASSERT_EQ(write_header.status, read_header.status);
 
     for (uint8_t i=0; i<eps_hk_mem_section.fields_per_block; i++){
         ASSERT_EQ(write_fields_1[i], read_fields_1[i]);
@@ -428,9 +428,9 @@ void mem_block_test_2(void){
 
     block_num = section->curr_block;
     write_header.block_num = section->curr_block;
-    write_header.success = 0x00;
     write_header.date = rand_rtc_date();
     write_header.time = rand_rtc_time();
+    write_header.status = 0x00;
 
     write_mem_data_block(section, block_num, &write_header, write_fields_2);
     ASSERT_EQ(block_num,0);
@@ -438,7 +438,7 @@ void mem_block_test_2(void){
     ASSERT_EQ(block_num,0);
 
     ASSERT_EQ(write_header.block_num, read_header.block_num);
-    ASSERT_EQ(write_header.success, read_header.success);
+    ASSERT_EQ(write_header.status, read_header.status);
 
     for (uint8_t i=0; i<pay_hk_mem_section.fields_per_block; i++){
         ASSERT_EQ(write_fields_2[i], read_fields_2[i]);
@@ -450,9 +450,9 @@ void mem_block_test_2(void){
 
     block_num = section->curr_block;
     write_header.block_num = section->curr_block;
-    write_header.success = 0x00;
     write_header.date = rand_rtc_date();
     write_header.time = rand_rtc_time();
+    write_header.status = 0x00;
 
     write_mem_data_block(section, block_num, &write_header, write_fields_3);
     ASSERT_EQ(block_num,0);
@@ -460,7 +460,7 @@ void mem_block_test_2(void){
     ASSERT_EQ(block_num,0);
 
     ASSERT_EQ(write_header.block_num, read_header.block_num);
-    ASSERT_EQ(write_header.success, read_header.success);
+    ASSERT_EQ(write_header.status, read_header.status);
 
     for (uint8_t i=0; i<pay_opt_mem_section.fields_per_block; i++){
         ASSERT_EQ(write_fields_3[i], read_fields_3[i]);
@@ -520,9 +520,9 @@ void cmd_block_test(void) {
     // eps_hk_mem_section
 	mem_header_t write_header = {
         .block_num = prim_cmd_log_mem_section.curr_block,
-        .success = 0x00,
         .date = rand_rtc_date(),
-        .time = rand_rtc_time()
+        .time = rand_rtc_time(),
+        .status = 0x00,
     };
     mem_header_t read_header;
 
@@ -544,7 +544,7 @@ void cmd_block_test(void) {
 
     read_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &read_header, &read_cmd_num, &read_arg1, &read_arg2);
     ASSERT_EQ(write_header.block_num, read_header.block_num);
-    ASSERT_EQ(write_header.success, read_header.success);
+    ASSERT_EQ(write_header.status, read_header.status);
     ASSERT_EQ_DATE(write_header.date, read_header.date);
     ASSERT_EQ_TIME(write_header.time, read_header.time);
     ASSERT_EQ(write_cmd_num, read_cmd_num);
