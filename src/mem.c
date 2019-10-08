@@ -146,17 +146,14 @@ void clear_mem_header(mem_header_t* header) {
 writes the current block number of `section` to its designated address in EEPROM
 */
 void write_mem_section_eeprom(mem_section_t* section) {
-    eeprom_write_dword (section->curr_block_eeprom_addr, section->curr_block);
+    write_eeprom(section->curr_block_eeprom_addr, section->curr_block);
 }
 
 /*
 reads the current block number from its designated address in EEPROM and stores it in `section`
 */
 void read_mem_section_eeprom(mem_section_t* section) {
-    section->curr_block = eeprom_read_dword (section->curr_block_eeprom_addr);
-    if (section->curr_block == EEPROM_DEF_DWORD) {
-        section->curr_block = 0;
-    }
+    section->curr_block = read_eeprom_or_default(section->curr_block_eeprom_addr, 0);
 }
 
 /*

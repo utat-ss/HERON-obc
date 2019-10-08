@@ -741,7 +741,7 @@ int main(void){
     // print("\n");
 
     if (reset_comms_delay_eeprom) {
-        eeprom_write_dword(COMMS_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
+        write_eeprom(COMMS_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
         print("Reset comms delay EEPROM\n");
     }
     if (!skip_comms_delay) {

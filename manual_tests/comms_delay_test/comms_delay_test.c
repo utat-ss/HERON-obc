@@ -14,7 +14,7 @@ restarts.
 #include "../../src/antenna.h"
 
 void reset_eeprom(void) {
-    eeprom_write_dword(COMMS_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
+    write_eeprom(COMMS_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
     print("Reset EEPROM dword\n");
 }
 

@@ -6,7 +6,7 @@ set RTC to date/time 0).
 #include "../../src/antenna.h"
 
 void config_comms_delay_eeprom(void) {
-    eeprom_write_dword(COMMS_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
+    write_eeprom(COMMS_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
 }
 
 // Comment/uncomment functionality as desired
