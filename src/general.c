@@ -18,7 +18,7 @@ void init_obc_core(void) {
     init_queue(&pay_tx_msg_queue);
     init_queue(&data_rx_msg_queue);
 
-    init_queue(&cmd_queue);
+    init_queue(&cmd_opcode_queue);
     init_queue(&cmd_args_queue);
 
     init_can();

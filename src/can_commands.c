@@ -21,7 +21,7 @@ void handle_rx_msg(void) {
     // print("Dequeued from data_rx_msg_queue\n");
     dequeue(&data_rx_msg_queue, msg);
 
-    uint8_t msg_type = msg[2];
+    uint8_t opcode = msg[2];
     uint8_t field_num = msg[3];
     uint32_t data =
         ((uint32_t) msg[4] << 24) |
@@ -41,7 +41,7 @@ void handle_rx_msg(void) {
         finish_current_cmd(CMD_STATUS_OK);
     }
     else {
-        switch (msg_type) {
+        switch (opcode) {
             case CAN_EPS_HK:
                 handle_eps_hk(field_num, data);
                 break;
@@ -72,7 +72,7 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
     // Request the next field (if not done yet)
     uint8_t next_field_num = field_num + 1;
     if (next_field_num < CAN_EPS_HK_FIELD_COUNT) {
-        enqueue_eps_hk_tx_msg(next_field_num);
+        enqueue_eps_tx_msg(CAN_EPS_HK, next_field_num, 0);
     }
 
     // If we have received all the fields
@@ -113,7 +113,7 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
 
     uint8_t next_field_num = field_num + 1;
     if (next_field_num < CAN_PAY_HK_FIELD_COUNT) {
-        enqueue_pay_hk_tx_msg(next_field_num);
+        enqueue_pay_tx_msg(CAN_PAY_HK, next_field_num, 0);
     }
 
     // If we have received all the fields
@@ -153,7 +153,7 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
 
     uint8_t next_field_num = field_num + 1;
     if (next_field_num < CAN_PAY_OPT_FIELD_COUNT){
-        enqueue_pay_opt_tx_msg(next_field_num);
+        enqueue_pay_tx_msg(CAN_PAY_OPT, next_field_num, 0);
     }
 
     // If we have received all the fields
@@ -240,7 +240,7 @@ void send_next_pay_tx_msg(void) {
 
 
 // Enqueues a CAN message given a general set of 8 bytes data
-void enqueue_tx_msg_general(queue_t* queue, uint32_t data1, uint32_t data2) {
+void enqueue_tx_msg_bytes(queue_t* queue, uint32_t data1, uint32_t data2) {
     uint8_t msg[8] = { 0x00 };
     msg[0] = (data1 >> 24) & 0xFF;
     msg[1] = (data1 >> 16) & 0xFF;
@@ -254,25 +254,18 @@ void enqueue_tx_msg_general(queue_t* queue, uint32_t data1, uint32_t data2) {
     enqueue(queue, msg);
 }
 
-void enqueue_eps_tx_msg(uint32_t data1, uint32_t data2) {
-    enqueue_tx_msg_general(&eps_tx_msg_queue, data1, data2);
-}
-void enqueue_pay_tx_msg(uint32_t data1, uint32_t data2) {
-    enqueue_tx_msg_general(&pay_tx_msg_queue, data1, data2);
-}
-
 /*
 Enqueues a CAN message onto the specified queue to request the specified message
     type and field number.
 queue - Queue to enqueue the message to
-msg_type - Message type to request (byte 1)
-field_num - Field number to request (byte 2)
+opcode - Message type to request (byte 2)
+field_num - Field number to request (byte 3)
 */
-void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num, uint32_t data) {
+void enqueue_tx_msg(queue_t* queue, uint8_t opcode, uint8_t field_num, uint32_t data) {
     uint8_t msg[8] = { 0x00 };
     msg[0] = 0x00;
     msg[1] = 0x00;
-    msg[2] = msg_type;
+    msg[2] = opcode;
     msg[3] = field_num;
     msg[4] = (data >> 24) & 0xFF;
     msg[5] = (data >> 16) & 0xFF;
@@ -282,19 +275,10 @@ void enqueue_tx_msg(queue_t* queue, uint8_t msg_type, uint8_t field_num, uint32_
     enqueue(queue, msg);
 }
 
-// Convenience functions to enqueue each of the message types
-void enqueue_eps_hk_tx_msg(uint8_t field_num) {
-    enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_HK, field_num, 0);
+void enqueue_eps_tx_msg(uint8_t opcode, uint8_t field_num, uint32_t data) {
+    enqueue_tx_msg(&eps_tx_msg_queue, opcode, field_num, data);
 }
-void enqueue_eps_ctrl_tx_msg(uint8_t field_num, uint32_t data) {
-    enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, field_num, data);
-}
-void enqueue_pay_hk_tx_msg(uint8_t field_num) {
-    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_HK, field_num, 0);
-}
-void enqueue_pay_opt_tx_msg(uint8_t field_num) {
-    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_OPT, field_num, 0);
-}
-void enqueue_pay_ctrl_tx_msg(uint8_t field_num, uint32_t data) {
-    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, field_num, data);
+
+void enqueue_pay_tx_msg(uint8_t opcode, uint8_t field_num, uint32_t data) {
+    enqueue_tx_msg(&pay_tx_msg_queue, opcode, field_num, data);
 }

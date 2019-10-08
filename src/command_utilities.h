@@ -114,13 +114,12 @@ typedef struct {
 } auto_data_col_t;
 
 
-extern queue_t cmd_queue;
+extern queue_t cmd_opcode_queue;
 extern queue_t cmd_args_queue;
 
 extern volatile cmd_t* volatile current_cmd;
 extern volatile uint32_t current_cmd_arg1;
 extern volatile uint32_t current_cmd_arg2;
-extern volatile bool prev_cmd_succeeded;
 
 extern volatile uint8_t cmd_timeout_count_s;
 extern uint8_t cmd_timeout_period_s;
@@ -151,11 +150,10 @@ void start_trans_tx_dec_msg(void);
 void append_to_trans_tx_dec_msg(uint8_t byte);
 void finish_trans_tx_dec_msg(void);
 
-cmd_t* trans_msg_type_to_cmd(uint8_t msg_type);
-uint8_t trans_cmd_to_msg_type(cmd_t* cmd);
+cmd_t* cmd_opcode_to_cmd(uint8_t opcode);
 
 void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2);
-void dequeue_cmd(void);
+void dequeue_cmd(cmd_t** cmd, uint32_t* arg1, uint32_t* arg2);
 
 void execute_next_cmd(void);
 void finish_current_cmd(uint8_t status);
