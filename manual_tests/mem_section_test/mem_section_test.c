@@ -66,9 +66,9 @@ void test_eeprom(void) {
     print_sections();
     print("\n");
 
-    inc_mem_section_curr_block(&eps_hk_mem_section);
-    inc_mem_section_curr_block(&pay_hk_mem_section);
-    inc_mem_section_curr_block(&pay_opt_mem_section);
+    set_mem_section_curr_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block + 1);
+    set_mem_section_curr_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block + 1);
+    set_mem_section_curr_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block + 1);
     print("Incremented all current blocks, wrote to EEPROM\n");
 }
 

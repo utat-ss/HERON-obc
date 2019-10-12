@@ -68,17 +68,17 @@ void read_write_erase_mem_test(void){
 void test_eeprom(void){
     read_all_mem_sections_eeprom();
 
-    uint32_t eps_hk_block_prev = eeprom_read_dword(eps_hk_mem_section.curr_block_eeprom_addr);
-    uint32_t pay_hk_block_prev = eeprom_read_dword(pay_hk_mem_section.curr_block_eeprom_addr);
-    uint32_t pay_opt_block_prev = eeprom_read_dword(pay_opt_mem_section.curr_block_eeprom_addr);
+    uint32_t eps_hk_block_prev = read_eeprom(eps_hk_mem_section.curr_block_eeprom_addr);
+    uint32_t pay_hk_block_prev = read_eeprom(pay_hk_mem_section.curr_block_eeprom_addr);
+    uint32_t pay_opt_block_prev = read_eeprom(pay_opt_mem_section.curr_block_eeprom_addr);
 
-    inc_mem_section_curr_block(&eps_hk_mem_section);
-    inc_mem_section_curr_block(&pay_hk_mem_section);
-    inc_mem_section_curr_block(&pay_opt_mem_section);
+    set_mem_section_curr_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block + 1);
+    set_mem_section_curr_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block + 1);
+    set_mem_section_curr_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block + 1);
 
-    ASSERT_EQ(eps_hk_block_prev + 1, eeprom_read_dword(eps_hk_mem_section.curr_block_eeprom_addr));
-    ASSERT_EQ(pay_hk_block_prev + 1, eeprom_read_dword(pay_hk_mem_section.curr_block_eeprom_addr));
-    ASSERT_EQ(pay_opt_block_prev + 1, eeprom_read_dword(pay_opt_mem_section.curr_block_eeprom_addr));
+    ASSERT_EQ(eps_hk_block_prev + 1, read_eeprom(eps_hk_mem_section.curr_block_eeprom_addr));
+    ASSERT_EQ(pay_hk_block_prev + 1, read_eeprom(pay_hk_mem_section.curr_block_eeprom_addr));
+    ASSERT_EQ(pay_opt_block_prev + 1, read_eeprom(pay_opt_mem_section.curr_block_eeprom_addr));
 }
 
 /* Test setting and reading a time on the RTC */
