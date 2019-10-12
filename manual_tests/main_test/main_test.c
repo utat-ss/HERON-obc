@@ -701,7 +701,7 @@ int main(void){
     reset_comms_delay_eeprom = false;
     skip_comms_delay = true;
     skip_deploy_antenna = true;
-    cmd_timer_period_s = 600;
+    com_timeout_period_s = 600;
     hb_ping_period_s = 30;
     disable_hb = true;
     print_can_msgs = true;

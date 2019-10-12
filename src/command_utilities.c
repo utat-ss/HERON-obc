@@ -282,8 +282,9 @@ void execute_next_cmd(void) {
 
     print("Starting cmd\n");
 
-    // Restart the counter for not receiving a command
-    restart_cmd_timer();
+    // TODO - this should be moved to when receiving a transceiver packet instead
+    // Restart the counter for not receiving communication
+    restart_com_timeout();
     // Start timeout timer at 0
     cmd_timeout_count_s = 0;
 
