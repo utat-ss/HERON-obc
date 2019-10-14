@@ -146,7 +146,7 @@ extern rtc_time_t restart_time;
 void handle_trans_rx_dec_msg(void);
 void process_trans_tx_ack(void);
 
-void start_trans_tx_dec_msg(void);
+void start_trans_tx_dec_msg(uint8_t status);
 void append_to_trans_tx_dec_msg(uint8_t byte);
 void finish_trans_tx_dec_msg(void);
 
@@ -162,6 +162,7 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
 void inc_and_prepare_mem_section_curr_block(mem_section_t* section);
 void populate_header(mem_header_t* header, uint32_t block_num, uint8_t status);
 
+void add_def_trans_tx_dec_msg(uint8_t status);
 void append_header_to_tx_msg(mem_header_t* header);
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);
 

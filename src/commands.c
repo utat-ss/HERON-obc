@@ -276,10 +276,7 @@ void nop_fn(void) {
 }
 
 void ping_obc_fn(void) {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
     finish_current_cmd(CMD_STATUS_OK);
 }
 
@@ -288,7 +285,7 @@ void get_rtc_fn(void) {
     rtc_time_t time = read_rtc_time();
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         append_to_trans_tx_dec_msg(date.yy);
         append_to_trans_tx_dec_msg(date.mm);
         append_to_trans_tx_dec_msg(date.dd);
@@ -316,10 +313,7 @@ void set_rtc_fn(void) {
     set_rtc_date(date);
     set_rtc_time(time);
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
@@ -328,7 +322,7 @@ void read_obc_eeprom_fn(void) {
     uint32_t data = read_eeprom((uint16_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         append_to_trans_tx_dec_msg((data >> 24) & 0xFF);
         append_to_trans_tx_dec_msg((data >> 16) & 0xFF);
         append_to_trans_tx_dec_msg((data >> 8) & 0xFF);
@@ -341,10 +335,7 @@ void read_obc_eeprom_fn(void) {
 void erase_obc_eeprom_fn(void) {
     write_eeprom((uint16_t) current_cmd_arg2, EEPROM_DEF_DWORD);
     
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
@@ -357,7 +348,7 @@ void read_obc_ram_byte_fn(void) {
     uint8_t data = *pointer;
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         append_to_trans_tx_dec_msg(data);
         finish_trans_tx_dec_msg();
     }
@@ -392,10 +383,7 @@ void reset_subsys_fn(void) {
         reset_self_mcu(UPTIME_RESTART_REASON_RESET_CMD);
         // Program should stop here and restart from the beginning
 
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
-            finish_trans_tx_dec_msg();
-        }
+        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
         finish_current_cmd(CMD_STATUS_OK);
     }
     // PAY/EPS will not respond so don't expect a CAN message back
@@ -403,19 +391,13 @@ void reset_subsys_fn(void) {
     else if (current_cmd_arg1 == CMD_EPS) {
         enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_RESET, 0);
 
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
-            finish_trans_tx_dec_msg();
-        }
+        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
         finish_current_cmd(CMD_STATUS_OK);
     }
     else if (current_cmd_arg1 == CMD_PAY) {
         enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_RESET, 0);
 
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
-            finish_trans_tx_dec_msg();
-        }
+        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
         finish_current_cmd(CMD_STATUS_OK);
     }
     else {
@@ -428,10 +410,7 @@ void set_indef_lpm_enable_fn(void) {
     enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
     enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
@@ -449,7 +428,7 @@ void read_rec_status_info_fn(void) {
     read_mem_data_block(&pay_hk_mem_section, pay_block, &pay_hk_header, pay_hk_fields);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
 
         for (uint8_t i = CAN_OBC_HK_UPTIME; i <= CAN_OBC_HK_RESTART_TIME; i++) {
             append_to_trans_tx_dec_msg((obc_hk_fields[i] >> 16) & 0xFF);
@@ -475,7 +454,7 @@ void read_rec_status_info_fn(void) {
 
 void read_data_block_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
 
         switch (current_cmd_arg1) {
             case CMD_OBC_HK:
@@ -520,7 +499,7 @@ void read_data_block_fn(void) {
 
 void read_rec_loc_data_block_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
 
         switch (current_cmd_arg1) {
             case CMD_OBC_HK:
@@ -557,7 +536,7 @@ void read_prim_cmd_blocks_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
 
         for (uint32_t block_num = current_cmd_arg1;
             block_num < current_cmd_arg1 + current_cmd_arg2;
@@ -596,7 +575,7 @@ void read_sec_cmd_blocks_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
 
         for (uint32_t block_num = current_cmd_arg1;
             block_num < current_cmd_arg1 + current_cmd_arg2;
@@ -638,7 +617,7 @@ void read_raw_mem_bytes_fn(void) {
     read_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         for (uint8_t i = 0; i < (uint8_t) current_cmd_arg2; i++) {
             append_to_trans_tx_dec_msg(data[i]);
         }
@@ -654,10 +633,7 @@ void erase_mem_phy_sector_fn(void) {
     // Only send a transceiver packet if the erase was initiated by the ground
     // station (argument 2 = 0)
     if (current_cmd_arg2 == 0) {
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
-            finish_trans_tx_dec_msg();
-        }
+        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
     }
 
     finish_current_cmd(CMD_STATUS_OK);
@@ -666,10 +642,7 @@ void erase_mem_phy_sector_fn(void) {
 void erase_mem_phy_block_fn(void) {
     erase_mem_block(current_cmd_arg1);
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
@@ -677,10 +650,7 @@ void erase_mem_phy_block_fn(void) {
 void erase_all_mem_fn(void) {
     erase_mem();
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
@@ -714,7 +684,7 @@ void col_data_block_fn(void) {
             // ground (arg2 = 0)
             if (current_cmd_arg2 == 0) {
                 ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                    start_trans_tx_dec_msg();
+                    start_trans_tx_dec_msg(CMD_STATUS_OK);
                     append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 24) & 0xFF);
                     append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 16) & 0xFF);
                     append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 8) & 0xFF);
@@ -781,7 +751,7 @@ void get_cur_block_num_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         append_to_trans_tx_dec_msg((block_num >> 24) & 0xFF);
         append_to_trans_tx_dec_msg((block_num >> 16) & 0xFF);
         append_to_trans_tx_dec_msg((block_num >> 8) & 0xFF);
@@ -818,10 +788,7 @@ void set_cur_block_num_fn(void) {
             break;
     }
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
@@ -852,7 +819,7 @@ void get_mem_sec_start_addr_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         append_to_trans_tx_dec_msg((start_addr >> 24) & 0xFF);
         append_to_trans_tx_dec_msg((start_addr >> 16) & 0xFF);
         append_to_trans_tx_dec_msg((start_addr >> 8) & 0xFF);
@@ -887,10 +854,7 @@ void set_mem_sec_start_addr_fn(void) {
             break;
     }
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
@@ -921,7 +885,7 @@ void get_mem_sec_end_addr_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         append_to_trans_tx_dec_msg((end_addr >> 24) & 0xFF);
         append_to_trans_tx_dec_msg((end_addr >> 16) & 0xFF);
         append_to_trans_tx_dec_msg((end_addr >> 8) & 0xFF);
@@ -956,10 +920,7 @@ void set_mem_sec_end_addr_fn(void) {
             break;
     }
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
@@ -984,7 +945,7 @@ void get_auto_data_col_enable_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         append_to_trans_tx_dec_msg((uint8_t) enabled);
         finish_trans_tx_dec_msg();
     }
@@ -1015,10 +976,7 @@ void set_auto_data_col_enable_fn(void) {
             return;
     }
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
@@ -1043,7 +1001,7 @@ void get_auto_data_col_period_fn(void) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         append_to_trans_tx_dec_msg((period >> 24) & 0xFF);
         append_to_trans_tx_dec_msg((period >> 16) & 0xFF);
         append_to_trans_tx_dec_msg((period >> 8) & 0xFF);
@@ -1077,17 +1035,14 @@ void set_auto_data_col_period_fn(void) {
             return;
     }
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
 
 void get_auto_data_col_timers_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
+        start_trans_tx_dec_msg(CMD_STATUS_OK);
         append_to_trans_tx_dec_msg((obc_hk_auto_data_col.count >> 24) & 0xFF);
         append_to_trans_tx_dec_msg((obc_hk_auto_data_col.count >> 16) & 0xFF);
         append_to_trans_tx_dec_msg((obc_hk_auto_data_col.count >> 8) & 0xFF);
@@ -1118,10 +1073,7 @@ void resync_auto_data_col_timers_fn(void) {
         pay_opt_auto_data_col.count = 0;
     }
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg();
-        finish_trans_tx_dec_msg();
-    }
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
     finish_current_cmd(CMD_STATUS_OK);
 }
