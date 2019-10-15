@@ -32,7 +32,7 @@ void handle_rx_msg(void) {
     //General CAN command-Send back data
     if ((current_cmd == &send_eps_can_msg_cmd) || (current_cmd == &send_pay_can_msg_cmd)) {
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
+            start_trans_tx_dec_msg(CMD_STATUS_OK);
             for (uint8_t i = 0; i < 8; i++) {
                 append_to_trans_tx_dec_msg(msg[i]);
             }
@@ -89,7 +89,7 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
         // ground (arg2 = 0)
         if (current_cmd_arg2 == 0) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_dec_msg();
+                start_trans_tx_dec_msg(CMD_STATUS_OK);
                 append_to_trans_tx_dec_msg((eps_hk_mem_section.curr_block >> 24) & 0xFF);
                 append_to_trans_tx_dec_msg((eps_hk_mem_section.curr_block >> 16) & 0xFF);
                 append_to_trans_tx_dec_msg((eps_hk_mem_section.curr_block >> 8) & 0xFF);
@@ -130,7 +130,7 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
         // ground (arg2 = 0)
         if (current_cmd_arg2 == 0) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_dec_msg();
+                start_trans_tx_dec_msg(CMD_STATUS_OK);
                 append_to_trans_tx_dec_msg((pay_hk_mem_section.curr_block >> 24) & 0xFF);
                 append_to_trans_tx_dec_msg((pay_hk_mem_section.curr_block >> 16) & 0xFF);
                 append_to_trans_tx_dec_msg((pay_hk_mem_section.curr_block >> 8) & 0xFF);
@@ -170,7 +170,7 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
         // ground (arg2 = 0)
         if (current_cmd_arg2 == 0) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_dec_msg();
+                start_trans_tx_dec_msg(CMD_STATUS_OK);
                 append_to_trans_tx_dec_msg((pay_opt_mem_section.curr_block >> 24) & 0xFF);
                 append_to_trans_tx_dec_msg((pay_opt_mem_section.curr_block >> 16) & 0xFF);
                 append_to_trans_tx_dec_msg((pay_opt_mem_section.curr_block >> 8) & 0xFF);
@@ -189,10 +189,7 @@ void handle_pay_ctrl(uint8_t field_num) {
         field_num == CAN_PAY_CTRL_ACT_DOWN) &&
         current_cmd == &act_pay_motors_cmd) {
 
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg();
-            finish_trans_tx_dec_msg();
-        }
+        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
 
         finish_current_cmd(CMD_STATUS_OK);
     }

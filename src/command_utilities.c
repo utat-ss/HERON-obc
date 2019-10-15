@@ -146,7 +146,7 @@ void process_trans_tx_ack(void) {
 
 // NOTE: these three functions should be used within the same atomic block
 
-void start_trans_tx_dec_msg(void) {
+void start_trans_tx_dec_msg(uint8_t status) {
     trans_tx_dec_msg[0] = current_cmd->opcode;
     trans_tx_dec_msg[1] = (current_cmd_arg1 >> 24) & 0xFF;
     trans_tx_dec_msg[2] = (current_cmd_arg1 >> 16) & 0xFF;
@@ -156,8 +156,9 @@ void start_trans_tx_dec_msg(void) {
     trans_tx_dec_msg[6] = (current_cmd_arg2 >> 16) & 0xFF;
     trans_tx_dec_msg[7] = (current_cmd_arg2 >> 8) & 0xFF;
     trans_tx_dec_msg[8] = current_cmd_arg2 & 0xFF;
+    trans_tx_dec_msg[9] = status;
 
-    trans_tx_dec_len = 9;
+    trans_tx_dec_len = 10;
 }
 
 void append_to_trans_tx_dec_msg(uint8_t byte) {
@@ -307,8 +308,7 @@ void execute_next_cmd(void) {
     (current_cmd->fn)();
 }
 
-// Finishes executing the current command and sets the succeeded flag
-// TODO - integrate with success byte
+// Finishes executing the current command and writes the status byte in the command log
 void finish_current_cmd(uint8_t status) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // The erase flash command erases the command log as well, therefore re-write the command log
@@ -386,6 +386,12 @@ void populate_header(mem_header_t* header, uint32_t block_num, uint8_t status) {
     header->status = status;
 }
 
+void add_def_trans_tx_dec_msg(uint8_t status) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg(status);
+        finish_trans_tx_dec_msg();
+    }
+}
 
 void append_header_to_tx_msg(mem_header_t* header) {
     append_to_trans_tx_dec_msg((header->block_num >> 16) & 0xFF);

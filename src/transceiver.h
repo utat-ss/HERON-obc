@@ -16,8 +16,8 @@
 #define TRANS_CMD_RESP_MAX_SIZE     20
 #define TRANS_RX_ENC_MSG_MAX_SIZE   19
 #define TRANS_RX_DEC_MSG_MAX_SIZE   13
-#define TRANS_TX_DEC_MSG_MAX_SIZE   115
-#define TRANS_TX_ENC_MSG_MAX_SIZE   232
+#define TRANS_TX_DEC_MSG_MAX_SIZE   116
+#define TRANS_TX_ENC_MSG_MAX_SIZE   137
 
 // Number of seconds to wait (if we are not receiving anymore characters) to clear the buffer
 // Uptime error is +- 1 second, which should be accounted for in this number
