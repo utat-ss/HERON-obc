@@ -59,6 +59,13 @@ volatile auto_data_col_t pay_opt_auto_data_col = {
     .count = 0
 };
 
+volatile auto_data_col_t* all_auto_data_cols[NUM_AUTO_DATA_COL_SECTIONS] = {
+    &obc_hk_auto_data_col,
+    &eps_hk_auto_data_col,
+    &pay_hk_auto_data_col,
+    &pay_opt_auto_data_col,
+};
+
 
 // Date and time of the most recent restart
 rtc_date_t restart_date = { .yy = 0, .mm = 0, .dd  = 0 };

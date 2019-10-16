@@ -86,7 +86,7 @@ void basic_commands_test (void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     ASSERT_TRUE(obc_hk_auto_data_col.enabled);
-    enqueue_cmd(&get_auto_data_col_enable_cmd, 1, 0);
+    enqueue_cmd(&get_auto_data_col_settings_cmd, 1, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -99,7 +99,7 @@ void basic_commands_test (void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     ASSERT_FALSE(obc_hk_auto_data_col.enabled);
-    enqueue_cmd(&get_auto_data_col_enable_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(&get_auto_data_col_settings_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -125,7 +125,7 @@ void basic_commands_test (void) {
 void data_collection_test(void) {
     int curr_block_num = 10;
     enqueue_cmd(&set_cur_block_num_cmd, CMD_OBC_HK, 10);
-    enqueue_cmd(&get_cur_block_num_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(&get_cur_block_nums_cmd, CMD_OBC_HK, 0);
     
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
@@ -151,7 +151,7 @@ void data_collection_test(void) {
     }
     ++curr_block_num;   // The block number should increase with a read
 
-    enqueue_cmd(&get_cur_block_num_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(&get_cur_block_nums_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -181,7 +181,7 @@ void mem_commands_test(void) {
 
 
     // Get the memory addresses
-    enqueue_cmd(&get_mem_sec_start_addr_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(&get_mem_sec_addrs_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {

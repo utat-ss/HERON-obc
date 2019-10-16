@@ -26,17 +26,14 @@ void erase_mem_phy_block_fn(void);
 void erase_all_mem_fn(void);
 
 void col_data_block_fn(void);
-void get_cur_block_num_fn(void);
+void get_cur_block_nums_fn(void);
 void set_cur_block_num_fn(void);
-void get_mem_sec_start_addr_fn(void);
+void get_mem_sec_addrs_fn(void);
 void set_mem_sec_start_addr_fn(void);
-void get_mem_sec_end_addr_fn(void);
 void set_mem_sec_end_addr_fn(void);
-void get_auto_data_col_enable_fn(void);
+void get_auto_data_col_settings_fn(void);
 void set_auto_data_col_enable_fn(void);
-void get_auto_data_col_period_fn(void);
 void set_auto_data_col_period_fn(void);
-void get_auto_data_col_timers_fn(void);
 void resync_auto_data_col_timers_fn(void);
 
 
@@ -162,9 +159,9 @@ cmd_t col_data_block_cmd = {
     .opcode = CMD_COL_DATA_BLOCK,
     .pwd_protected = false
 };
-cmd_t get_cur_block_num_cmd = {
-    .fn = get_cur_block_num_fn,
-    .opcode = CMD_GET_CUR_BLOCK_NUM,
+cmd_t get_cur_block_nums_cmd = {
+    .fn = get_cur_block_nums_fn,
+    .opcode = CMD_GET_CUR_BLOCK_NUMS,
     .pwd_protected = false
 };
 cmd_t set_cur_block_num_cmd = {
@@ -172,9 +169,9 @@ cmd_t set_cur_block_num_cmd = {
     .opcode = CMD_SET_CUR_BLOCK_NUM,
     .pwd_protected = true
 };
-cmd_t get_mem_sec_start_addr_cmd = {
-    .fn = get_mem_sec_start_addr_fn,
-    .opcode = CMD_GET_MEM_SEC_START_ADDR,
+cmd_t get_mem_sec_addrs_cmd = {
+    .fn = get_mem_sec_addrs_fn,
+    .opcode = CMD_GET_MEM_SEC_ADDRS,
     .pwd_protected = true
 };
 cmd_t set_mem_sec_start_addr_cmd = {
@@ -182,19 +179,14 @@ cmd_t set_mem_sec_start_addr_cmd = {
     .opcode = CMD_SET_MEM_SEC_START_ADDR,
     .pwd_protected = true
 };
-cmd_t get_mem_sec_end_addr_cmd = {
-    .fn = get_mem_sec_end_addr_fn,
-    .opcode = CMD_GET_MEM_SEC_END_ADDR,
-    .pwd_protected = true
-};
 cmd_t set_mem_sec_end_addr_cmd = {
     .fn = set_mem_sec_end_addr_fn,
     .opcode = CMD_SET_MEM_SEC_END_ADDR,
     .pwd_protected = true
 };
-cmd_t get_auto_data_col_enable_cmd = {
-    .fn = get_auto_data_col_enable_fn,
-    .opcode = CMD_GET_AUTO_DATA_COL_ENABLE,
+cmd_t get_auto_data_col_settings_cmd = {
+    .fn = get_auto_data_col_settings_fn,
+    .opcode = CMD_GET_AUTO_DATA_COL_SETTINGS,
     .pwd_protected = false
 };
 cmd_t set_auto_data_col_enable_cmd = {
@@ -202,20 +194,10 @@ cmd_t set_auto_data_col_enable_cmd = {
     .opcode = CMD_SET_AUTO_DATA_COL_ENABLE,
     .pwd_protected = true
 };
-cmd_t get_auto_data_col_period_cmd = {
-    .fn = get_auto_data_col_period_fn,
-    .opcode = CMD_GET_AUTO_DATA_COL_PERIOD,
-    .pwd_protected = false
-};
 cmd_t set_auto_data_col_period_cmd = {
     .fn = set_auto_data_col_period_fn,
     .opcode = CMD_SET_AUTO_DATA_COL_PERIOD,
     .pwd_protected = true
-};
-cmd_t get_auto_data_col_timers_cmd = {
-    .fn = get_auto_data_col_timers_fn,
-    .opcode = CMD_GET_AUTO_DATA_COL_TIMERS,
-    .pwd_protected = false
 };
 cmd_t resync_auto_data_col_timers_cmd = {
     .fn = resync_auto_data_col_timers_fn,
@@ -250,17 +232,14 @@ cmd_t* all_cmds_list[] = {
     &erase_mem_phy_block_cmd,
     &erase_all_mem_cmd,
     &col_data_block_cmd,
-    &get_cur_block_num_cmd,
+    &get_cur_block_nums_cmd,
     &set_cur_block_num_cmd,
-    &get_mem_sec_start_addr_cmd,
+    &get_mem_sec_addrs_cmd,
     &set_mem_sec_start_addr_cmd,
-    &get_mem_sec_end_addr_cmd,
     &set_mem_sec_end_addr_cmd,
-    &get_auto_data_col_enable_cmd,
+    &get_auto_data_col_settings_cmd,
     &set_auto_data_col_enable_cmd,
-    &get_auto_data_col_period_cmd,
     &set_auto_data_col_period_cmd,
-    &get_auto_data_col_timers_cmd,
     &resync_auto_data_col_timers_cmd,
 };
 
@@ -725,7 +704,7 @@ void col_data_block_fn(void) {
     // Will continue from CAN callbacks
 }
 
-void get_cur_block_num_fn(void) {
+void get_cur_block_nums_fn(void) {
     uint32_t block_num = 0;
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
@@ -796,42 +775,24 @@ void set_cur_block_num_fn(void) {
     finish_current_cmd(CMD_STATUS_OK);
 }
 
-void get_mem_sec_start_addr_fn(void) {
-    uint32_t start_addr = 0;
-    switch (current_cmd_arg1) {
-        case CMD_OBC_HK:
-            start_addr = obc_hk_mem_section.start_addr;
-            break;
-        case CMD_EPS_HK:
-            start_addr = eps_hk_mem_section.start_addr;
-            break;
-        case CMD_PAY_HK:
-            start_addr = pay_hk_mem_section.start_addr;
-            break;
-        case CMD_PAY_OPT:
-            start_addr = pay_opt_mem_section.start_addr;
-            break;
-        case CMD_PRIM_CMD_LOG:
-            start_addr = prim_cmd_log_mem_section.start_addr;
-            break;
-        case CMD_SEC_CMD_LOG:
-            start_addr = sec_cmd_log_mem_section.start_addr;
-            break;
-        default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
-            return;
-    }
-
+void get_mem_sec_addrs_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg(CMD_STATUS_OK);
-        append_to_trans_tx_dec_msg((start_addr >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((start_addr >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((start_addr >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(start_addr & 0xFF);
+
+        for (uint8_t i = 0; i < MEM_NUM_SECTIONS; i++) {
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->start_addr >> 24) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->start_addr >> 16) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->start_addr >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->start_addr >> 0) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->end_addr >> 24) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->end_addr >> 16) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->end_addr >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->end_addr >> 0) & 0xFF);
+        }
+        
         finish_trans_tx_dec_msg();
     }
-    
+
     finish_current_cmd(CMD_STATUS_OK);
 }
 
@@ -865,45 +826,6 @@ void set_mem_sec_start_addr_fn(void) {
     finish_current_cmd(CMD_STATUS_OK);
 }
 
-void get_mem_sec_end_addr_fn(void) {
-    uint32_t end_addr = 0;
-    switch (current_cmd_arg1) {
-        case CMD_OBC_HK:
-            end_addr = obc_hk_mem_section.end_addr;
-            break;
-        case CMD_EPS_HK:
-            end_addr = eps_hk_mem_section.end_addr;
-            break;
-        case CMD_PAY_HK:
-            end_addr = pay_hk_mem_section.end_addr;
-            break;
-        case CMD_PAY_OPT:
-            end_addr = pay_opt_mem_section.end_addr;
-            break;
-        case CMD_PRIM_CMD_LOG:
-            end_addr = prim_cmd_log_mem_section.end_addr;
-            break;
-        case CMD_SEC_CMD_LOG:
-            end_addr = sec_cmd_log_mem_section.end_addr;
-            break;
-        default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
-            return;
-    }
-
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
-        append_to_trans_tx_dec_msg((end_addr >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((end_addr >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((end_addr >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(end_addr & 0xFF);
-        finish_trans_tx_dec_msg();
-    }
-    
-    finish_current_cmd(CMD_STATUS_OK);
-}
-
 void set_mem_sec_end_addr_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
@@ -934,33 +856,25 @@ void set_mem_sec_end_addr_fn(void) {
     finish_current_cmd(CMD_STATUS_OK);
 }
 
-void get_auto_data_col_enable_fn(void) {
-    bool enabled = false;
-    switch (current_cmd_arg1) {
-        case CMD_OBC_HK:
-            enabled = obc_hk_auto_data_col.enabled;
-            break;
-        case CMD_EPS_HK:
-            enabled = eps_hk_auto_data_col.enabled;
-            break;
-        case CMD_PAY_HK:
-            enabled = pay_hk_auto_data_col.enabled;
-            break;
-        case CMD_PAY_OPT:
-            enabled = pay_opt_auto_data_col.enabled;
-            break;
-        default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
-            return;
-    }
-
+void get_auto_data_col_settings_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg(CMD_STATUS_OK);
-        append_to_trans_tx_dec_msg((uint8_t) enabled);
+
+        for (uint8_t i = 0; i < NUM_AUTO_DATA_COL_SECTIONS; i++) {
+            append_to_trans_tx_dec_msg((uint8_t) all_auto_data_cols[i]->enabled);
+            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->period >> 24) & 0xFF);
+            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->period >> 16) & 0xFF);
+            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->period >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->period >> 0) & 0xFF);
+            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->count >> 24) & 0xFF);
+            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->count >> 16) & 0xFF);
+            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->count >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->count >> 0) & 0xFF);
+        }
+        
         finish_trans_tx_dec_msg();
     }
-    
+
     finish_current_cmd(CMD_STATUS_OK);
 }
 
@@ -992,39 +906,6 @@ void set_auto_data_col_enable_fn(void) {
     finish_current_cmd(CMD_STATUS_OK);
 }
 
-void get_auto_data_col_period_fn(void) {
-    uint32_t period = 0;
-    switch (current_cmd_arg1) {
-        case CMD_OBC_HK:
-            period = obc_hk_auto_data_col.period;
-            break;
-        case CMD_EPS_HK:
-            period = eps_hk_auto_data_col.period;
-            break;
-        case CMD_PAY_HK:
-            period = pay_hk_auto_data_col.period;
-            break;
-        case CMD_PAY_OPT:
-            period = pay_opt_auto_data_col.period;
-            break;
-        default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
-            return;
-    }
-
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
-        append_to_trans_tx_dec_msg((period >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((period >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((period >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(period & 0xFF);
-        finish_trans_tx_dec_msg();
-    }
-    
-    finish_current_cmd(CMD_STATUS_OK);
-}
-
 void set_auto_data_col_period_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
@@ -1050,31 +931,6 @@ void set_auto_data_col_period_fn(void) {
     }
 
     add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
-}
-
-void get_auto_data_col_timers_fn(void) {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
-        append_to_trans_tx_dec_msg((obc_hk_auto_data_col.count >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((obc_hk_auto_data_col.count >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((obc_hk_auto_data_col.count >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(obc_hk_auto_data_col.count & 0xFF);
-        append_to_trans_tx_dec_msg((eps_hk_auto_data_col.count >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((eps_hk_auto_data_col.count >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((eps_hk_auto_data_col.count >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(eps_hk_auto_data_col.count & 0xFF);
-        append_to_trans_tx_dec_msg((pay_hk_auto_data_col.count >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((pay_hk_auto_data_col.count >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((pay_hk_auto_data_col.count >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(pay_hk_auto_data_col.count & 0xFF);
-        append_to_trans_tx_dec_msg((pay_opt_auto_data_col.count >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((pay_opt_auto_data_col.count >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((pay_opt_auto_data_col.count >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(pay_opt_auto_data_col.count & 0xFF);
-        finish_trans_tx_dec_msg();
-    }
-    
     finish_current_cmd(CMD_STATUS_OK);
 }
 
