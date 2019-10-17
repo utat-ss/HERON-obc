@@ -18,7 +18,7 @@
 #include "rtc.h"
 #include "transceiver.h"
 
-void init_obc_core(void);
-void init_obc_trans(void);
+void init_obc_phase1(void);
+void init_obc_phase2(void);
 
 #endif

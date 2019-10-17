@@ -4,12 +4,12 @@ int main(void) {
     WDT_OFF();
     WDT_ENABLE_SYS_RESET(WDTO_8S);
 
-    init_obc_core();
+    init_obc_phase1();
     init_hb(HB_OBC);
     
     run_comms_delay();
     deploy_antenna();
-    init_obc_trans();
+    init_obc_phase2();
 
     while (1) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);

@@ -250,7 +250,7 @@ test_t t7 = { .name = "EPS Reset Test", .fn = pay_reset_test };
 test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7};
 
 int main(void) {
-    init_obc_core();
+    init_obc_phase1();
     run_tests(suite, TEST_SIZE);
     return 0;
 }
