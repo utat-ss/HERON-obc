@@ -3,16 +3,14 @@
 
 // Initializes everything in OBC, EXCEPT the transceiver/comms things that must
 // not be turned on for the first 30 minutes
-void init_obc_core(void) {
+void init_obc_phase1(void) {
     init_uart();
 
     init_spi();
     init_i2c();
 
     init_rtc();
-
     init_mem();
-    read_all_mem_sections_eeprom();
 
     init_queue(&eps_tx_msg_queue);
     init_queue(&pay_tx_msg_queue);
@@ -37,7 +35,7 @@ void init_obc_core(void) {
 }
 
 // Initializes the transceiver parts of OBC that must be delayed after initial startup
-void init_obc_trans(void) {
+void init_obc_phase2(void) {
     init_trans();
 
     uart_baud_rate_t previous_baud = UART_BAUD_9600;

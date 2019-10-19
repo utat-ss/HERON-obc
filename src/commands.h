@@ -37,17 +37,14 @@ extern cmd_t erase_mem_phy_block_cmd;
 extern cmd_t erase_all_mem_cmd;
 
 extern cmd_t col_data_block_cmd;
-extern cmd_t get_cur_block_num_cmd;
+extern cmd_t get_cur_block_nums_cmd;
 extern cmd_t set_cur_block_num_cmd;
-extern cmd_t get_mem_sec_start_addr_cmd;
+extern cmd_t get_mem_sec_addrs_cmd;
 extern cmd_t set_mem_sec_start_addr_cmd;
-extern cmd_t get_mem_sec_end_addr_cmd;
 extern cmd_t set_mem_sec_end_addr_cmd;
-extern cmd_t get_auto_data_col_enable_cmd;
+extern cmd_t get_auto_data_col_settings_cmd;
 extern cmd_t set_auto_data_col_enable_cmd;
-extern cmd_t get_auto_data_col_period_cmd;
 extern cmd_t set_auto_data_col_period_cmd;
-extern cmd_t get_auto_data_col_timers_cmd;
 extern cmd_t resync_auto_data_col_timers_cmd;
 
 extern cmd_t* all_cmds_list[];

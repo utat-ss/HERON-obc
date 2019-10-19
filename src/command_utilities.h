@@ -51,21 +51,18 @@ typedef struct {
 #define CMD_READ_REC_LOC_DATA_BLOCK     0x14
 #define CMD_READ_RAW_MEM_BYTES          0x15
 #define CMD_COL_DATA_BLOCK              0x20
-#define CMD_GET_AUTO_DATA_COL_ENABLE    0x21
+#define CMD_GET_AUTO_DATA_COL_SETTINGS  0x21
 #define CMD_SET_AUTO_DATA_COL_ENABLE    0x22
-#define CMD_GET_AUTO_DATA_COL_PERIOD    0x23
-#define CMD_SET_AUTO_DATA_COL_PERIOD    0x24
-#define CMD_GET_AUTO_DATA_COL_TIMERS    0x25
-#define CMD_RESYNC_AUTO_DATA_COL_TIMERS 0x26
-#define CMD_GET_CUR_BLOCK_NUM           0x30
+#define CMD_SET_AUTO_DATA_COL_PERIOD    0x23
+#define CMD_RESYNC_AUTO_DATA_COL_TIMERS 0x24
+#define CMD_GET_CUR_BLOCK_NUMS          0x30
 #define CMD_SET_CUR_BLOCK_NUM           0x31
-#define CMD_GET_MEM_SEC_START_ADDR      0x32
+#define CMD_GET_MEM_SEC_ADDRS           0x32
 #define CMD_SET_MEM_SEC_START_ADDR      0x33
-#define CMD_GET_MEM_SEC_END_ADDR        0x34
-#define CMD_SET_MEM_SEC_END_ADDR        0x35
-#define CMD_ERASE_MEM_PHY_SECTOR        0x36
-#define CMD_ERASE_MEM_PHY_BLOCK         0x37
-#define CMD_ERASE_ALL_MEM               0x38
+#define CMD_SET_MEM_SEC_END_ADDR        0x34
+#define CMD_ERASE_MEM_PHY_SECTOR        0x35
+#define CMD_ERASE_MEM_PHY_BLOCK         0x36
+#define CMD_ERASE_ALL_MEM               0x37
 #define CMD_SEND_EPS_CAN_MSG            0x40
 #define CMD_SEND_PAY_CAN_MSG            0x41
 #define CMD_ACT_PAY_MOTORS              0x42
@@ -85,6 +82,8 @@ typedef struct {
 #define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 13)
 
 
+// Number of sections using auto data collection
+#define NUM_AUTO_DATA_COL_SECTIONS 4
 
 // Default period for automatic data collection for each block type
 // (time between timer callbacks, in seconds)
@@ -139,6 +138,7 @@ extern volatile auto_data_col_t obc_hk_auto_data_col;
 extern volatile auto_data_col_t eps_hk_auto_data_col;
 extern volatile auto_data_col_t pay_hk_auto_data_col;
 extern volatile auto_data_col_t pay_opt_auto_data_col;
+extern volatile auto_data_col_t* all_auto_data_cols[];
 
 extern rtc_date_t restart_date;
 extern rtc_time_t restart_time;

@@ -689,7 +689,7 @@ int main(void){
     WDT_OFF();
     WDT_ENABLE_SYS_RESET(WDTO_8S);
 
-    init_obc_core();
+    init_obc_phase1();
 
     print("\n\n\nStarting commands test\n\n");
 
@@ -763,7 +763,7 @@ int main(void){
         }
     } else {
         print("Init OBC trans\n");
-        init_obc_trans();
+        init_obc_phase2();
     }
     print("\n");
 
