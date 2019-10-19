@@ -705,38 +705,16 @@ void col_data_block_fn(void) {
 }
 
 void get_cur_block_nums_fn(void) {
-    uint32_t block_num = 0;
-    switch (current_cmd_arg1) {
-        case CMD_OBC_HK:
-            block_num = obc_hk_mem_section.curr_block;
-            break;
-        case CMD_EPS_HK:
-            block_num = eps_hk_mem_section.curr_block;
-            break;
-        case CMD_PAY_HK:
-            block_num = pay_hk_mem_section.curr_block;
-            break;
-        case CMD_PAY_OPT:
-            block_num = pay_opt_mem_section.curr_block;
-            break;
-        case CMD_PRIM_CMD_LOG:
-            block_num = prim_cmd_log_mem_section.curr_block;
-            break;
-        case CMD_SEC_CMD_LOG:
-            block_num = sec_cmd_log_mem_section.curr_block;
-            break;
-        default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
-            return;
-    }
-
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_dec_msg(CMD_STATUS_OK);
-        append_to_trans_tx_dec_msg((block_num >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((block_num >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((block_num >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(block_num & 0xFF);
+
+        for (uint8_t i = 0; i < MEM_NUM_SECTIONS; i++) {
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->curr_block >> 24) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->curr_block >> 16) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->curr_block >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg((all_mem_sections[i]->curr_block >> 0) & 0xFF);
+        }
+        
         finish_trans_tx_dec_msg();
     }
 
