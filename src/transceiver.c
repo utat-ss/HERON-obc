@@ -28,8 +28,6 @@ All bits below this point are read only (no writing)
 1: Correct initialization of FRAM (0 = Error)
 0: Correct initialization of Radio Transceiver (0 = Error)
 
-Unused features: Beacon contents, packets
-
 UART RX Buffer:
 There is a common buffer of characters received over UART from the transceiver in the UART library.
 These could either be a response to a command we send it, or a message from the
@@ -41,13 +39,15 @@ functions in this library can check for and consume the data if desired). We
 set a timeout where if we do not receive any characters for a certain number of
 seconds, the entire buffer contents are discarded.
 
-Formerly, we copied all characters from the standard UART buffer to a separate
+Formerly we copied all characters from the standard UART buffer to a separate
 buffer in this library, but that was unnecessary.
 
-TODO - For most of the get commands, OBC misses the first 1 or 2 characters in
-    the response for the first attempt, but the second attempt seems to always work
-TODO - it was observed that after either sending data in pipe mode, the
-    transceiver sent the UART message "+ESTTC<CR>" - figure out what this is
+Note that when pipe mode times out, the transceiver automatically sends the
+following 16 bytes of UART to OBC:
+"+ESTTC [CCCCCCCC]<CR>"
+where [CCCCCCCC] is the 8-byte checksum.
+In a raw hexdump of bytes, this is:
+2b:45:53:54:54:43:20:43:46:42:35:32:44:33:35:0d
 
 TODO - perhaps refactor sending a transceiver command and receiving UART back
 uint8_t send_trans_cmd(uint8_t resp_len, char* fmt, ...) {

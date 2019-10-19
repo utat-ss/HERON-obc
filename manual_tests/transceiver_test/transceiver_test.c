@@ -55,9 +55,11 @@ void test_reset(void);
 
 int main(void){
     init_uart();
+    init_uptime();
+
     print("\n\n");
 
-    // Time to connect the SCK/RX pin after programming
+    // Time to change the switch from PGM to RUN after programming
     print("Waiting 5 seconds...\n");
     _delay_ms(5000);
 
