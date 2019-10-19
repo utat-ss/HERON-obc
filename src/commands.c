@@ -317,10 +317,14 @@ void erase_obc_eeprom_fn(void) {
 }
 
 void read_obc_ram_byte_fn(void) {
-    // Need to represent address as uint8_t* to read RAM
+    // See lib-common/examples/read_registers for an MMIO example
+    // https://arduino.stackexchange.com/questions/56304/how-do-i-directly-access-a-memory-mapped-register-of-avr-with-c
+    // http://download.mikroe.com/documents/compilers/mikroc/avr/help/avr_memory_organization.htm
+
+    // Need to represent address as volatile uint8_t* to read RAM
     // Must first cast to uint16_t or else we get warning: cast to pointer
     // from integer of different size -Wint-to-pointer-cast]
-    uint8_t* pointer = (uint8_t*) ((uint16_t) current_cmd_arg2);
+    volatile uint8_t* pointer = (volatile uint8_t*) ((uint16_t) current_cmd_arg1);
     uint8_t data = *pointer;
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
