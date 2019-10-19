@@ -44,6 +44,7 @@ typedef struct {
 #define CMD_READ_OBC_EEPROM             0x03
 #define CMD_ERASE_OBC_EEPROM            0x04
 #define CMD_READ_OBC_RAM_BYTE           0x05
+#define CMD_SET_BEACON_INHIBIT_ENABLE   0x06
 #define CMD_READ_DATA_BLOCK             0x10
 #define CMD_READ_PRIM_CMD_BLOCKS        0x11
 #define CMD_READ_SEC_CMD_BLOCKS         0x12
@@ -77,6 +78,9 @@ typedef struct {
 
 // TODO - change value?
 #define CMD_TIMEOUT_DEF_PERIOD_S    30
+
+// Default 6 hours
+#define BEACON_INHIBIT_DEF_PERIOD_S (6 * 60 * 60)
 
 // Max memory read
 #define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 13)
@@ -124,6 +128,10 @@ extern volatile uint32_t current_cmd_arg2;
 extern volatile uint8_t cmd_timeout_count_s;
 extern uint8_t cmd_timeout_period_s;
 
+extern volatile bool beacon_inhibit_enabled;
+extern volatile uint32_t beacon_inhibit_count_s;
+extern uint32_t beacon_inhibit_period_s;
+
 extern mem_header_t obc_hk_header;
 extern uint32_t obc_hk_fields[];
 extern mem_header_t eps_hk_header;
@@ -170,5 +178,6 @@ void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);
 void init_auto_data_col(void);
 void auto_data_col_timer_cb(void);
 void cmd_timeout_timer_cb(void);
+void beacon_inhibit_timer_cb(void);
 
 #endif

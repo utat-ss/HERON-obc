@@ -27,6 +27,11 @@ volatile uint32_t current_cmd_arg2 = 0;
 volatile uint8_t cmd_timeout_count_s = 0;
 uint8_t cmd_timeout_period_s = CMD_TIMEOUT_DEF_PERIOD_S;
 
+// For temporarily inhibiting the beacon
+volatile bool beacon_inhibit_enabled = false;
+volatile uint32_t beacon_inhibit_count_s = 0;
+uint32_t beacon_inhibit_period_s = BEACON_INHIBIT_DEF_PERIOD_S;
+
 mem_header_t obc_hk_header;
 uint32_t obc_hk_fields[CAN_OBC_HK_FIELD_COUNT] = { 0 };
 mem_header_t eps_hk_header;
@@ -499,5 +504,21 @@ void cmd_timeout_timer_cb(void) {
     cmd_timeout_count_s += 1;
     if (cmd_timeout_count_s >= cmd_timeout_period_s) {
         finish_current_cmd(CMD_STATUS_TIMED_OUT);
+    }
+}
+
+void beacon_inhibit_timer_cb(void) {
+    // Only check the time if we are currently inhibiting the beacon
+    if (!beacon_inhibit_enabled) {
+        return;
+    }
+
+    // If enough time has elapsed, turn the beacon back on
+    if (beacon_inhibit_count_s >= beacon_inhibit_period_s) {
+        turn_on_trans_beacon();
+        beacon_inhibit_enabled = false;
+        beacon_inhibit_count_s = 0;
+    } else {
+        beacon_inhibit_count_s += 1;
     }
 }

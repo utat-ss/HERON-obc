@@ -9,6 +9,7 @@ void set_rtc_fn(void);
 void read_obc_eeprom_fn(void);
 void erase_obc_eeprom_fn(void);
 void read_obc_ram_byte_fn(void);
+void set_beacon_inhibit_enable_fn(void);
 void send_eps_can_msg_fn(void);
 void send_pay_can_msg_fn(void);
 void act_pay_motors_fn(void);
@@ -78,6 +79,11 @@ cmd_t erase_obc_eeprom_cmd = {
 cmd_t read_obc_ram_byte_cmd = {
     .fn = read_obc_ram_byte_fn,
     .opcode = CMD_READ_OBC_RAM_BYTE,
+    .pwd_protected = true
+};
+cmd_t set_beacon_inhibit_enable_cmd = {
+    .fn = set_beacon_inhibit_enable_fn,
+    .opcode = CMD_SET_BEACON_INHIBIT_ENABLE,
     .pwd_protected = true
 };
 cmd_t send_eps_can_msg_cmd = {
@@ -217,6 +223,7 @@ cmd_t* all_cmds_list[] = {
     &read_obc_eeprom_cmd,
     &erase_obc_eeprom_cmd,
     &read_obc_ram_byte_cmd,
+    &set_beacon_inhibit_enable_cmd,
     &send_eps_can_msg_cmd,
     &send_pay_can_msg_cmd,
     &act_pay_motors_cmd,
@@ -332,6 +339,30 @@ void read_obc_ram_byte_fn(void) {
         append_to_trans_tx_dec_msg(data);
         finish_trans_tx_dec_msg();
     }
+    finish_current_cmd(CMD_STATUS_OK);
+}
+
+void set_beacon_inhibit_enable_fn(void) {
+    if (current_cmd_arg1 == 0) {
+        // Stop inhibiting
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            turn_on_trans_beacon();
+            beacon_inhibit_enabled = false;
+            beacon_inhibit_count_s = 0;
+        }
+    } else if (current_cmd_arg1 == 1) {
+        // Start inhibiting
+        turn_off_trans_beacon();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            beacon_inhibit_enabled = true;
+            beacon_inhibit_count_s = 0;
+        }
+    } else {
+        add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+    }
+    
+    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
     finish_current_cmd(CMD_STATUS_OK);
 }
 
