@@ -41,6 +41,8 @@ int main(void) {
     init_uart();
     init_spi();
     init_i2c();
+    init_ant();
+    
     WDT_OFF();
     WDT_ENABLE_SYS_RESET(WDTO_8S);
 

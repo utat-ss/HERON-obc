@@ -25,14 +25,19 @@ void run_comms_delay(void) {
     print("Starting comms delay\n");
 
     // Use 100ms increments because that is tolerable for delay precision
-    for (uint32_t seconds = 0; seconds < comms_delay_s; seconds++) {
+    for (uint32_t seconds = comms_delay_s; seconds > 0; seconds--) {
+        if ((seconds % 60) == 0) {
+            print("Time Remaining: %d\n", (seconds / 60));
+        }
+        // reset watchdog timer
+        WDT_ENABLE_SYS_RESET(WDTO_8S);
         // blink antenna warn light
         set_pin_high(ANT_DEP_WARN, &PORT_ANT_WARN);
-        for (uint8_t i = 0; i < 5; i++) {
+        for (uint8_t hundred_ms = 0; hundred_ms < 5; hundred_ms++) {
             _delay_ms(100);
         }
         set_pin_low(ANT_DEP_WARN, &PORT_ANT_WARN);
-        for (uint8_t i = 0; i < 5; i++) {
+        for (uint8_t hundred_ms = 0; hundred_ms < 5; hundred_ms++) {
             _delay_ms(100);
         }
     }
@@ -48,12 +53,13 @@ NOTE: Must call init_spi() followed by init_i2c() before this function
 void deploy_antenna(void) {
     // 5 second delay before start deploying antenna
     for (uint32_t seconds = 0; seconds < 5; seconds++) {
-        for (uint8_t i = 0; i < 5; i++) {
+        WDT_ENABLE_SYS_RESET(WDTO_8S);
+        for (uint8_t i = 0; i < 10; i++) {
             // blink antenna warn light
             set_pin_high(ANT_DEP_WARN, &PORT_ANT_WARN);
-            _delay_ms(100);
+            _delay_ms(50);
             set_pin_low(ANT_DEP_WARN, &PORT_ANT_WARN);
-            _delay_ms(100);
+            _delay_ms(50);
         }
     }
 
@@ -119,6 +125,7 @@ void deploy_antenna(void) {
     set_pin_high(ANT_REL_A, &PORT_ANT_REL);
     set_pin_high(ANT_REL_B, &PORT_ANT_REL);
     for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
+        WDT_ENABLE_SYS_RESET(WDTO_8S);
         _delay_ms(1000);
     }
     set_pin_low(ANT_REL_A, &PORT_ANT_REL);
