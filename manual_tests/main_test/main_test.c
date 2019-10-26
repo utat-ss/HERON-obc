@@ -331,6 +331,11 @@ void print_next_cmd(void) {
     if (!print_cmds) {
         return;
     }
+    // Only print if we are open to start a new command, or else it will spam
+    // print this in every main loop iteration until the current command is done
+    if (current_cmd != &nop_cmd) {
+        return;
+    }
 
     uint8_t cmd[8] = { 0x00 };
     uint8_t args[8] = { 0x00 };
