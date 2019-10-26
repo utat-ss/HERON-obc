@@ -105,6 +105,11 @@ volatile bool       trans_tx_enc_avail = false;
 volatile uint32_t trans_rx_prev_uptime_s = 0;
 
 
+// UART print buff used ot send commands
+#ifndef PRINT_BUF_SIZE
+#define PRINT_BUF_SIZE 80
+#endif
+extern uint8_t print_buf[PRINT_BUF_SIZE];
 
 
 /*
@@ -600,7 +605,26 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
     return 1;
 }
 
+bool send_trans_cmd(uint8_t expected_len, char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf((char *) print_buf, PRINT_BUF_SIZE, fmt, args);
+    va_end(args);
+    
+    uint8_t ret = 0;
 
+    // Attempt to send some commands and wait for response with timeout
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        // Send command
+        clear_trans_cmd_resp();
+        send_uart(print_buf, strlen((char*) print_buf)); // Command
+
+        // Wait for response
+        ret = wait_for_trans_cmd_resp(expected_len);
+    }
+
+    return ret != 0;
+}
 
 
 uint8_t set_trans_scw_attempt(uint16_t scw) {
