@@ -26,7 +26,7 @@ void run_comms_delay(void) {
 
     // Use 100ms increments because that is tolerable for delay precision
     for (uint32_t seconds = comms_delay_s; seconds > 0; seconds--) {
-        print("Time Remaining: %d\n", seconds);
+        print("Time Remaining (seconds): %d\n", seconds);
         // reset watchdog timer
         WDT_ENABLE_SYS_RESET(WDTO_8S);
         // blink antenna warn light
@@ -49,6 +49,8 @@ void run_comms_delay(void) {
 NOTE: Must call init_spi() followed by init_i2c() before this function
 */
 void deploy_antenna(void) {
+    print("Antenna deploying now!\n");
+
     // 5 second delay before start deploying antenna
     for (uint32_t seconds = 0; seconds < 5; seconds++) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
@@ -61,7 +63,6 @@ void deploy_antenna(void) {
         }
     }
 
-    // TODO - set correct I2C clock and timeout settings
     // Set 369 kHz clock
     write_i2c_reg(I2C_CLOCK, 5);
 
@@ -124,7 +125,6 @@ void deploy_antenna(void) {
         // Door closed and heaters not on
         if (!door_positions[i]) {
             num_doors += 1;
-            break;
         }
     }
 
@@ -133,9 +133,6 @@ void deploy_antenna(void) {
 
     // I2C failed or doors are still open
     if (ret_status == 0 || num_doors > 0) {
-        print("doors not open\n");
-        print("ret stat: %d\n", ret_status);
-        print("num doors: %d\n", num_doors);
         // Manual release for 5 seconds for each burning resistor
         set_pin_high(ANT_REL_A, &PORT_ANT_REL);
         for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
