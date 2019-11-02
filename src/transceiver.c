@@ -130,6 +130,7 @@ void trans_uptime_cb(void) {
         clear_uart_rx_buf();
         print("\nTimed out, cleared UART RX buf\n");
 
+        // TODO - don't send this if it's just the single-byte 0 packet that GS sends
         add_trans_tx_ack(0xFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x01);   // TODO - status constants
     }
 }
