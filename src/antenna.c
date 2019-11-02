@@ -26,9 +26,7 @@ void run_comms_delay(void) {
 
     // Use 100ms increments because that is tolerable for delay precision
     for (uint32_t seconds = comms_delay_s; seconds > 0; seconds--) {
-        if ((seconds % 60) == 0) {
-            print("Time Remaining: %d\n", (seconds / 60));
-        }
+        print("Time Remaining: %d\n", seconds);
         // reset watchdog timer
         WDT_ENABLE_SYS_RESET(WDTO_8S);
         // blink antenna warn light
@@ -105,31 +103,53 @@ void deploy_antenna(void) {
     }
 
     // Start Algorithm 2 for not opened doors
-    write_antenna_alg2(doors_to_redeploy, &i2c_status);
+    uint8_t ret_status = write_antenna_alg2(doors_to_redeploy, &i2c_status);
     read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+    // Wait ~35seconds per door for algorithm to finish
     timer = 35 * num_doors;
 #ifdef ANTENNA_DEBUG
     print_bytes(&doors_to_redeploy, 1);
 #endif
     while (mode != 0 && timer > 0) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
-        _delay_ms(1000); //Wait ~35seconds for algorithm to finish
+        _delay_ms(1000);
         timer -= 1;
         read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+    }
+
+    // Check which doors are still open
+    read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+    num_doors = 0;
+    for (uint8_t i = 0; i < 4; i ++) {
+        // Door closed and heaters not on
+        if (!door_positions[i]) {
+            num_doors += 1;
+            break;
+        }
     }
 
     write_antenna_clear(&i2c_status);
     _delay_ms(1000);
 
-    // Manual release for 5 seconds
-    set_pin_high(ANT_REL_A, &PORT_ANT_REL);
-    set_pin_high(ANT_REL_B, &PORT_ANT_REL);
-    for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
-        WDT_ENABLE_SYS_RESET(WDTO_8S);
-        _delay_ms(1000);
+    // I2C failed or doors are still open
+    if (ret_status == 0 || num_doors > 0) {
+        print("doors not open\n");
+        print("ret stat: %d\n", ret_status);
+        print("num doors: %d\n", num_doors);
+        // Manual release for 5 seconds for each burning resistor
+        set_pin_high(ANT_REL_A, &PORT_ANT_REL);
+        for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
+            WDT_ENABLE_SYS_RESET(WDTO_8S);
+            _delay_ms(1000);
+        }
+        set_pin_low(ANT_REL_A, &PORT_ANT_REL);
+        set_pin_high(ANT_REL_B, &PORT_ANT_REL);
+        for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
+            WDT_ENABLE_SYS_RESET(WDTO_8S);
+            _delay_ms(1000);
+        }
+        set_pin_low(ANT_REL_B, &PORT_ANT_REL);
     }
-    set_pin_low(ANT_REL_A, &PORT_ANT_REL);
-    set_pin_low(ANT_REL_B, &PORT_ANT_REL);
 
 #ifdef ANTENNA_DEBUG
     print("Done");
