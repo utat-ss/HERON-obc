@@ -10,9 +10,9 @@ Transceiver responses are handled in trans_uart_rx_cb
 Note that all/most configuration functions will return 1 if configuration/read
 successful and 0 if not successful.
 
-Each of the command functions has the structure of an "attempt" function,
-which is repeated until the response is successfully received (with a maximum
-number of attempts).
+Each of the command functions calls a send_trans_command function which 
+attempts to send a message to the transceiver until it receives a 
+valid response (with a maximum number of attempts)
 
 Status Control Register Bits:
 15-14: Reserved
@@ -49,15 +49,6 @@ where [CCCCCCCC] is the 8-byte checksum.
 In a raw hexdump of bytes, this is:
 2b:45:53:54:54:43:20:43:46:42:35:32:44:33:35:0d
 
-TODO - perhaps refactor sending a transceiver command and receiving UART back
-uint8_t send_trans_cmd(uint8_t resp_len, char* fmt, ...) {
-    clear_uart_rx_buf();
-    // var args stuff, vsnprintf...
-    send_uart();
-    // check response
-    // if failed, try again
-    // return 1 for success, 0 for failure
-}
 */
 
 #include "transceiver.h"
@@ -105,6 +96,12 @@ volatile bool       trans_tx_enc_avail = false;
 volatile uint32_t trans_rx_prev_uptime_s = 0;
 
 
+// TODO: Clean up -> make lib-common PRINT_BUF_SIZE visible to outside
+// UART print buff used ot send commands
+#ifndef PRINT_BUF_SIZE
+#define PRINT_BUF_SIZE 80
+#endif
+extern uint8_t print_buf[PRINT_BUF_SIZE];
 
 
 /*
@@ -600,19 +597,31 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
     return 1;
 }
 
+bool send_trans_cmd(uint8_t expected_len, char* fmt, ...) {
+    va_list args;
+    
+    uint8_t ret = 0;
 
+    // Attempt to send some commands and wait for response with timeout
+    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        // Regenerate the print buffer in case you get interrupted
+        va_start(args, fmt);
+        vsnprintf((char *) print_buf, PRINT_BUF_SIZE, fmt, args);
+        va_end(args);
 
+        // Send command
+        clear_trans_cmd_resp();
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            send_uart(print_buf, strlen((char*) print_buf)); // Command
+        }
 
-uint8_t set_trans_scw_attempt(uint16_t scw) {
-    // Send command
-    clear_trans_cmd_resp();
-    print("\rES+W%02X00%04X\r", TRANS_ADDR, scw);
+        // Wait for response
+        ret = wait_for_trans_cmd_resp(expected_len);
+    }
 
-    // Wait for response
-    uint8_t validity = wait_for_trans_cmd_resp(7);
-    clear_trans_cmd_resp();
-    return validity;
+    return ret;
 }
+
 
 /*
 1. Write to status control register (p. 15-16)
@@ -621,41 +630,11 @@ scw - 16-bit data to write to register
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_scw(uint16_t scw) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_scw_attempt(scw);
-    }
+    uint8_t ret = send_trans_cmd(7, "\rES+W%02X00%04X\r", TRANS_ADDR, scw);
+    clear_trans_cmd_resp();
     return ret;
 }
 
-
-uint8_t get_trans_scw_attempt(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
-    // Send command
-    clear_trans_cmd_resp();
-    print("\rES+R%02X00\r", TRANS_ADDR);
-
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(13);
-    if (validity == 0) {
-        return 0;
-    }
-
-    // Extract values
-    if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
-    }
-    if (reset_count != NULL) {
-        *reset_count = (uint8_t) scan_uint(trans_cmd_resp, 7, 2);
-    }
-    if (scw != NULL) {
-        *scw = (uint16_t) scan_uint(trans_cmd_resp, 9, 4);
-    }
-
-    clear_trans_cmd_resp();
-
-    return 1;
-}
 
 /*
 1. Read status control register (p. 15-16)
@@ -675,21 +654,37 @@ DD - device reset counter (observed to increase by 1 every time the transceiver 
 0303 - contents of status register
 */
 uint8_t get_trans_scw(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_scw_attempt(rssi, reset_count, scw);
+    uint8_t ret = send_trans_cmd(13, "\rES+R%02X00\r", TRANS_ADDR);
+    if (ret) {
+        // Extract values
+        if (rssi != NULL) {
+            *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
+        }
+        if (reset_count != NULL) {
+            *reset_count = (uint8_t) scan_uint(trans_cmd_resp, 7, 2);
+        }
+        if (scw != NULL) {
+            *scw = (uint16_t) scan_uint(trans_cmd_resp, 9, 4);
+        }
+
+        clear_trans_cmd_resp();
     }
     return ret;
 }
 
 
-uint8_t set_trans_scw_bit_attempt(uint8_t bit_index, uint8_t value) {
-    uint8_t ret;
+/*
+Sets the specified bit in the SCW register.
+bit_index - index of the bit in the SCW register (MSB is 15, LSB is 0)
+value - value to set the bit to (0 or 1)
+Returns - 1 for success, 0 for failure
+*/
+uint8_t set_trans_scw_bit(uint8_t bit_index, uint8_t value) {
     uint8_t rssi;
     uint8_t reset_count;
     uint16_t scw;
 
-    ret = get_trans_scw(&rssi, &reset_count, &scw);
+    uint8_t ret = get_trans_scw(&rssi, &reset_count, &scw);
     if (ret == 0) {
         return 0;
     }
@@ -701,20 +696,6 @@ uint8_t set_trans_scw_bit_attempt(uint8_t bit_index, uint8_t value) {
     }
 
     ret = set_trans_scw(scw);
-    return ret;
-}
-
-/*
-Sets the specified bit in the SCW register.
-bit_index - index of the bit in the SCW register (MSB is 15, LSB is 0)
-value - value to set the bit to (0 or 1)
-Returns - 1 for success, 0 for failure
-*/
-uint8_t set_trans_scw_bit(uint8_t bit_index, uint8_t value) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_scw_bit_attempt(bit_index, value);
-    }
     return ret;
 }
 
@@ -736,35 +717,27 @@ uint8_t reset_trans(void) {
 }
 
 
-uint8_t set_trans_rf_mode_attempt(uint8_t mode) {
-    uint8_t ret;
-    uint8_t rssi;
-    uint8_t reset_count;
-    uint16_t scw;
-
-    ret = get_trans_scw(&rssi, &reset_count, &scw);
-    if (ret == 0) {
-        return 0;
-    }
-
-    // Clear and set bits 10-8
-    scw &= 0xF8FF;
-    scw |= (mode << 8);
-
-    ret = set_trans_scw(scw);
-    return ret;
-}
-
 /*
 Sets the RF Mode in the SCW register (p. 15).
 mode - must be between 0 and 7 (see p. 15 table)
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_rf_mode(uint8_t mode) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_rf_mode_attempt(mode);
+    uint8_t rssi;
+    uint8_t reset_count;
+    uint16_t scw;
+
+    uint8_t ret = get_trans_scw(&rssi, &reset_count, &scw);
+    if (ret == 0) {
+        return 0;
     }
+    
+    // Clear and set bits 10-8
+    scw &= 0xF8FF;
+    scw |= (mode << 8);
+
+    ret = set_trans_scw(scw);
+
     return ret;
 }
 
@@ -815,17 +788,6 @@ uint8_t turn_on_trans_pipe(void) {
 }
 
 
-uint8_t set_trans_freq_attempt(uint32_t freq) {
-    clear_trans_cmd_resp();
-    print("\rES+W%02X01%08lX\r", TRANS_ADDR, freq);
-
-    // Wait for response
-    //Check validity
-    uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_cmd_resp();
-    return validity;
-}
-
 /*
 2. Set transceiver frequency (p. 17-18)
 
@@ -834,22 +796,23 @@ freq - frequency to write, already in the converted 32-bit format that the
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_freq(uint32_t freq) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_freq_attempt(freq);
-    }
+    uint8_t ret = send_trans_cmd(2, "\rES+W%02X01%08lX\r", TRANS_ADDR, freq);
+    clear_trans_cmd_resp();
     return ret;
 }
 
 
-uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
-    clear_trans_cmd_resp();
-    print("\rES+R%02X01\r", TRANS_ADDR);
+/*
+2. Get transceiver frequency (p. 17-18)
+rssi -  is set by this function to the last RSSI value
+freq - will be set to the read 32-bit value
+Returns - 1 for sucess, 0 for failure
 
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(13);
-    if (validity == 0) {
+Answer format: OK+[RR][FFFFFF][NN]
+*/
+uint8_t get_trans_freq(uint8_t* rssi, uint32_t* freq) {
+    uint8_t ret = send_trans_cmd(13, "\rES+R%02X01\r", TRANS_ADDR);
+    if (ret == 0) {
         return 0;
     }
 
@@ -861,37 +824,9 @@ uint8_t get_trans_freq_attempt(uint8_t* rssi, uint32_t* freq) {
     }
 
     clear_trans_cmd_resp();
-
-    return 1;
-}
-
-/*
-2. Get transceiver frequency (p. 17-18)
-rssi -  is set by this function to the last RSSI value
-freq - will be set to the read 32-bit value
-Returns - 1 for sucess, 0 for failure
-
-Answer format: OK+[RR][FFFFFF][NN]
-*/
-uint8_t get_trans_freq(uint8_t* rssi, uint32_t* freq) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_freq_attempt(rssi, freq);
-    }
     return ret;
 }
 
-
-uint8_t set_trans_pipe_timeout_attempt(uint8_t timeout) {
-    clear_trans_cmd_resp();
-    print("\rES+W%02X06000000%02X\r", TRANS_ADDR, timeout);
-
-    // Wait for response
-    //Check validity
-    uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_cmd_resp();
-    return validity;
-}
 
 /*
 4. Set transparent (pipe) mode timeout (p.18)
@@ -900,22 +835,22 @@ timeout - timeout (in seconds) to set
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_pipe_timeout(uint8_t timeout) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_pipe_timeout_attempt(timeout);
-    }
+    uint8_t ret = send_trans_cmd(2, "\rES+W%02X06000000%02X\r", TRANS_ADDR, timeout);
+    clear_trans_cmd_resp();
     return ret;
 }
 
 
-uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
-    clear_trans_cmd_resp();
-    print("\rES+R%02X06\r", TRANS_ADDR);
-
-    // Wait for response
-    //Check validity
-    uint8_t validity = wait_for_trans_cmd_resp(13);
-    if (validity == 0) {
+/*
+4. Get transparent (pipe) mode timeout (p.18)
+Gets timeout to turn off pipe mode if there are no UART messages
+rssi -  is set by this function to the last RSSI value
+timeout - is set by this function to the timeout (in seconds)
+Returns - 1 for success, 0 for failure
+*/
+uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout) {
+    uint8_t ret = send_trans_cmd(13, "\rES+R%02X06\r", TRANS_ADDR);
+    if (ret == 0) {
         return 0;
     }
 
@@ -928,36 +863,9 @@ uint8_t get_trans_pipe_timeout_attempt(uint8_t* rssi, uint8_t* timeout) {
     }
 
     clear_trans_cmd_resp();
-
-    return 1;
-}
-
-/*
-4. Get transparent (pipe) mode timeout (p.18)
-Gets timeout to turn off pipe mode if there are no UART messages
-rssi -  is set by this function to the last RSSI value
-timeout - is set by this function to the timeout (in seconds)
-Returns - 1 for success, 0 for failure
-*/
-uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_pipe_timeout_attempt(rssi, timeout);
-    }
     return ret;
 }
 
-
-uint8_t set_trans_beacon_period_attempt(uint16_t period) {
-    clear_trans_cmd_resp();
-    print("\rES+W%02X070000%04X\r", TRANS_ADDR, period);
-
-    // Wait for response
-    //Check validity
-    uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_cmd_resp();
-    return validity;
-}
 
 /*
 5. Set beacon transmission period - Default is 60s (p. 19)
@@ -966,36 +874,11 @@ Max val = 0xFFFF = 65535s = 1092min = 18.2h
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_beacon_period(uint16_t period) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_beacon_period_attempt(period);
-    }
+    uint8_t ret = send_trans_cmd(2, "\rES+W%02X070000%04X\r", TRANS_ADDR, period);
+    clear_trans_cmd_resp();
     return ret;
 }
 
-
-uint8_t get_trans_beacon_period_attempt(uint8_t* rssi, uint16_t* period) {
-    clear_trans_cmd_resp();
-    print("\rES+R%02X07\r", TRANS_ADDR);
-
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(13);
-    if (validity == 0) {
-        return 0;
-    }
-
-    if (rssi != NULL) {
-        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
-    }
-    if (period != NULL) {
-        *period = (uint16_t) scan_uint(trans_cmd_resp, 9, 4);
-    }
-
-    clear_trans_cmd_resp();
-
-    return 1;
-}
 
 /*
 5. Get beacon transmission period (p. 19)
@@ -1007,28 +890,20 @@ Returns - 1 for success, 0 for failure
 Answer: OK+[RR]0000[TTTT]<CR>
 */
 uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_beacon_period_attempt(rssi, period);
-    }
-    return ret;
-}
-
-
-uint8_t set_trans_beacon_content_attempt(char* content) {
-    clear_trans_cmd_resp();
-    print("\rES+W%02XFB%02X%s\r", TRANS_ADDR, strlen(content), content);
-
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(2);
-    if (validity == 0) {
+    uint8_t ret = send_trans_cmd(13, "\rES+R%02X07\r", TRANS_ADDR);
+    if (ret == 0) {
         return 0;
     }
 
-    clear_trans_cmd_resp();
+    if (rssi != NULL) {
+        *rssi = (uint8_t) scan_uint(trans_cmd_resp, 3, 2);
+    }
+    if (period != NULL) {
+        *period = (uint16_t) scan_uint(trans_cmd_resp, 9, 4);
+    }
 
-    return 1;
+    clear_trans_cmd_resp();
+    return ret;
 }
 
 /*
@@ -1038,30 +913,15 @@ content - string, must be zero-terminated, but '\0' will not be included in the 
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_beacon_content(char* content) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_beacon_content_attempt(content);
+    uint8_t ret = send_trans_cmd(2, "\rES+W%02XFB%02X%s\r", TRANS_ADDR, strlen(content), content);
+    if (ret == 0) {
+        return 0;
     }
+    clear_trans_cmd_resp();
     return ret;
 }
 
 // Don't need to implement a get content function
-
-
-uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {
-    clear_trans_cmd_resp();
-    print("\rES+W%02XF5", TRANS_ADDR);
-    for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
-        print("%c", call_sign[i]);
-    }
-    print("\r");
-
-    // Wait for response
-    //Check validity
-    uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_cmd_resp();
-    return validity;
-}
 
 /*
 7. Set destination call-sign (p.20)
@@ -1069,36 +929,11 @@ call_sign - the call sign to set (6-byte array without termination or 7-byte arr
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_dest_call_sign(char* call_sign) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_dest_call_sign_attempt(call_sign);
-    }
+    uint8_t ret = send_trans_cmd(2, "\rES+W%02XF5%s\r", TRANS_ADDR, call_sign);
+    clear_trans_cmd_resp();    
     return ret;
 }
 
-
-uint8_t get_trans_dest_call_sign_attempt(char* call_sign) {
-    clear_trans_cmd_resp();
-    print("\rES+R%02XF5\r", TRANS_ADDR);
-
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(9);
-    if (validity == 0) {
-        return 0;
-    }
-
-    if (call_sign != NULL) {
-        for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
-            call_sign[i] = trans_cmd_resp[3 + i];
-        }
-        call_sign[TRANS_CALL_SIGN_LEN] = '\0';
-    }
-
-    clear_trans_cmd_resp();
-
-    return 1;
-}
 
 /*
 7. Get destination call-sign (p.20)
@@ -1108,51 +943,8 @@ Returns - 1 for success, 0 for failure
 Answer: OK+DDDDDD<CR>
 */
 uint8_t get_trans_dest_call_sign(char* call_sign) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_dest_call_sign_attempt(call_sign);
-    }
-    return ret;
-}
-
-
-uint8_t set_trans_src_call_sign_attempt(char* call_sign) {
-    clear_trans_cmd_resp();
-    print("\rES+W%02XF6", TRANS_ADDR);
-    for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
-        print("%c", call_sign[i]);
-    }
-    print("\r");
-
-    // Wait for response
-    //Check validity
-    uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_cmd_resp();
-    return validity;
-}
-
-/*
-8. Set source call-sign (p.20)
-call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
-Returns - 1 for success, 0 for failure
-*/
-uint8_t set_trans_src_call_sign(char* call_sign) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_src_call_sign_attempt(call_sign);
-    }
-    return ret;
-}
-
-
-uint8_t get_trans_src_call_sign_attempt(char* call_sign) {
-    clear_trans_cmd_resp();
-    print("\rES+R%02XF6\r", TRANS_ADDR);
-
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(9);
-    if (validity == 0) {
+    uint8_t ret = send_trans_cmd(9, "\rES+R%02XF5\r", TRANS_ADDR);
+    if (ret == 0) {
         return 0;
     }
 
@@ -1164,9 +956,21 @@ uint8_t get_trans_src_call_sign_attempt(char* call_sign) {
     }
 
     clear_trans_cmd_resp();
-
-    return 1;
+    return ret;
 }
+
+
+/*
+8. Set source call-sign (p.20)
+call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
+Returns - 1 for success, 0 for failure
+*/
+uint8_t set_trans_src_call_sign(char* call_sign) {
+    uint8_t ret = send_trans_cmd(2, "\rES+W%02XF6%s\r", TRANS_ADDR, call_sign);
+    clear_trans_cmd_resp();    
+    return ret;
+}
+
 
 /*
 8. Get source call-sign (p.20)
@@ -1176,22 +980,32 @@ Returns - 1 for success, 0 for failure
 Answer: OK+DDDDDD<CR>
 */
 uint8_t get_trans_src_call_sign(char* call_sign) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_src_call_sign_attempt(call_sign);
+    uint8_t ret = send_trans_cmd(9, "\rES+R%02XF6\r", TRANS_ADDR);
+    if (ret == 0) {
+        return 0;
     }
+
+    if (call_sign != NULL) {
+        for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
+            call_sign[i] = trans_cmd_resp[3 + i];
+        }
+        call_sign[TRANS_CALL_SIGN_LEN] = '\0';
+    }
+
+    clear_trans_cmd_resp();
     return ret;
 }
 
 
-uint8_t get_trans_uptime_attempt(uint8_t* rssi, uint32_t* uptime) {
-    clear_trans_cmd_resp();
-    print("\rES+R%02X02\r", TRANS_ADDR);
-
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(13);
-    if (validity == 0) {
+/*
+16. Get uptime (p. 23)
+rssi - gets set to the last RSSI
+uptime - gets set to the uptime
+Returns - 1 for success, 0 for failure
+*/
+uint8_t get_trans_uptime(uint8_t* rssi, uint32_t* uptime) {
+    uint8_t ret = send_trans_cmd(13, "\rES+R%02X02\r", TRANS_ADDR);
+    if (ret == 0) {
         return 0;
     }
 
@@ -1203,33 +1017,19 @@ uint8_t get_trans_uptime_attempt(uint8_t* rssi, uint32_t* uptime) {
     }
 
     clear_trans_cmd_resp();
-
-    return 1;
-}
-
-/*
-16. Get uptime (p. 23)
-rssi - gets set to the last RSSI
-uptime - gets set to the uptime
-Returns - 1 for success, 0 for failure
-*/
-uint8_t get_trans_uptime(uint8_t* rssi, uint32_t* uptime) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_uptime_attempt(rssi, uptime);
-    }
     return ret;
 }
 
 
-uint8_t get_trans_num_tx_packets_attempt(uint8_t* rssi, uint32_t* num_tx_packets) {
-    clear_trans_cmd_resp();
-    print("\rES+R%02X03\r", TRANS_ADDR);
-
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(13);
-    if (validity == 0) {
+/*
+17. Get number of transmitted packets (p.23)
+rssi - gets set to the last RSSI
+num_tx_packets - gets set to the number of transmitted packets
+Returns - 1 for success, 0 for failure
+*/
+uint8_t get_trans_num_tx_packets(uint8_t* rssi, uint32_t* num_tx_packets) {
+    uint8_t ret = send_trans_cmd(13, "\rES+R%02X03\r", TRANS_ADDR);
+    if (ret == 0) {
         return 0;
     }
 
@@ -1241,33 +1041,19 @@ uint8_t get_trans_num_tx_packets_attempt(uint8_t* rssi, uint32_t* num_tx_packets
     }
 
     clear_trans_cmd_resp();
-
-    return 1;
-}
-
-/*
-17. Get number of transmitted packets (p.23)
-rssi - gets set to the last RSSI
-num_tx_packets - gets set to the number of transmitted packets
-Returns - 1 for success, 0 for failure
-*/
-uint8_t get_trans_num_tx_packets(uint8_t* rssi, uint32_t* num_tx_packets) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_num_tx_packets_attempt(rssi, num_tx_packets);
-    }
     return ret;
 }
 
 
-uint8_t get_trans_num_rx_packets_attempt(uint8_t* rssi, uint32_t* num_rx_packets) {
-    clear_trans_cmd_resp();
-    print("\rES+R%02X04\r", TRANS_ADDR);
-
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(13);
-    if (validity == 0) {
+/*
+18. Get number of received packets (p.23)
+rssi - gets set to the last RSSI
+num_rx_packets - gets set to the number of received packets
+Returns - 1 for success, 0 for failure
+*/
+uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets) {
+    uint8_t ret = send_trans_cmd(13, "\rES+R%02X04\r", TRANS_ADDR);
+    if (ret == 0) {
         return 0;
     }
 
@@ -1279,33 +1065,19 @@ uint8_t get_trans_num_rx_packets_attempt(uint8_t* rssi, uint32_t* num_rx_packets
     }
 
     clear_trans_cmd_resp();
-
-    return 1;
-}
-
-/*
-18. Get number of received packets (p.23)
-rssi - gets set to the last RSSI
-num_rx_packets - gets set to the number of received packets
-Returns - 1 for success, 0 for failure
-*/
-uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_num_rx_packets_attempt(rssi, num_rx_packets);
-    }
     return ret;
 }
 
 
-uint8_t get_trans_num_rx_packets_crc_attempt(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
-    clear_trans_cmd_resp();
-    print("\rES+R%02X05\r", TRANS_ADDR);
-
-    //Wait for response
-    //check validity
-    uint8_t validity = wait_for_trans_cmd_resp(13);
-    if (validity == 0) {
+/*
+19. Get number of received packets with CRC error (p.23)
+rssi - gets set to the last RSSI
+num_rx_packets_crc - gets set to the number of received packets with CRC error
+Returns - 1 for success, 0 for failure
+*/
+uint8_t get_trans_num_rx_packets_crc(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
+    uint8_t ret = send_trans_cmd(13, "\rES+R%02X05\r", TRANS_ADDR);
+    if (ret == 0) {
         return 0;
     }
 
@@ -1317,21 +1089,6 @@ uint8_t get_trans_num_rx_packets_crc_attempt(uint8_t* rssi, uint32_t* num_rx_pac
     }
 
     clear_trans_cmd_resp();
-
-    return 1;
-}
-
-/*
-19. Get number of received packets with CRC error (p.23)
-rssi - gets set to the last RSSI
-num_rx_packets_crc - gets set to the number of received packets with CRC error
-Returns - 1 for success, 0 for failure
-*/
-uint8_t get_trans_num_rx_packets_crc(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = get_trans_num_rx_packets_crc_attempt(rssi, num_rx_packets_crc);
-    }
     return ret;
 }
 
