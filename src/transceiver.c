@@ -10,9 +10,9 @@ Transceiver responses are handled in trans_uart_rx_cb
 Note that all/most configuration functions will return 1 if configuration/read
 successful and 0 if not successful.
 
-Each of the command functions has the structure of an "attempt" function,
-which is repeated until the response is successfully received (with a maximum
-number of attempts).
+Each of the command functions calls a send_trans_command function which 
+attempts to send a message to the transceiver until it receives a 
+valid response (with a maximum number of attempts)
 
 Status Control Register Bits:
 15-14: Reserved
@@ -49,15 +49,6 @@ where [CCCCCCCC] is the 8-byte checksum.
 In a raw hexdump of bytes, this is:
 2b:45:53:54:54:43:20:43:46:42:35:32:44:33:35:0d
 
-TODO - perhaps refactor sending a transceiver command and receiving UART back
-uint8_t send_trans_cmd(uint8_t resp_len, char* fmt, ...) {
-    clear_uart_rx_buf();
-    // var args stuff, vsnprintf...
-    send_uart();
-    // check response
-    // if failed, try again
-    // return 1 for success, 0 for failure
-}
 */
 
 #include "transceiver.h"
@@ -105,7 +96,7 @@ volatile bool       trans_tx_enc_avail = false;
 volatile uint32_t trans_rx_prev_uptime_s = 0;
 
 
-// TODO: Clean up
+// TODO: Clean up -> make lib-common PRINT_BUF_SIZE visible to outside
 // UART print buff used ot send commands
 #ifndef PRINT_BUF_SIZE
 #define PRINT_BUF_SIZE 80
@@ -608,23 +599,27 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
 
 bool send_trans_cmd(uint8_t expected_len, char* fmt, ...) {
     va_list args;
-    va_start(args, fmt);
-    vsnprintf((char *) print_buf, PRINT_BUF_SIZE, fmt, args);
-    va_end(args);
     
     uint8_t ret = 0;
 
     // Attempt to send some commands and wait for response with timeout
     for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
+        // Regenerate the print buffer in case you get interrupted
+        va_start(args, fmt);
+        vsnprintf((char *) print_buf, PRINT_BUF_SIZE, fmt, args);
+        va_end(args);
+
         // Send command
         clear_trans_cmd_resp();
-        send_uart(print_buf, strlen((char*) print_buf)); // Command
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            send_uart(print_buf, strlen((char*) print_buf)); // Command
+        }
 
         // Wait for response
         ret = wait_for_trans_cmd_resp(expected_len);
     }
 
-    return ret != 0;
+    return ret;
 }
 
 
@@ -678,27 +673,6 @@ uint8_t get_trans_scw(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
 }
 
 
-// uint8_t set_trans_scw_bit_attempt(uint8_t bit_index, uint8_t value) {
-//     uint8_t ret;
-//     uint8_t rssi;
-//     uint8_t reset_count;
-//     uint16_t scw;
-
-//     ret = get_trans_scw(&rssi, &reset_count, &scw);
-//     if (ret == 0) {
-//         return 0;
-//     }
-
-//     if (value == 0) {
-//         scw &= ~_BV(bit_index);
-//     } else if (value == 1) {
-//         scw |= _BV(bit_index);
-//     }
-
-//     ret = set_trans_scw(scw);
-//     return ret;
-// }
-
 /*
 Sets the specified bit in the SCW register.
 bit_index - index of the bit in the SCW register (MSB is 15, LSB is 0)
@@ -742,25 +716,6 @@ uint8_t reset_trans(void) {
     return ret;
 }
 
-
-// uint8_t set_trans_rf_mode_attempt(uint8_t mode) {
-//     uint8_t ret;
-//     uint8_t rssi;
-//     uint8_t reset_count;
-//     uint16_t scw;
-
-//     ret = get_trans_scw(&rssi, &reset_count, &scw);
-//     if (ret == 0) {
-//         return 0;
-//     }
-
-//     // Clear and set bits 10-8
-//     scw &= 0xF8FF;
-//     scw |= (mode << 8);
-
-//     ret = set_trans_scw(scw);
-//     return ret;
-// }
 
 /*
 Sets the RF Mode in the SCW register (p. 15).
@@ -968,32 +923,14 @@ uint8_t set_trans_beacon_content(char* content) {
 
 // Don't need to implement a get content function
 
-
-uint8_t set_trans_dest_call_sign_attempt(char* call_sign) {
-    clear_trans_cmd_resp();
-    print("\rES+W%02XF5", TRANS_ADDR);
-    for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
-        print("%c", call_sign[i]);
-    }
-    print("\r");
-
-    // Wait for response
-    //Check validity
-    uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_cmd_resp();
-    return validity;
-}
-
 /*
 7. Set destination call-sign (p.20)
 call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_dest_call_sign(char* call_sign) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_dest_call_sign_attempt(call_sign);
-    }
+    uint8_t ret = send_trans_cmd(2, "\rES+W%02XF5%s\r", TRANS_ADDR, call_sign);
+    clear_trans_cmd_resp();    
     return ret;
 }
 
@@ -1023,31 +960,14 @@ uint8_t get_trans_dest_call_sign(char* call_sign) {
 }
 
 
-uint8_t set_trans_src_call_sign_attempt(char* call_sign) {
-    clear_trans_cmd_resp();
-    print("\rES+W%02XF6", TRANS_ADDR);
-    for (uint8_t i = 0; i < TRANS_CALL_SIGN_LEN; i++) {
-        print("%c", call_sign[i]);
-    }
-    print("\r");
-
-    // Wait for response
-    //Check validity
-    uint8_t validity = wait_for_trans_cmd_resp(2);
-    clear_trans_cmd_resp();
-    return validity;
-}
-
 /*
 8. Set source call-sign (p.20)
 call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_src_call_sign(char* call_sign) {
-    uint8_t ret = 0;
-    for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        ret = set_trans_src_call_sign_attempt(call_sign);
-    }
+    uint8_t ret = send_trans_cmd(2, "\rES+W%02XF6%s\r", TRANS_ADDR, call_sign);
+    clear_trans_cmd_resp();    
     return ret;
 }
 
