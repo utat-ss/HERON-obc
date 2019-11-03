@@ -11,6 +11,6 @@
 
 extern mob_t pay_cmd_tx_mob;
 extern mob_t eps_cmd_tx_mob;
-extern mob_t data_rx_mob;
+extern mob_t cmd_rx_mob;
 
 #endif
