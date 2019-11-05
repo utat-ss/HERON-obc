@@ -70,11 +70,22 @@ typedef struct {
 #define CMD_RESET_SUBSYS                0x43
 #define CMD_SET_INDEF_LPM_ENABLE        0x44
 
-// Response/command log stataus bytes
-#define CMD_STATUS_OK           0x00
-#define CMD_STATUS_INVALID_ARGS 0x01
-#define CMD_STATUS_TIMED_OUT    0x02
-#define CMD_STATUS_UNKNOWN      0xFF
+// ACK status bytes
+#define CMD_ACK_STATUS_OK               0x00
+#define CMD_ACK_STATUS_INVALID_PKT      0x01
+#define CMD_ACK_STATUS_INVALID_DEC_FMT  0x02
+#define CMD_ACK_STATUS_INVALID_OPCODE   0x03
+#define CMD_ACK_STATUS_INVALID_PWD      0x04
+
+// Response/command log status bytes
+#define CMD_RESP_STATUS_OK              0x00
+#define CMD_RESP_STATUS_INVALID_ARGS    0x01
+#define CMD_RESP_STATUS_TIMED_OUT       0x02
+#define CMD_RESP_STATUS_UNKNOWN         0xFF
+
+// For unsuccessful ACKs where opcode/args are unknown
+#define CMD_OPCODE_UNKNOWN              0xFF
+#define CMD_ARG_UNKNOWN                 0xFFFFFFFF
 
 // TODO - change value?
 #define CMD_TIMEOUT_DEF_PERIOD_S    30

@@ -130,8 +130,13 @@ void trans_uptime_cb(void) {
         clear_uart_rx_buf();
         print("\nTimed out, cleared UART RX buf\n");
 
-        // TODO - don't send this if it's just the single-byte 0 packet that GS sends
-        add_trans_tx_ack(0xFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x01);   // TODO - status constants
+        // Only send an ACK if we received more than 1 byte from a packet
+        // i.e. ignore 1-byte ground station packets that are used to improve
+        // transmission reliability
+        // TODO - what threshold?
+        if (get_uart_rx_buf_count() > 1) {
+            add_trans_tx_ack(CMD_OPCODE_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ACK_STATUS_INVALID_PKT);
+        }
     }
 }
 
@@ -228,7 +233,6 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
     }
 }
 
-// TODO - look for a better way to do this
 void add_trans_tx_ack(uint8_t opcode, uint32_t arg1, uint32_t arg2, uint8_t status) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         trans_tx_ack_opcode = opcode;
@@ -261,8 +265,8 @@ void decode_trans_rx_msg(void) {
         // Check invalid length
         if (!(trans_rx_enc_msg[1] > 0x10 &&
             trans_rx_enc_msg[1] - 0x10 == trans_rx_enc_len - 4)) {
-            // TODO - how to send NACK for invalid length?
-            // add_tx_ack_msg(0, 0, 0, 1);
+            // NACK for invalid matching of length byte to length
+            add_trans_tx_ack(CMD_OPCODE_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ACK_STATUS_INVALID_PKT);
             return;
         }
 

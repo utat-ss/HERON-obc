@@ -253,7 +253,7 @@ void print_local_data_fn(void) {
             ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 
@@ -424,7 +424,7 @@ void clear_local_data_fn(void) {
 
     print("Cleared local data\n");
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void read_all_mem_blocks_to_local_fn(void) {
@@ -436,7 +436,7 @@ void read_all_mem_blocks_to_local_fn(void) {
     enqueue_cmd(&read_data_block_cmd, CMD_PAY_OPT,
         pay_opt_mem_section.curr_block - 1);
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 

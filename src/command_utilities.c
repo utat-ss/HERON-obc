@@ -91,7 +91,8 @@ void handle_trans_rx_dec_msg(void) {
         trans_rx_dec_avail = false;
         // Only accept 13 byte messages
         if (trans_rx_dec_len < 13) {
-            add_trans_tx_ack(0xFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x02);
+            // Don't know the opcode/args
+            add_trans_tx_ack(CMD_OPCODE_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ACK_STATUS_INVALID_DEC_FMT);
             return;
         }
 
@@ -111,7 +112,7 @@ void handle_trans_rx_dec_msg(void) {
 
         cmd_t* cmd = cmd_opcode_to_cmd(opcode);
         if (cmd == &nop_cmd) {
-            add_trans_tx_ack(opcode, arg1, arg2, 0x03);
+            add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_INVALID_OPCODE);
             return;
         }
 
@@ -120,13 +121,13 @@ void handle_trans_rx_dec_msg(void) {
             for (uint8_t i = 0; i < 4; i++) {
                 if (msg[9 + i] != correct_pwd[i]) {
                     // NACK
-                    add_trans_tx_ack(opcode, arg1, arg2, 0x04);
+                    add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_INVALID_PWD);
                     return;
                 }
             }
         }
         
-        add_trans_tx_ack(opcode, arg1, arg2, 0x00);
+        add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_OK);
         enqueue_cmd(cmd, arg1, arg2);
     }
 }
@@ -503,7 +504,7 @@ void cmd_timeout_timer_cb(void) {
 
     cmd_timeout_count_s += 1;
     if (cmd_timeout_count_s >= cmd_timeout_period_s) {
-        finish_current_cmd(CMD_STATUS_TIMED_OUT);
+        finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
     }
 }
 
