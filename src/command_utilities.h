@@ -70,6 +70,9 @@ typedef struct {
 #define CMD_RESET_SUBSYS                0x43
 #define CMD_SET_INDEF_LPM_ENABLE        0x44
 
+// Mask to set MSB on opcode byte for ACK packets
+#define CMD_ACK_OPCODE_MASK             (0x1 << 7)
+
 // ACK status bytes
 #define CMD_ACK_STATUS_OK               0x00
 #define CMD_ACK_STATUS_INVALID_PKT      0x01

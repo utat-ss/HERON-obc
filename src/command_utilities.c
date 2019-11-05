@@ -140,8 +140,7 @@ void process_trans_tx_ack(void) {
         trans_tx_ack_avail = false;
 
         // Can't use the standard trans_tx_dec functions because they use the current_cmd variables
-        // TODO - better way?
-        trans_tx_dec_msg[0] = trans_tx_ack_opcode | (0x1 << 7);
+        trans_tx_dec_msg[0] = trans_tx_ack_opcode | CMD_ACK_OPCODE_MASK;
         trans_tx_dec_msg[1] = (trans_tx_ack_arg1 >> 24) & 0xFF;
         trans_tx_dec_msg[2] = (trans_tx_ack_arg1 >> 16) & 0xFF;
         trans_tx_dec_msg[3] = (trans_tx_ack_arg1 >> 8) & 0xFF;

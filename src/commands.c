@@ -498,7 +498,6 @@ void read_data_block_fn(void) {
             default:
                 add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
                 finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
-                // TODO - will it properly terminate the trans msg?
                 return;
         }
 
@@ -541,7 +540,8 @@ void read_rec_loc_data_block_fn(void) {
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
-void read_prim_cmd_blocks_fn(void) {
+// Common functionality for primary and secondary blocks
+void read_cmd_blocks(mem_section_t* section) {
     if (current_cmd_arg2 > 5) {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
         finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
@@ -559,7 +559,7 @@ void read_prim_cmd_blocks_fn(void) {
             uint8_t opcode = 0;
             uint32_t arg1 = 0;
             uint32_t arg2 = 0;
-            read_mem_cmd_block(&prim_cmd_log_mem_section, block_num,
+            read_mem_cmd_block(section, block_num,
                 &header, &opcode, &arg1, &arg2);
 
             append_header_to_tx_msg(&header);
@@ -580,44 +580,12 @@ void read_prim_cmd_blocks_fn(void) {
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
+void read_prim_cmd_blocks_fn(void) {
+    read_cmd_blocks(&prim_cmd_log_mem_section);
+}
+
 void read_sec_cmd_blocks_fn(void) {
-    // TODO - refactor common with primary command?
-    if (current_cmd_arg2 > 5) {
-        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
-        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
-        return;
-    }
-
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-
-        for (uint32_t block_num = current_cmd_arg1;
-            block_num < current_cmd_arg1 + current_cmd_arg2;
-            block_num++) {
-            
-            mem_header_t header;
-            uint8_t opcode = 0;
-            uint32_t arg1 = 0;
-            uint32_t arg2 = 0;
-            read_mem_cmd_block(&sec_cmd_log_mem_section, block_num,
-                &header, &opcode, &arg1, &arg2);
-
-            append_header_to_tx_msg(&header);
-            append_to_trans_tx_dec_msg(opcode);
-            append_to_trans_tx_dec_msg((arg1 >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 0) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 0) & 0xFF);
-        }
-
-        finish_trans_tx_dec_msg();
-    }
-
-    finish_current_cmd(CMD_RESP_STATUS_OK);
+    read_cmd_blocks(&sec_cmd_log_mem_section);
 }
 
 void read_raw_mem_bytes_fn(void) {
@@ -756,8 +724,6 @@ void get_cur_block_nums_fn(void) {
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
-// TODO - OBC needs to erase memory sectors automatically when resetting current
-// block numbers on its own or writing to a previously written address
 void set_cur_block_num_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
