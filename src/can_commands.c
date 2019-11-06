@@ -5,6 +5,10 @@ queue_t pay_tx_msg_queue;
 queue_t data_rx_msg_queue;
 
 
+// Set to true to print TX and RX CAN messages
+bool print_can_msgs = false;
+
+
 void handle_eps_hk(uint8_t field_num, uint32_t data);
 void handle_pay_hk(uint8_t field_num, uint32_t data);
 void handle_pay_opt(uint8_t field_num, uint32_t data);
@@ -21,6 +25,13 @@ void handle_rx_msg(void) {
     // print("Dequeued from data_rx_msg_queue\n");
     dequeue(&data_rx_msg_queue, msg);
 
+    if (print_can_msgs) {
+        // Extra spaces to align with CAN TX messages
+        print("CAN RX:       ");
+        print_bytes(msg, 8);
+    }
+
+    // Break down the message into components
     uint8_t opcode = msg[2];
     uint8_t field_num = msg[3];
     uint32_t data =
@@ -230,8 +241,16 @@ When resume_mob(mob name) is called, it:
 3) sends the data
 4) pauses the mob
 */
+// TODO - refactor?
 void send_next_eps_tx_msg(void) {
     if (!queue_empty(&eps_tx_msg_queue)) {
+        if (print_can_msgs) {
+            uint8_t tx_msg[8] = { 0x00 };
+            peek_queue(&eps_tx_msg_queue, tx_msg);
+            print("CAN TX (EPS): ");
+            print_bytes(tx_msg, 8);
+        }
+
         resume_mob(&eps_cmd_tx_mob);
     }
 }
@@ -247,6 +266,13 @@ When resume_mob(mob name) is called, it:
 */
 void send_next_pay_tx_msg(void) {
     if (!queue_empty(&pay_tx_msg_queue)) {
+        if (print_can_msgs) {
+            uint8_t tx_msg[8] = { 0x00 };
+            peek_queue(&pay_tx_msg_queue, tx_msg);
+            print("CAN TX (PAY): ");
+            print_bytes(tx_msg, 8);
+        }
+
         resume_mob(&pay_cmd_tx_mob);
     }
 }

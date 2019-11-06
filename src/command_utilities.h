@@ -165,6 +165,9 @@ extern volatile auto_data_col_t* all_auto_data_cols[];
 extern rtc_date_t restart_date;
 extern rtc_time_t restart_time;
 
+extern bool print_cmds;
+extern bool print_trans_tx_acks;
+
 
 void handle_trans_rx_dec_msg(void);
 void process_trans_tx_ack(void);

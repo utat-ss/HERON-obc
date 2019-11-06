@@ -77,6 +77,10 @@ rtc_date_t restart_date = { .yy = 0, .mm = 0, .dd  = 0 };
 rtc_time_t restart_time = { .hh = 0, .mm = 0, .ss  = 0 };
 
 
+// Set to true to print commands and arguments
+bool print_cmds = false;
+// Set to true to print ACKs
+bool print_trans_tx_acks = false;
 
 
 /*
@@ -89,6 +93,12 @@ void handle_trans_rx_dec_msg(void) {
             return;
         }
         trans_rx_dec_avail = false;
+
+        if (print_trans_msgs) {
+            print("Trans RX (Decoded): %u bytes: ", trans_rx_dec_len);
+            print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_len);
+        }
+
         // Only accept 13 byte messages
         if (trans_rx_dec_len < 13) {
             // Don't know the opcode/args
@@ -141,6 +151,11 @@ void process_trans_tx_ack(void) {
             return;
         }
         trans_tx_ack_avail = false;
+
+        if (print_trans_tx_acks) {
+            print("ACK: op = 0x%.2x, arg1 = 0x%.8lx, arg2 = 0x%.8lx, stat = 0x%.2x\n",
+                trans_tx_ack_opcode, trans_tx_ack_arg1, trans_tx_ack_arg2, trans_tx_ack_status);
+        }
 
         // Can't use the standard trans_tx_dec functions because they use the current_cmd variables
         trans_tx_dec_msg[0] = trans_tx_ack_opcode | CMD_ACK_OPCODE_MASK;
@@ -287,6 +302,7 @@ void execute_next_cmd(void) {
         if (queue_empty(&cmd_args_queue)) {
             return;
         }
+        // Only continue if we are open to start a new command
         if (current_cmd != &nop_cmd) {
             return;
         }
@@ -294,6 +310,11 @@ void execute_next_cmd(void) {
         // Fetch the next command
         dequeue_cmd((cmd_t**) &current_cmd,
             (uint32_t*) &current_cmd_arg1, (uint32_t*) &current_cmd_arg2);
+    }
+
+    if (print_cmds) {
+        print("Cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+            current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
     }
 
     print("Starting cmd\n");

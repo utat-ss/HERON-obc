@@ -95,6 +95,9 @@ extern volatile uint8_t    trans_tx_enc_msg[];
 extern volatile uint8_t    trans_tx_enc_len;
 extern volatile bool       trans_tx_enc_avail;
 
+extern bool print_trans_msgs;
+
+
 // Initialization
 void init_trans(void);
 void init_trans_uart(void);
