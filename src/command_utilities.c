@@ -129,6 +129,9 @@ void handle_trans_rx_dec_msg(void) {
         
         add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_OK);
         enqueue_cmd(cmd, arg1, arg2);
+
+        // Restart the counter for not receiving communication from ground
+        restart_com_timeout();
     }
 }
 
@@ -294,10 +297,7 @@ void execute_next_cmd(void) {
     }
 
     print("Starting cmd\n");
-
-    // TODO - this should be moved to when receiving a transceiver packet instead
-    // Restart the counter for not receiving communication
-    restart_com_timeout();
+    
     // Start timeout timer at 0
     cmd_timeout_count_s = 0;
 

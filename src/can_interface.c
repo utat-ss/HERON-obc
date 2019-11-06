@@ -1,5 +1,3 @@
-// TODO - define constants in lib-common for MOB numbers (0-5)
-
 #include "can_interface.h"
 
 void pay_cmd_tx_data_callback(uint8_t* data, uint8_t *len) {

@@ -637,13 +637,12 @@ void erase_all_mem_fn(void) {
 }
 
 // Starts requesting block data (field 0)
-// TODO - don't write success byte later, write at end in CAN RX processing
 void col_data_block_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             print("Start OBC_HK\n");
 
-            populate_header(&obc_hk_header, obc_hk_mem_section.curr_block, 0x00);
+            populate_header(&obc_hk_header, obc_hk_mem_section.curr_block, CMD_RESP_STATUS_OK);
             obc_hk_fields[CAN_OBC_HK_UPTIME] = uptime_s;
             obc_hk_fields[CAN_OBC_HK_RESTART_COUNT] = restart_count;
             obc_hk_fields[CAN_OBC_HK_RESTART_REASON] = restart_reason;
@@ -682,19 +681,28 @@ void col_data_block_fn(void) {
 
         case CMD_EPS_HK:
             print("Start EPS_HK\n");
-            populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, 0x00);
+            populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
+            write_mem_header_main(&eps_hk_mem_section, eps_hk_mem_section.curr_block, &eps_hk_header);
+            // This increment invalidates the current block number for the
+            // memory section struct for the current command, so the command
+            // will need to fetch the block number from the header
+            inc_and_prepare_mem_section_curr_block(&eps_hk_mem_section);
             enqueue_eps_tx_msg(CAN_EPS_HK, 0, 0);
             break;
 
         case CMD_PAY_HK:
             print ("Start PAY_HK\n");
-            populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, 0x00);
+            populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
+            write_mem_header_main(&pay_hk_mem_section, pay_hk_mem_section.curr_block, &pay_hk_header);
+            inc_and_prepare_mem_section_curr_block(&pay_hk_mem_section);
             enqueue_pay_tx_msg(CAN_PAY_HK, 0, 0);
             break;
 
         case CMD_PAY_OPT:
             print ("Start PAY_OPT\n");
-            populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, 0x00);
+            populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
+            write_mem_header_main(&pay_opt_mem_section, pay_opt_mem_section.curr_block, &pay_opt_header);
+            inc_and_prepare_mem_section_curr_block(&pay_opt_mem_section);
             enqueue_pay_tx_msg(CAN_PAY_OPT, 0, 0);
             break;
 
