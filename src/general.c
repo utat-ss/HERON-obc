@@ -20,7 +20,7 @@ void init_obc_phase1(void) {
     init_queue(&cmd_args_queue);
 
     init_can();
-    init_rx_mob(&data_rx_mob);
+    init_rx_mob(&cmd_rx_mob);
     init_tx_mob(&pay_cmd_tx_mob);
     init_tx_mob(&eps_cmd_tx_mob);
 

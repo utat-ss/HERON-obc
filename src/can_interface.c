@@ -35,29 +35,29 @@ void data_rx_callback(const uint8_t* data, uint8_t len) {
 
 // CAN mob for sending commands to PAY
 mob_t pay_cmd_tx_mob = {
-    .mob_num = 3,
+    .mob_num = PAY_CMD_MOB_NUM,
     .mob_type = TX_MOB,
-    .id_tag = OBC_PAY_CMD_TX_MOB_ID,
+    .id_tag = { OBC_PAY_CMD_TX_MOB_ID },
     .ctrl = default_tx_ctrl,
     .tx_data_cb = pay_cmd_tx_data_callback
 };
 
 // CAN mob for sending commands to EPS
 mob_t eps_cmd_tx_mob = {
-    .mob_num = 4,
+    .mob_num = EPS_CMD_MOB_NUM,
     .mob_type = TX_MOB,
-    .id_tag = OBC_EPS_CMD_TX_MOB_ID,
+    .id_tag = { OBC_EPS_CMD_TX_MOB_ID },
     .ctrl = default_tx_ctrl,
     .tx_data_cb = eps_cmd_tx_data_callback
 };
 
 // CAN mob for receiving data from any SSM
-mob_t data_rx_mob = {
-    .mob_num = 5,
+mob_t cmd_rx_mob = {
+    .mob_num = OBC_CMD_MOB_NUM,
     .mob_type = RX_MOB,
     .dlc = 8,
-    .id_tag = OBC_DATA_RX_MOB_ID,
-    .id_mask = CAN_RX_MASK_ID,
+    .id_tag = { OBC_OBC_CMD_MOB_ID },
+    .id_mask = { CAN_RX_MASK_ID },
     .ctrl = default_rx_ctrl,
     .rx_cb = data_rx_callback
 };
