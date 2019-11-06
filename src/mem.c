@@ -182,7 +182,8 @@ void write_mem_data_block(mem_section_t* section, uint32_t block_num,
     //     block_num);
 
     // Write header
-    write_mem_header(section, block_num, header);
+    write_mem_header_main(section, block_num, header);
+    write_mem_header_status(section, block_num, header->status);
     // Write data fields
     for (uint8_t i = 0; i < section->fields_per_block; i++) {
         write_mem_field(section, block_num, i, fields[i]);
@@ -215,7 +216,8 @@ uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_head
      * Returns a 1 if write was successful, 0 if not
      */
 
-    write_mem_header(section, block_num, header);
+    write_mem_header_main(section, block_num, header);
+    write_mem_header_status(section, block_num, header->status);
 
     // calculate the address based on block number. This is the offset address from the start of the section
     uint32_t start_address = mem_cmd_section_addr(section, block_num);
@@ -263,35 +265,39 @@ void read_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t
 }
 
 
-void write_mem_header(mem_section_t* section, uint32_t block_num,
+void write_mem_header_main(mem_section_t* section, uint32_t block_num,
     mem_header_t* header) {
 
     /*
     writes the header information array (which contains metadata such as
     block number, timestamp, and error codes) into the current block of the
         section
+    this does NOT write the status byte (should be written separately)
     */
 
-    uint8_t bytes[MEM_BYTES_PER_HEADER] = {
+    uint8_t bytes[MEM_BYTES_PER_HEADER - 1] = {
         (header->block_num >> 16) & 0xFF,
         (header->block_num >> 8) & 0xFF,
         header->block_num & 0xFF,
         header->date.yy, header->date.mm, header->date.dd,
         header->time.hh, header->time.mm, header->time.ss,
-        header->status
     };
 
-    write_mem_section_bytes(section, mem_block_section_addr(section, block_num), bytes, MEM_BYTES_PER_HEADER);
+    write_mem_section_bytes(section,
+        mem_block_section_addr(section, block_num),
+        bytes, MEM_BYTES_PER_HEADER - 1);
 }
 
-// Command was a success/failure
+// Write only the success bytes - whether command was a success/failure
 void write_mem_header_status(mem_section_t* section, uint32_t block_num,
     uint8_t status) {
     
     uint8_t data_bytes[1] = {
         status
     };
-    write_mem_section_bytes(section, (mem_block_section_addr(section, block_num) + MEM_STATUS_HEADER_OFFSET), data_bytes, 1);
+    write_mem_section_bytes(section,
+        mem_block_section_addr(section, block_num) + MEM_STATUS_HEADER_OFFSET,
+        data_bytes, 1);
 }
 
 /*

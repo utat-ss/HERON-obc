@@ -245,7 +245,8 @@ void mem_header_test_individual( mem_section_t* section ) {
         .time = rand_rtc_time(),
         .status = 0x00,
     };
-    write_mem_header(section, section->curr_block, &write);
+    write_mem_header_main(section, section->curr_block, &write);
+    write_mem_header_status(section, section->curr_block, write.status);
 
     mem_header_t read;
     read_mem_header(section, section->curr_block, &read);
