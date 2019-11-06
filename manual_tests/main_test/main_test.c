@@ -164,18 +164,15 @@ void print_uart_cmds(void) {
 }
 
 void print_voltage(uint16_t raw_data) {
-    print(" 0x%.3X = %f V\n", raw_data, adc_raw_data_to_eps_vol(raw_data));
+    print(" 0x%.3X = %f V\n", raw_data, adc_raw_to_circ_vol(raw_data, 1e4, 1e4));
 }
 
 void print_current(uint16_t raw_data) {
-    print(" 0x%.3X = %f A\n", raw_data, adc_raw_data_to_eps_cur(raw_data));
+    print(" 0x%.3X = %f A\n", raw_data, adc_raw_to_circ_cur(raw_data, 0.008, 0.0));
 }
 
 void print_therm_temp(uint16_t raw_data) {
-    print(" 0x%.3X = %f C\n", raw_data,
-        therm_res_to_temp(
-        therm_vol_to_res(
-        adc_raw_data_to_raw_vol(raw_data))));
+    print(" 0x%.3X = %f C\n", raw_data, adc_raw_to_therm_temp(raw_data));
 }
 
 void print_gyro_data(uint16_t raw_data) {
