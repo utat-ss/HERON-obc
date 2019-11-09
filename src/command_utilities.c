@@ -340,7 +340,7 @@ void execute_next_cmd(void) {
     }
 
     // Log everything for the command (except the status byte)
-    populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, 0xFF);
+    populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, CMD_RESP_STATUS_UNKNOWN);
     write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block,
         &cmd_log_header,
         current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);

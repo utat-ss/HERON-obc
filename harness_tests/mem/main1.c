@@ -542,6 +542,7 @@ void cmd_block_test(void) {
     write_arg1 = 1000000000;
     write_arg2 = 132497;
     ASSERT_TRUE(write_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
+    write_mem_header_status(&prim_cmd_log_mem_section, block_num, write_header.status);
 
     read_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &read_header, &read_cmd_num, &read_arg1, &read_arg2);
     ASSERT_EQ(write_header.block_num, read_header.block_num);
@@ -554,6 +555,7 @@ void cmd_block_test(void) {
 
     block_num = 1000000;
     ASSERT_FALSE(write_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
+    write_mem_header_status(&prim_cmd_log_mem_section, block_num, write_header.status);
 }
 
 /* Test the ability to erase a 4kb sector of memory given an address */

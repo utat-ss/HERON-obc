@@ -647,7 +647,7 @@ void col_data_block_fn(void) {
             print("Start OBC_HK\n");
 #endif
 
-            populate_header(&obc_hk_header, obc_hk_mem_section.curr_block, CMD_RESP_STATUS_OK);
+            populate_header(&obc_hk_header, obc_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
             obc_hk_fields[CAN_OBC_HK_UPTIME] = uptime_s;
             obc_hk_fields[CAN_OBC_HK_RESTART_COUNT] = restart_count;
             obc_hk_fields[CAN_OBC_HK_RESTART_REASON] = restart_reason;

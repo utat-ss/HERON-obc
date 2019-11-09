@@ -195,11 +195,11 @@ uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_head
      * the header, 1 byte for command type, 4 bytes for arg 1, and 4 bytes for arg 2.
      * This format differs from the rest of the memory sections, which has standardized 3 bytes/field and multiple
      * fields forming a block
+     * This does NOT write the status byte (should be done separately later)
      * Returns a 1 if write was successful, 0 if not
      */
 
     write_mem_header_main(section, block_num, header);
-    write_mem_header_status(section, block_num, header->status);
 
     // calculate the address based on block number. This is the offset address from the start of the section
     uint32_t start_address = mem_cmd_section_addr(section, block_num);
