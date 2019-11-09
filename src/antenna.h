@@ -21,11 +21,11 @@
 // Currently 30 minutes
 #define COMMS_DELAY_DEF_S (30 * 60)
 
-#define ANT_REL_A       6
-#define ANT_REL_B       7
+#define ANT_REL_A       PC6
+#define ANT_REL_B       PC7
 #define PORT_ANT_REL    PORTC
 #define DDR_ANT_REL     DDRC
-#define ANT_DEP_WARN    0
+#define ANT_DEP_WARN    PD0
 #define PORT_ANT_WARN   PORTD
 #define DDR_ANT_WARN    DDRD
 
