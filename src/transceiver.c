@@ -53,6 +53,9 @@ In a raw hexdump of bytes, this is:
 
 #include "transceiver.h"
 
+// Uncomment for extra debugging prints
+#define TRANSCEIVER_DEBUG
+
 /*
 All buffers have the following format:
 [...] - characters in buffer (NO '\0' OR '\r' TERMINATION)
@@ -95,6 +98,8 @@ volatile bool       trans_tx_enc_avail = false;
 // Last time we have received a UART character
 volatile uint32_t trans_rx_prev_uptime_s = 0;
 
+// Set to true to print transceiver messages
+bool print_trans_msgs = false;
 
 // TODO: Clean up -> make lib-common PRINT_BUF_SIZE visible to outside
 // UART print buff used ot send commands
@@ -125,13 +130,22 @@ void trans_uptime_cb(void) {
         uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
         get_uart_rx_buf_count() > 0) {
 
+#ifdef TRANSCEIVER_DEBUG
         print("UART RX buf (%u bytes): ", get_uart_rx_buf_count());
         print_bytes((uint8_t*) uart_rx_buf, get_uart_rx_buf_count());
-        clear_uart_rx_buf();
-        print("\nTimed out, cleared UART RX buf\n");
+        print("\nTimed out, clearing UART RX buf\n");
+#endif
 
-        // TODO - don't send this if it's just the single-byte 0 packet that GS sends
-        add_trans_tx_ack(0xFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x01);   // TODO - status constants
+        // Only send an ACK if we received more than 1 byte from a packet
+        // i.e. ignore 1-byte ground station packets that are used to improve
+        // transmission reliability
+        // TODO - what threshold?
+        if (get_uart_rx_buf_count() > 1) {
+            add_trans_tx_ack(CMD_OPCODE_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ACK_STATUS_INVALID_PKT);
+        }
+
+        // Clearing buffer must happen after checking length
+        clear_uart_rx_buf();
     }
 }
 
@@ -228,7 +242,6 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
     }
 }
 
-// TODO - look for a better way to do this
 void add_trans_tx_ack(uint8_t opcode, uint32_t arg1, uint32_t arg2, uint8_t status) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         trans_tx_ack_opcode = opcode;
@@ -248,21 +261,23 @@ void print_uint64(uint64_t num) {
 // trans_rx_enc_msg -> trans_rx_dec_msg
 void decode_trans_rx_msg(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        // print("trans_rx_enc_avail = %u\n", trans_rx_enc_avail);
-        // print("trans_rx_enc_len = %u\n", trans_rx_enc_len);
-        // print("trans_rx_enc_msg = ");
-        // print_bytes(trans_rx_enc_msg, trans_rx_enc_len);
-
         // Check encoded message available
         if (!trans_rx_enc_avail) {
             return;
         }
         trans_rx_enc_avail = false;
+
+        if (print_trans_msgs) {
+            print("\n");
+            print("Trans RX (Encoded): %u bytes: ", trans_rx_enc_len);
+            print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_len);
+        }
+
         // Check invalid length
         if (!(trans_rx_enc_msg[1] > 0x10 &&
             trans_rx_enc_msg[1] - 0x10 == trans_rx_enc_len - 4)) {
-            // TODO - how to send NACK for invalid length?
-            // add_tx_ack_msg(0, 0, 0, 1);
+            // NACK for invalid matching of length byte to length
+            add_trans_tx_ack(CMD_OPCODE_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ACK_STATUS_INVALID_PKT);
             return;
         }
 
@@ -362,15 +377,16 @@ void decode_trans_rx_msg(void) {
 // trans_tx_dec_msg -> trans_tx_enc_msg
 void encode_trans_tx_msg(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        // print("trans_tx_dec_avail = %u\n", trans_tx_dec_avail);
-        // print("trans_tx_dec_len = %u\n", trans_tx_dec_len);
-        // print("trans_tx_dec_msg = ");
-        // print_bytes(trans_tx_dec_msg, trans_tx_dec_len);
-
         if (!trans_tx_dec_avail) {
             return;
         }
         trans_tx_dec_avail = false;
+
+        if (print_trans_msgs) {
+            print("Trans TX (Decoded): %u bytes: ", trans_tx_dec_len);
+            print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_len);
+        }
+
         if (trans_tx_dec_len == 0 || trans_tx_dec_len > TRANS_TX_DEC_MSG_MAX_SIZE) {
             return;
         }
@@ -477,6 +493,11 @@ void send_trans_tx_enc_msg(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         if (!trans_tx_enc_avail) {
             return;
+        }
+
+        if (print_trans_msgs) {
+            print("Trans TX (Encoded): %u bytes: ", trans_tx_enc_len);
+            print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_len);
         }
 
         // We only need to supply the message, not any additional packet

@@ -39,15 +39,6 @@ bool skip_deploy_antenna = false;
 
 bool disable_hb = false;
 
-// Set to true to print TX and RX CAN messages
-bool print_can_msgs = false;
-// Set to true to print commands and arguments
-bool print_cmds = false;
-// Set to true to print transceiver messages
-bool print_trans_msgs = false;
-// Set to true to print ACKs
-bool print_trans_tx_acks = false;
-
 
 // Normal command with a string description to print on UART
 typedef struct {
@@ -253,157 +244,8 @@ void print_local_data_fn(void) {
             ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
-
-
-
-
-void print_next_eps_tx_msg(void) {
-    if (!print_can_msgs) {
-        return;
-    }
-
-    uint8_t tx_msg[8] = { 0x00 };
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (queue_empty(&eps_tx_msg_queue)) {
-            return;
-        }
-        peek_queue(&eps_tx_msg_queue, tx_msg);
-    }
-
-    print("CAN TX (EPS): ");
-    print_bytes(tx_msg, 8);
-}
-
-void print_next_pay_tx_msg(void) {
-    if (!print_can_msgs) {
-        return;
-    }
-
-    uint8_t tx_msg[8] = { 0x00 };
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (queue_empty(&pay_tx_msg_queue)) {
-            return;
-        }
-        peek_queue(&pay_tx_msg_queue, tx_msg);
-    }
-
-    print("CAN TX (PAY): ");
-    print_bytes(tx_msg, 8);
-}
-
-void print_next_rx_msg(void) {
-    if (!print_can_msgs) {
-        return;
-    }
-
-    uint8_t rx_msg[8] = { 0x00 };
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (queue_empty(&data_rx_msg_queue)) {
-            return;
-        }
-        peek_queue(&data_rx_msg_queue, rx_msg);
-    }
-
-    // Extra spaces to align with CAN TX messages
-    print("CAN RX:       ");
-    print_bytes(rx_msg, 8);
-}
-
-void print_next_trans_tx_ack(void) {
-    if (!print_trans_tx_acks) {
-        return;
-    }
-
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!trans_tx_ack_avail) {
-            return;
-        }
-        print("ACK: op = 0x%.2x, arg1 = 0x%.8lx, arg2 = 0x%.8lx, stat = 0x%.2x\n", trans_tx_ack_opcode, trans_tx_ack_arg1, trans_tx_ack_arg2, trans_tx_ack_status);
-    }
-}
-
-void print_next_cmd(void) {
-    if (!print_cmds) {
-        return;
-    }
-    // Only print if we are open to start a new command, or else it will spam
-    // print this in every main loop iteration until the current command is done
-    if (current_cmd != &nop_cmd) {
-        return;
-    }
-
-    uint8_t cmd[8] = { 0x00 };
-    uint8_t args[8] = { 0x00 };
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (queue_empty(&cmd_opcode_queue)) {
-            return;
-        }
-        if (queue_empty(&cmd_args_queue)) {
-            return;
-        }
-        peek_queue(&cmd_opcode_queue, cmd);
-        peek_queue(&cmd_args_queue, args);
-    }
-
-    print("Cmd:  ");
-    print_bytes(cmd, 8);
-    print("Args: ");
-    print_bytes(args, 8);
-}
-
-
-void print_next_trans_tx_enc_msg(void) {
-    if (!print_trans_msgs) {
-        return;
-    }
-    if (!trans_tx_enc_avail) {
-        return;
-    }
-
-    print("Trans TX (Encoded): %u bytes: ", trans_tx_enc_len);
-    print_bytes((uint8_t*) trans_tx_enc_msg, trans_tx_enc_len);
-}
-
-void print_next_trans_tx_dec_msg(void) {
-    if (!print_trans_msgs) {
-        return;
-    }
-    if (!trans_tx_dec_avail) {
-        return;
-    }
-
-    print("Trans TX (Decoded): %u bytes: ", trans_tx_dec_len);
-    print_bytes((uint8_t*) trans_tx_dec_msg, trans_tx_dec_len);
-}
-
-void print_next_trans_rx_dec_msg(void) {
-    if (!print_trans_msgs) {
-        return;
-    }
-    if (!trans_rx_dec_avail) {
-        return;
-    }
-
-    print("Trans RX (Decoded): %u bytes: ", trans_rx_dec_len);
-    print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_len);
-}
-
-void print_next_trans_rx_enc_msg(void) {
-    if (!print_trans_msgs) {
-        return;
-    }
-    if (!trans_rx_enc_avail) {
-        return;
-    }
-
-    print("\n");
-    print("Trans RX (Encoded): %u bytes: ", trans_rx_enc_len);
-    print_bytes((uint8_t*) trans_rx_enc_msg, trans_rx_enc_len);
-}
-
-
 
 
 
@@ -424,7 +266,7 @@ void clear_local_data_fn(void) {
 
     print("Cleared local data\n");
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void read_all_mem_blocks_to_local_fn(void) {
@@ -436,7 +278,7 @@ void read_all_mem_blocks_to_local_fn(void) {
     enqueue_cmd(&read_data_block_cmd, CMD_PAY_OPT,
         pay_opt_mem_section.curr_block - 1);
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 
@@ -496,6 +338,11 @@ void sim_send_next_eps_tx_msg(void) {
     // TX and RX defined from OBC's perspective
     uint8_t tx_msg[8] = {0x00};
     dequeue(&eps_tx_msg_queue, tx_msg);
+
+    if (print_can_msgs) {
+        print("CAN TX (EPS): ");
+        print_bytes(tx_msg, 8);
+    }
 
     // Construct the message EPS would send back
     uint8_t rx_msg[8] = {0x00};
@@ -558,6 +405,11 @@ void sim_send_next_pay_tx_msg(void) {
     // TX and RX defined from OBC's perspective
     uint8_t tx_msg[8] = {0x00};
     dequeue(&pay_tx_msg_queue, tx_msg);
+
+    if (print_can_msgs) {
+        print("CAN TX (PAY): ");
+        print_bytes(tx_msg, 8);
+    }
 
     // Construct the message EPS would send back
     uint8_t rx_msg[8] = {0x00};
@@ -779,75 +631,43 @@ int main(void){
         }
 
         // Trans RX (encoded)
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_rx_enc_msg();
-            decode_trans_rx_msg();
-        }
+        decode_trans_rx_msg();
         // Trans RX (decoded)
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_rx_dec_msg();
-            handle_trans_rx_dec_msg();
-        }
+        handle_trans_rx_dec_msg();
 
         // Trans TX ACK
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_tx_ack();
-            process_trans_tx_ack();
-        }
-        // TODO - better way to do this than to repeat TX twice in a loop iteration?
+        process_trans_tx_ack();
         // Trans TX (decoded)
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_tx_dec_msg();
-            encode_trans_tx_msg();
-        }
+        encode_trans_tx_msg();
         // Trans TX (encoded)
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_tx_enc_msg();
-            send_trans_tx_enc_msg();
-        }
+        send_trans_tx_enc_msg();
 
         // Command
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_cmd();
-            execute_next_cmd();
-        }
+        execute_next_cmd();
 
         // EPS TX
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_eps_tx_msg();
-            // Either simulate EPS over CAN or actually send the CAN message
-            if (sim_eps) {
-                sim_send_next_eps_tx_msg();
-            }  else {
-                send_next_eps_tx_msg();
-            }
-        }
-        // PAY TX
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_pay_tx_msg();
-            // Either simulate PAY over CAN or actually send the CAN message
-            if (sim_pay) {
-                sim_send_next_pay_tx_msg();
-            }  else {
-                send_next_pay_tx_msg();
-            }
-        }
-        // EPS/PAY RX
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_rx_msg();
-            process_next_rx_msg();
+        // Either simulate EPS over CAN or actually send the CAN message
+        if (sim_eps) {
+            sim_send_next_eps_tx_msg();
+        }  else {
+            send_next_eps_tx_msg();
         }
 
+        // PAY TX
+        // Either simulate PAY over CAN or actually send the CAN message
+        if (sim_pay) {
+            sim_send_next_pay_tx_msg();
+        }  else {
+            send_next_pay_tx_msg();
+        }
+
+        // EPS/PAY RX
+        process_next_rx_msg();
+
         // Trans TX (decoded)
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_tx_dec_msg();
-            encode_trans_tx_msg();
-        }
+        encode_trans_tx_msg();
         // Trans TX (encoded)
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            print_next_trans_tx_enc_msg();
-            send_trans_tx_enc_msg();
-        }
+        send_trans_tx_enc_msg();
     }
 
     return 0;

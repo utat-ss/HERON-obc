@@ -1,26 +1,40 @@
 #include "can_commands.h"
 
+// Uncomment for extra debugging prints
+// #define CAN_COMMANDS_DEBUG
+
 queue_t eps_tx_msg_queue;
 queue_t pay_tx_msg_queue;
 queue_t data_rx_msg_queue;
 
 
-void handle_eps_hk(uint8_t field_num, uint32_t data);
-void handle_pay_hk(uint8_t field_num, uint32_t data);
-void handle_pay_opt(uint8_t field_num, uint32_t data);
-void handle_pay_ctrl(uint8_t field_num);
+// Set to true to print TX and RX CAN messages
+bool print_can_msgs = false;
 
 
-void handle_rx_msg(void) {
-    // print("%s\n", __FUNCTION__);
-    if (queue_empty(&data_rx_msg_queue)) {
-        return;
+void process_eps_hk(uint8_t field_num, uint32_t data);
+void process_pay_hk(uint8_t field_num, uint32_t data);
+void process_pay_opt(uint8_t field_num, uint32_t data);
+void process_pay_ctrl(uint8_t field_num);
+
+
+// If there is an RX messsage in the queue, process it
+void process_next_rx_msg(void) {
+    uint8_t msg[8] = {0x00};
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&data_rx_msg_queue)) {
+            return;
+        }
+        dequeue(&data_rx_msg_queue, msg);
     }
 
-    uint8_t msg[8] = {0x00};
-    // print("Dequeued from data_rx_msg_queue\n");
-    dequeue(&data_rx_msg_queue, msg);
+    if (print_can_msgs) {
+        // Extra spaces to align with CAN TX messages
+        print("CAN RX:       ");
+        print_bytes(msg, 8);
+    }
 
+    // Break down the message into components
     uint8_t opcode = msg[2];
     uint8_t field_num = msg[3];
     uint32_t data =
@@ -29,31 +43,31 @@ void handle_rx_msg(void) {
         ((uint32_t) msg[6] << 8) |
         ((uint32_t) msg[7]);
 
-    //General CAN command-Send back data
+    //General CAN command-Intercept and send back data
     if ((current_cmd == &send_eps_can_msg_cmd) || (current_cmd == &send_pay_can_msg_cmd)) {
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg(CMD_STATUS_OK);
+            start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
             for (uint8_t i = 0; i < 8; i++) {
                 append_to_trans_tx_dec_msg(msg[i]);
             }
             finish_trans_tx_dec_msg();
         }
-        finish_current_cmd(CMD_STATUS_OK);
+        finish_current_cmd(CMD_RESP_STATUS_OK);
     }
     else {
         switch (opcode) {
             case CAN_EPS_HK:
-                handle_eps_hk(field_num, data);
+                process_eps_hk(field_num, data);
                 break;
             // Don't need an EPS CTRL handler
             case CAN_PAY_HK:
-                handle_pay_hk(field_num, data);
+                process_pay_hk(field_num, data);
                 break;
             case CAN_PAY_OPT:
-                handle_pay_opt(field_num, data);
+                process_pay_opt(field_num, data);
                 break;
             case CAN_PAY_CTRL:
-                handle_pay_ctrl(field_num);
+                process_pay_ctrl(field_num);
                 break;
             default:
                 break;
@@ -62,11 +76,23 @@ void handle_rx_msg(void) {
 }
 
 
-void handle_eps_hk(uint8_t field_num, uint32_t data){
-    // Save the data to the local array
+void process_eps_hk(uint8_t field_num, uint32_t data){
+    if (current_cmd != &col_data_block_cmd) {
+        return;
+    }
+    if (current_cmd_arg1 != CMD_EPS_HK) {
+        return;
+    }
+
+    // Note that eps_hk_mem_section.curr_block has already been incremented,
+    // so we need to use the block number from the header that was populated
+    // at the start of this command
+
+    // Save the data to the local array and flash memory
     if (field_num < CAN_EPS_HK_FIELD_COUNT) {
-        // print("Received EPS_HK #%u\n", field_num);
         eps_hk_fields[field_num] = data;
+        write_mem_field(&eps_hk_mem_section, eps_hk_header.block_num, field_num,
+            data);
     }
 
     // Request the next field (if not done yet)
@@ -76,39 +102,41 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
     }
 
     // If we have received all the fields
-    if ((field_num == CAN_EPS_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &col_data_block_cmd) &&
-        (current_cmd_arg1 == CMD_EPS_HK)) {
-
-        // Increment the current block and then write to the section
-        write_mem_data_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block,
-            &eps_hk_header, eps_hk_fields);
-        inc_and_prepare_mem_section_curr_block(&eps_hk_mem_section);
-
+    if (field_num == CAN_EPS_HK_FIELD_COUNT - 1) {
         // Only send back a transceiver packet if the command was sent from
         // ground (arg2 = 0)
         if (current_cmd_arg2 == 0) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_dec_msg(CMD_STATUS_OK);
-                append_to_trans_tx_dec_msg((eps_hk_mem_section.curr_block >> 24) & 0xFF);
-                append_to_trans_tx_dec_msg((eps_hk_mem_section.curr_block >> 16) & 0xFF);
-                append_to_trans_tx_dec_msg((eps_hk_mem_section.curr_block >> 8) & 0xFF);
-                append_to_trans_tx_dec_msg(eps_hk_mem_section.curr_block & 0xFF);
+                start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+                append_to_trans_tx_dec_msg((eps_hk_header.block_num >> 24) & 0xFF);
+                append_to_trans_tx_dec_msg((eps_hk_header.block_num >> 16) & 0xFF);
+                append_to_trans_tx_dec_msg((eps_hk_header.block_num >> 8) & 0xFF);
+                append_to_trans_tx_dec_msg((eps_hk_header.block_num >> 0) & 0xFF);
                 finish_trans_tx_dec_msg();
             }
         }
 
+#ifdef CAN_COMMANDS_DEBUG
         print("Done EPS_HK\n");
-        finish_current_cmd(CMD_STATUS_OK);
+#endif
+        finish_current_cmd(CMD_RESP_STATUS_OK);
     }
 }
 
 
-void handle_pay_hk(uint8_t field_num, uint32_t data){
-    // Save the data to the local array
+void process_pay_hk(uint8_t field_num, uint32_t data){
+    if (current_cmd != &col_data_block_cmd) {
+        return;
+    }
+    if (current_cmd_arg1 != CMD_PAY_HK) {
+        return;
+    }
+
+    // Save the data to the local array and flash memory
     if (field_num < CAN_PAY_HK_FIELD_COUNT) {
-        // print("modifying pay_hk_fields[%u]\n", field_num);
         pay_hk_fields[field_num] = data;
+        write_mem_field(&pay_hk_mem_section, pay_hk_header.block_num, field_num,
+            data);
     }
 
     uint8_t next_field_num = field_num + 1;
@@ -117,38 +145,41 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
     }
 
     // If we have received all the fields
-    if ((field_num == CAN_PAY_HK_FIELD_COUNT - 1) &&
-        (current_cmd == &col_data_block_cmd) &&
-        (current_cmd_arg1 == CMD_PAY_HK)) {
-
-        // Increment the current block and then write to the section
-        write_mem_data_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block,
-            &pay_hk_header, pay_hk_fields);
-        inc_and_prepare_mem_section_curr_block(&pay_hk_mem_section);
-
+    if (field_num == CAN_PAY_HK_FIELD_COUNT - 1) {        
         // Only send back a transceiver packet if the command was sent from
         // ground (arg2 = 0)
         if (current_cmd_arg2 == 0) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_dec_msg(CMD_STATUS_OK);
-                append_to_trans_tx_dec_msg((pay_hk_mem_section.curr_block >> 24) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_hk_mem_section.curr_block >> 16) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_hk_mem_section.curr_block >> 8) & 0xFF);
-                append_to_trans_tx_dec_msg(pay_hk_mem_section.curr_block & 0xFF);
+                start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+                append_to_trans_tx_dec_msg((pay_hk_header.block_num >> 24) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_hk_header.block_num >> 16) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_hk_header.block_num >> 8) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_hk_header.block_num >> 0) & 0xFF);
                 finish_trans_tx_dec_msg();
             }
         }
 
+#ifdef CAN_COMMANDS_DEBUG
         print("Done PAY_HK\n");
-        finish_current_cmd(CMD_STATUS_OK);
+#endif
+        finish_current_cmd(CMD_RESP_STATUS_OK);
     }
 }
 
-void handle_pay_opt(uint8_t field_num, uint32_t data){
-    // Save the data to the local array
+void process_pay_opt(uint8_t field_num, uint32_t data){
+    if (current_cmd != &col_data_block_cmd) {
+        return;
+    }
+    if (current_cmd_arg1 != CMD_PAY_OPT) {
+        return;
+    }
+
+    // Save the data to the local array and flash memory
     if (field_num < CAN_PAY_OPT_FIELD_COUNT) {
         // Save data
         pay_opt_fields[field_num] = data;
+        write_mem_field(&pay_opt_mem_section, pay_opt_header.block_num,
+            field_num, data);
     }
 
     uint8_t next_field_num = field_num + 1;
@@ -157,51 +188,37 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
     }
 
     // If we have received all the fields
-    if ((field_num == CAN_PAY_OPT_FIELD_COUNT - 1) &&
-        (current_cmd == &col_data_block_cmd) &&
-        (current_cmd_arg1 == CMD_PAY_OPT)) {
-
-        // Increment the current block and then write to the section
-        write_mem_data_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block,
-            &pay_opt_header, pay_opt_fields);
-        inc_and_prepare_mem_section_curr_block(&pay_opt_mem_section);
-
+    if (field_num == CAN_PAY_OPT_FIELD_COUNT - 1) {        
         // Only send back a transceiver packet if the command was sent from
         // ground (arg2 = 0)
         if (current_cmd_arg2 == 0) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_dec_msg(CMD_STATUS_OK);
-                append_to_trans_tx_dec_msg((pay_opt_mem_section.curr_block >> 24) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_opt_mem_section.curr_block >> 16) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_opt_mem_section.curr_block >> 8) & 0xFF);
-                append_to_trans_tx_dec_msg(pay_opt_mem_section.curr_block & 0xFF);
+                start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+                append_to_trans_tx_dec_msg((pay_opt_header.block_num >> 24) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_opt_header.block_num >> 16) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_opt_header.block_num >> 8) & 0xFF);
+                append_to_trans_tx_dec_msg((pay_opt_header.block_num >> 0) & 0xFF);
                 finish_trans_tx_dec_msg();
             }
         }
 
+#ifdef CAN_COMMANDS_DEBUG
         print("Done PAY_OPT\n");
-        finish_current_cmd(CMD_STATUS_OK);
+#endif
+        finish_current_cmd(CMD_RESP_STATUS_OK);
     }
 }
 
-void handle_pay_ctrl(uint8_t field_num) {
-    if ((field_num == CAN_PAY_CTRL_ACT_UP ||
-        field_num == CAN_PAY_CTRL_ACT_DOWN) &&
-        current_cmd == &act_pay_motors_cmd) {
-
-        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-
-        finish_current_cmd(CMD_STATUS_OK);
+void process_pay_ctrl(uint8_t field_num) {
+    if (current_cmd == &act_pay_motors_cmd &&
+            (field_num == CAN_PAY_CTRL_ACT_UP ||
+            field_num == CAN_PAY_CTRL_ACT_DOWN ||
+            field_num == CAN_PAY_CTRL_BLIST_DEP_SEQ)) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        finish_current_cmd(CMD_RESP_STATUS_OK);
     }
 }
 
-
-// If there is an RX messsage in the queue, handle it
-void process_next_rx_msg(void) {
-    if (!queue_empty(&data_rx_msg_queue)) {
-        handle_rx_msg();
-    }
-}
 
 /*
 If there is a TX message in the EPS queue, sends it
@@ -213,9 +230,18 @@ When resume_mob(mob name) is called, it:
 4) pauses the mob
 */
 void send_next_eps_tx_msg(void) {
-    if (!queue_empty(&eps_tx_msg_queue)) {
-        resume_mob(&eps_cmd_tx_mob);
+    if (queue_empty(&eps_tx_msg_queue)) {
+        return;
     }
+
+    if (print_can_msgs) {
+        uint8_t tx_msg[8] = { 0x00 };
+        peek_queue(&eps_tx_msg_queue, tx_msg);
+        print("CAN TX (EPS): ");
+        print_bytes(tx_msg, 8);
+    }
+
+    resume_mob(&eps_cmd_tx_mob);
 }
 
 /*
@@ -228,9 +254,18 @@ When resume_mob(mob name) is called, it:
 4) pauses the mob
 */
 void send_next_pay_tx_msg(void) {
-    if (!queue_empty(&pay_tx_msg_queue)) {
-        resume_mob(&pay_cmd_tx_mob);
+    if (queue_empty(&pay_tx_msg_queue)) {
+        return;
     }
+
+    if (print_can_msgs) {
+        uint8_t tx_msg[8] = { 0x00 };
+        peek_queue(&pay_tx_msg_queue, tx_msg);
+        print("CAN TX (PAY): ");
+        print_bytes(tx_msg, 8);
+    }
+
+    resume_mob(&pay_cmd_tx_mob);
 }
 
 

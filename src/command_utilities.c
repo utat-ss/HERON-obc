@@ -1,5 +1,8 @@
 #include "command_utilities.h"
 
+// Uncomment for extra debugging prints
+// #define COMMAND_UTILITIES_DEBUG
+
 // If you get an error here because `security.h` is not found, copy the dummy
 // `security.h` file from https://github.com/HeronMkII/templates to your `src`
 // folder and try again
@@ -77,6 +80,10 @@ rtc_date_t restart_date = { .yy = 0, .mm = 0, .dd  = 0 };
 rtc_time_t restart_time = { .hh = 0, .mm = 0, .ss  = 0 };
 
 
+// Set to true to print commands and arguments
+bool print_cmds = false;
+// Set to true to print ACKs
+bool print_trans_tx_acks = false;
 
 
 /*
@@ -89,9 +96,16 @@ void handle_trans_rx_dec_msg(void) {
             return;
         }
         trans_rx_dec_avail = false;
+
+        if (print_trans_msgs) {
+            print("Trans RX (Decoded): %u bytes: ", trans_rx_dec_len);
+            print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_len);
+        }
+
         // Only accept 13 byte messages
         if (trans_rx_dec_len < 13) {
-            add_trans_tx_ack(0xFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x02);
+            // Don't know the opcode/args
+            add_trans_tx_ack(CMD_OPCODE_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ACK_STATUS_INVALID_DEC_FMT);
             return;
         }
 
@@ -111,7 +125,7 @@ void handle_trans_rx_dec_msg(void) {
 
         cmd_t* cmd = cmd_opcode_to_cmd(opcode);
         if (cmd == &nop_cmd) {
-            add_trans_tx_ack(opcode, arg1, arg2, 0x03);
+            add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_INVALID_OPCODE);
             return;
         }
 
@@ -120,14 +134,17 @@ void handle_trans_rx_dec_msg(void) {
             for (uint8_t i = 0; i < 4; i++) {
                 if (msg[9 + i] != correct_pwd[i]) {
                     // NACK
-                    add_trans_tx_ack(opcode, arg1, arg2, 0x04);
+                    add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_INVALID_PWD);
                     return;
                 }
             }
         }
         
-        add_trans_tx_ack(opcode, arg1, arg2, 0x00);
+        add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_OK);
         enqueue_cmd(cmd, arg1, arg2);
+
+        // Restart the counter for not receiving communication from ground
+        restart_com_timeout();
     }
 }
 
@@ -138,9 +155,13 @@ void process_trans_tx_ack(void) {
         }
         trans_tx_ack_avail = false;
 
+        if (print_trans_tx_acks) {
+            print("ACK: op = 0x%.2x, arg1 = 0x%.8lx, arg2 = 0x%.8lx, stat = 0x%.2x\n",
+                trans_tx_ack_opcode, trans_tx_ack_arg1, trans_tx_ack_arg2, trans_tx_ack_status);
+        }
+
         // Can't use the standard trans_tx_dec functions because they use the current_cmd variables
-        // TODO - better way?
-        trans_tx_dec_msg[0] = trans_tx_ack_opcode | (0x1 << 7);
+        trans_tx_dec_msg[0] = trans_tx_ack_opcode | CMD_ACK_OPCODE_MASK;
         trans_tx_dec_msg[1] = (trans_tx_ack_arg1 >> 24) & 0xFF;
         trans_tx_dec_msg[2] = (trans_tx_ack_arg1 >> 16) & 0xFF;
         trans_tx_dec_msg[3] = (trans_tx_ack_arg1 >> 8) & 0xFF;
@@ -211,7 +232,9 @@ something goes wrong.
 cmd - Command to enqueue
 */
 void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
+#ifdef COMMAND_UTILITIES_DEBUG
     print("enqueue_cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", cmd->opcode, arg1, arg2);
+#endif
 
     // Enqueue the command as an 8-byte array
     uint8_t opcode_data[8] = {0};
@@ -269,8 +292,10 @@ void dequeue_cmd(cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) {
             (((uint32_t) args_data[7]));
     }
 
+#ifdef COMMAND_UTILITIES_DEBUG
     print("dequeue_cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", (*cmd)->opcode,
         *arg1, *arg2);
+#endif
 }
 
 // If the command queue is not empty, dequeues the next command and executes it
@@ -284,6 +309,7 @@ void execute_next_cmd(void) {
         if (queue_empty(&cmd_args_queue)) {
             return;
         }
+        // Only continue if we are open to start a new command
         if (current_cmd != &nop_cmd) {
             return;
         }
@@ -293,11 +319,15 @@ void execute_next_cmd(void) {
             (uint32_t*) &current_cmd_arg1, (uint32_t*) &current_cmd_arg2);
     }
 
-    print("Starting cmd\n");
+    if (print_cmds) {
+        print("Cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+            current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
+    }
 
-    // TODO - this should be moved to when receiving a transceiver packet instead
-    // Restart the counter for not receiving communication
-    restart_com_timeout();
+#ifdef COMMAND_UTILITIES_DEBUG
+    print("Starting cmd\n");
+#endif
+
     // Start timeout timer at 0
     cmd_timeout_count_s = 0;
 
@@ -310,7 +340,7 @@ void execute_next_cmd(void) {
     }
 
     // Log everything for the command (except the status byte)
-    populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, 0xFF);
+    populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, CMD_RESP_STATUS_UNKNOWN);
     write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block,
         &cmd_log_header,
         current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
@@ -331,18 +361,46 @@ void finish_current_cmd(uint8_t status) {
                 current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
         }
 
+        // If we are collecting a data block, write the status byte to the
+        // header of the data section
+        if (current_cmd == &col_data_block_cmd) {
+            switch (current_cmd_arg1) {
+                case CMD_OBC_HK:
+                    write_mem_header_status(
+                        &obc_hk_mem_section, obc_hk_header.block_num, status);
+                    break;
+                case CMD_EPS_HK:
+                    write_mem_header_status(
+                        &eps_hk_mem_section, eps_hk_header.block_num, status);
+                    break;
+                case CMD_PAY_HK:
+                    write_mem_header_status(
+                        &pay_hk_mem_section, pay_hk_header.block_num, status);
+                    break;
+                case CMD_PAY_OPT:
+                    write_mem_header_status(
+                        &pay_opt_mem_section, pay_opt_header.block_num, status);
+                    break;
+            }
+        }
+
+        // Write the status byte to the appropriate command log (based on command)
         if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
             || current_cmd == &read_sec_cmd_blocks_cmd) {
             write_mem_header_status(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, status);
         } else {
             write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
         }
+        
         current_cmd = &nop_cmd;
         current_cmd_arg1 = 0;
         current_cmd_arg2 = 0;
         cmd_timeout_count_s = 0;
     }
+
+#ifdef COMMAND_UTILITIES_DEBUG
     print("Finished cmd\n");
+#endif
 }
 
 
@@ -457,7 +515,9 @@ void auto_data_col_timer_cb(void) {
         obc_hk_auto_data_col.count += 1;
 
         if (obc_hk_auto_data_col.count >= obc_hk_auto_data_col.period) {
+#ifdef COMMAND_UTILITIES_DEBUG
             print("Auto OBC_HK\n");
+#endif
             obc_hk_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_OBC_HK, 1);    // auto
         }
@@ -467,7 +527,9 @@ void auto_data_col_timer_cb(void) {
         eps_hk_auto_data_col.count += 1;
 
         if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
+#ifdef COMMAND_UTILITIES_DEBUG
             print("Auto EPS_HK\n");
+#endif
             eps_hk_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_EPS_HK, 1);    // auto
         }
@@ -477,7 +539,9 @@ void auto_data_col_timer_cb(void) {
         pay_hk_auto_data_col.count += 1;
 
         if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
+#ifdef COMMAND_UTILITIES_DEBUG
             print("Auto PAY_HK\n");
+#endif
             pay_hk_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_PAY_HK, 1);    // auto
         }
@@ -487,7 +551,9 @@ void auto_data_col_timer_cb(void) {
         pay_opt_auto_data_col.count += 1;
 
         if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
+#ifdef COMMAND_UTILITIES_DEBUG
             print("Auto PAY_OPT\n");
+#endif
             pay_opt_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_PAY_OPT, 1);   // auto
         }
@@ -502,8 +568,15 @@ void cmd_timeout_timer_cb(void) {
     }
 
     cmd_timeout_count_s += 1;
+
     if (cmd_timeout_count_s >= cmd_timeout_period_s) {
-        finish_current_cmd(CMD_STATUS_TIMED_OUT);
+#ifdef COMMAND_UTILITIES_DEBUG
+        print("COMMAND TIMED OUT\n");
+#endif
+        // TODO - only add trans msg if not auto command?
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
+        finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
+        cmd_timeout_count_s = 0;
     }
 }
 

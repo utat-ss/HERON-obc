@@ -1,5 +1,8 @@
 #include "commands.h"
 
+// Uncomment for extra debugging prints
+// #define COMMANDS_DEBUG
+
 
 void nop_fn(void);
 
@@ -262,8 +265,8 @@ void nop_fn(void) {
 }
 
 void ping_obc_fn(void) {
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void get_rtc_fn(void) {
@@ -271,7 +274,7 @@ void get_rtc_fn(void) {
     rtc_time_t time = read_rtc_time();
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
         append_to_trans_tx_dec_msg(date.yy);
         append_to_trans_tx_dec_msg(date.mm);
         append_to_trans_tx_dec_msg(date.dd);
@@ -280,7 +283,7 @@ void get_rtc_fn(void) {
         append_to_trans_tx_dec_msg(time.ss);
         finish_trans_tx_dec_msg();
     }
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void set_rtc_fn(void) {
@@ -298,29 +301,29 @@ void set_rtc_fn(void) {
     set_rtc_date(date);
     set_rtc_time(time);
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void read_obc_eeprom_fn(void) {
     uint32_t data = read_eeprom((uint16_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
         append_to_trans_tx_dec_msg((data >> 24) & 0xFF);
         append_to_trans_tx_dec_msg((data >> 16) & 0xFF);
         append_to_trans_tx_dec_msg((data >> 8) & 0xFF);
         append_to_trans_tx_dec_msg(data & 0xFF);
         finish_trans_tx_dec_msg();
     }
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void erase_obc_eeprom_fn(void) {
     write_eeprom((uint16_t) current_cmd_arg2, EEPROM_DEF_DWORD);
     
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void read_obc_ram_byte_fn(void) {
@@ -335,11 +338,11 @@ void read_obc_ram_byte_fn(void) {
     uint8_t data = *pointer;
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
         append_to_trans_tx_dec_msg(data);
         finish_trans_tx_dec_msg();
     }
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void set_beacon_inhibit_enable_fn(void) {
@@ -358,12 +361,12 @@ void set_beacon_inhibit_enable_fn(void) {
             beacon_inhibit_count_s = 0;
         }
     } else {
-        add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
     }
     
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void send_eps_can_msg_fn(void) {
@@ -393,26 +396,26 @@ void reset_subsys_fn(void) {
         reset_self_mcu(UPTIME_RESTART_REASON_RESET_CMD);
         // Program should stop here and restart from the beginning
 
-        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-        finish_current_cmd(CMD_STATUS_OK);
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        finish_current_cmd(CMD_RESP_STATUS_OK);
     }
     // PAY/EPS will not respond so don't expect a CAN message back
     // Just finish the current command
     else if (current_cmd_arg1 == CMD_EPS) {
         enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_RESET, 0);
 
-        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-        finish_current_cmd(CMD_STATUS_OK);
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        finish_current_cmd(CMD_RESP_STATUS_OK);
     }
     else if (current_cmd_arg1 == CMD_PAY) {
         enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_RESET, 0);
 
-        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-        finish_current_cmd(CMD_STATUS_OK);
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        finish_current_cmd(CMD_RESP_STATUS_OK);
     }
     else {
-        add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
     }
 }
 
@@ -421,8 +424,8 @@ void set_indef_lpm_enable_fn(void) {
     enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
     enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void read_rec_status_info_fn(void) {    
@@ -438,7 +441,7 @@ void read_rec_status_info_fn(void) {
     read_mem_data_block(&pay_hk_mem_section, pay_block, &pay_hk_header, pay_hk_fields);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
 
         for (uint8_t i = CAN_OBC_HK_UPTIME; i <= CAN_OBC_HK_RESTART_TIME; i++) {
             append_to_trans_tx_dec_msg((obc_hk_fields[i] >> 16) & 0xFF);
@@ -459,12 +462,12 @@ void read_rec_status_info_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void read_data_block_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
 
         switch (current_cmd_arg1) {
             case CMD_OBC_HK:
@@ -496,21 +499,20 @@ void read_data_block_fn(void) {
                 break;
 
             default:
-                add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-                finish_current_cmd(CMD_STATUS_INVALID_ARGS);
-                // TODO - will it properly terminate the trans msg?
+                add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+                finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
                 return;
         }
 
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void read_rec_loc_data_block_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
 
         switch (current_cmd_arg1) {
             case CMD_OBC_HK:
@@ -530,101 +532,70 @@ void read_rec_loc_data_block_fn(void) {
                 append_fields_to_tx_msg(pay_opt_fields, CAN_PAY_OPT_FIELD_COUNT);
                 break;
             default:
-                add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-                finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+                add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+                finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
                 return;
         }
 
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
+}
+
+// Common functionality for primary and secondary blocks
+void read_cmd_blocks(mem_section_t* section) {
+    if (current_cmd_arg2 > 5) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+        return;
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+
+        for (uint32_t block_num = current_cmd_arg1;
+            block_num < current_cmd_arg1 + current_cmd_arg2;
+            block_num++) {
+            
+            mem_header_t header;
+            uint8_t opcode = 0;
+            uint32_t arg1 = 0;
+            uint32_t arg2 = 0;
+            read_mem_cmd_block(section, block_num,
+                &header, &opcode, &arg1, &arg2);
+
+            append_header_to_tx_msg(&header);
+            append_to_trans_tx_dec_msg(opcode);
+            append_to_trans_tx_dec_msg((arg1 >> 24) & 0xFF);
+            append_to_trans_tx_dec_msg((arg1 >> 16) & 0xFF);
+            append_to_trans_tx_dec_msg((arg1 >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg((arg1 >> 0) & 0xFF);
+            append_to_trans_tx_dec_msg((arg2 >> 24) & 0xFF);
+            append_to_trans_tx_dec_msg((arg2 >> 16) & 0xFF);
+            append_to_trans_tx_dec_msg((arg2 >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg((arg2 >> 0) & 0xFF);
+        }
+
+        finish_trans_tx_dec_msg();
+    }
+
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void read_prim_cmd_blocks_fn(void) {
-    if (current_cmd_arg2 > 5) {
-        add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
-        return;
-    }
-
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
-
-        for (uint32_t block_num = current_cmd_arg1;
-            block_num < current_cmd_arg1 + current_cmd_arg2;
-            block_num++) {
-            
-            mem_header_t header;
-            uint8_t opcode = 0;
-            uint32_t arg1 = 0;
-            uint32_t arg2 = 0;
-            read_mem_cmd_block(&prim_cmd_log_mem_section, block_num,
-                &header, &opcode, &arg1, &arg2);
-
-            append_header_to_tx_msg(&header);
-            append_to_trans_tx_dec_msg(opcode);
-            append_to_trans_tx_dec_msg((arg1 >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 0) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 0) & 0xFF);
-        }
-
-        finish_trans_tx_dec_msg();
-    }
-
-    finish_current_cmd(CMD_STATUS_OK);
+    read_cmd_blocks(&prim_cmd_log_mem_section);
 }
 
 void read_sec_cmd_blocks_fn(void) {
-    // TODO - refactor common with primary command?
-    if (current_cmd_arg2 > 5) {
-        add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
-        return;
-    }
-
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
-
-        for (uint32_t block_num = current_cmd_arg1;
-            block_num < current_cmd_arg1 + current_cmd_arg2;
-            block_num++) {
-            
-            mem_header_t header;
-            uint8_t opcode = 0;
-            uint32_t arg1 = 0;
-            uint32_t arg2 = 0;
-            read_mem_cmd_block(&sec_cmd_log_mem_section, block_num,
-                &header, &opcode, &arg1, &arg2);
-
-            append_header_to_tx_msg(&header);
-            append_to_trans_tx_dec_msg(opcode);
-            append_to_trans_tx_dec_msg((arg1 >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 0) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 0) & 0xFF);
-        }
-
-        finish_trans_tx_dec_msg();
-    }
-
-    finish_current_cmd(CMD_STATUS_OK);
+    read_cmd_blocks(&sec_cmd_log_mem_section);
 }
 
 void read_raw_mem_bytes_fn(void) {
     // Enforce max number of bytes
     if (current_cmd_arg2 > CMD_READ_MEM_MAX_COUNT) {
-        add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-        finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
         return;
     }
 
@@ -632,14 +603,14 @@ void read_raw_mem_bytes_fn(void) {
     read_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
         for (uint8_t i = 0; i < (uint8_t) current_cmd_arg2; i++) {
             append_to_trans_tx_dec_msg(data[i]);
         }
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void erase_mem_phy_sector_fn(void) {
@@ -648,34 +619,35 @@ void erase_mem_phy_sector_fn(void) {
     // Only send a transceiver packet if the erase was initiated by the ground
     // station (argument 2 = 0)
     if (current_cmd_arg2 == 0) {
-        add_def_trans_tx_dec_msg(CMD_STATUS_OK);
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void erase_mem_phy_block_fn(void) {
     erase_mem_block(current_cmd_arg1);
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void erase_all_mem_fn(void) {
     erase_mem();
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 // Starts requesting block data (field 0)
-// TODO - don't write success byte later, write at end in CAN RX processing
 void col_data_block_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
+#ifdef COMMANDS_DEBUG
             print("Start OBC_HK\n");
+#endif
 
-            populate_header(&obc_hk_header, obc_hk_mem_section.curr_block, 0x00);
+            populate_header(&obc_hk_header, obc_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
             obc_hk_fields[CAN_OBC_HK_UPTIME] = uptime_s;
             obc_hk_fields[CAN_OBC_HK_RESTART_COUNT] = restart_count;
             obc_hk_fields[CAN_OBC_HK_RESTART_REASON] = restart_reason;
@@ -688,16 +660,22 @@ void col_data_block_fn(void) {
                 ((uint32_t) restart_time.mm << 8) |
                 ((uint32_t) restart_time.ss << 0);
 
-            // Write data to the section and increment the block number
-            write_mem_data_block(&obc_hk_mem_section, obc_hk_mem_section.curr_block,
-                &obc_hk_header, obc_hk_fields);
+            // Write header (except status)
+            write_mem_header_main(&obc_hk_mem_section, obc_hk_mem_section.curr_block, &obc_hk_header);
+            // Write data fields
+            for (uint8_t i = 0; i < obc_hk_mem_section.fields_per_block; i++) {
+                write_mem_field(&obc_hk_mem_section, obc_hk_mem_section.curr_block, i, obc_hk_fields[i]);
+                // i is field number; fields[i] corresponds to associated field data
+            }
+
+            // Increment the block number
             inc_and_prepare_mem_section_curr_block(&obc_hk_mem_section);
 
             // Only send back a transceiver packet if the command was sent from
             // ground (arg2 = 0)
             if (current_cmd_arg2 == 0) {
                 ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                    start_trans_tx_dec_msg(CMD_STATUS_OK);
+                    start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
                     append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 24) & 0xFF);
                     append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 16) & 0xFF);
                     append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 8) & 0xFF);
@@ -705,34 +683,50 @@ void col_data_block_fn(void) {
                     finish_trans_tx_dec_msg();
                 }
             }
-
+#ifdef COMMANDS_DEBUG
             print("Done OBC_HK\n");
-            finish_current_cmd(CMD_STATUS_OK);
+#endif
+            finish_current_cmd(CMD_RESP_STATUS_OK);
             
             // Don't use CAN
             return;
 
         case CMD_EPS_HK:
+#ifdef COMMANDS_DEBUG
             print("Start EPS_HK\n");
-            populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, 0x00);
+#endif
+            populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
+            write_mem_header_main(&eps_hk_mem_section, eps_hk_mem_section.curr_block, &eps_hk_header);
+            // This increment invalidates the current block number for the
+            // memory section struct for the current command, so the command
+            // will need to fetch the block number from the header
+            inc_and_prepare_mem_section_curr_block(&eps_hk_mem_section);
             enqueue_eps_tx_msg(CAN_EPS_HK, 0, 0);
             break;
 
         case CMD_PAY_HK:
+#ifdef COMMANDS_DEBUG
             print ("Start PAY_HK\n");
-            populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, 0x00);
+#endif
+            populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
+            write_mem_header_main(&pay_hk_mem_section, pay_hk_mem_section.curr_block, &pay_hk_header);
+            inc_and_prepare_mem_section_curr_block(&pay_hk_mem_section);
             enqueue_pay_tx_msg(CAN_PAY_HK, 0, 0);
             break;
 
         case CMD_PAY_OPT:
+#ifdef COMMANDS_DEBUG
             print ("Start PAY_OPT\n");
-            populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, 0x00);
+#endif
+            populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
+            write_mem_header_main(&pay_opt_mem_section, pay_opt_mem_section.curr_block, &pay_opt_header);
+            inc_and_prepare_mem_section_curr_block(&pay_opt_mem_section);
             enqueue_pay_tx_msg(CAN_PAY_OPT, 0, 0);
             break;
 
         default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+            finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
             return;
     }
 
@@ -741,7 +735,7 @@ void col_data_block_fn(void) {
 
 void get_cur_block_nums_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
 
         for (uint8_t i = 0; i < MEM_NUM_SECTIONS; i++) {
             append_to_trans_tx_dec_msg((all_mem_sections[i]->curr_block >> 24) & 0xFF);
@@ -753,11 +747,9 @@ void get_cur_block_nums_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
-// TODO - OBC needs to erase memory sectors automatically when resetting current
-// block numbers on its own or writing to a previously written address
 void set_cur_block_num_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
@@ -779,18 +771,18 @@ void set_cur_block_num_fn(void) {
             prepare_mem_section_curr_block(&sec_cmd_log_mem_section, current_cmd_arg2);
             break;
         default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+            finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
             return;
     }
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void get_mem_sec_addrs_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
 
         for (uint8_t i = 0; i < MEM_NUM_SECTIONS; i++) {
             append_to_trans_tx_dec_msg((all_mem_sections[i]->start_addr >> 24) & 0xFF);
@@ -806,7 +798,7 @@ void get_mem_sec_addrs_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void set_mem_sec_start_addr_fn(void) {
@@ -830,13 +822,13 @@ void set_mem_sec_start_addr_fn(void) {
             sec_cmd_log_mem_section.start_addr = current_cmd_arg2;
             break;
         default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+            finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
             return;
     }
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void set_mem_sec_end_addr_fn(void) {
@@ -860,18 +852,18 @@ void set_mem_sec_end_addr_fn(void) {
             sec_cmd_log_mem_section.end_addr = current_cmd_arg2;
             break;
         default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+            finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
             return;
     }
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void get_auto_data_col_settings_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_STATUS_OK);
+        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
 
         for (uint8_t i = 0; i < NUM_AUTO_DATA_COL_SECTIONS; i++) {
             append_to_trans_tx_dec_msg((uint8_t) all_auto_data_cols[i]->enabled);
@@ -888,7 +880,7 @@ void get_auto_data_col_settings_fn(void) {
         finish_trans_tx_dec_msg();
     }
 
-    finish_current_cmd(CMD_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void set_auto_data_col_enable_fn(void) {
@@ -910,13 +902,13 @@ void set_auto_data_col_enable_fn(void) {
             write_eeprom(PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, pay_opt_auto_data_col.enabled);
             break;
         default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+            finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
             return;
     }
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void set_auto_data_col_period_fn(void) {
@@ -938,13 +930,13 @@ void set_auto_data_col_period_fn(void) {
             write_eeprom(PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, pay_opt_auto_data_col.period);
             break;
         default:
-            add_def_trans_tx_dec_msg(CMD_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_STATUS_INVALID_ARGS);
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+            finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
             return;
     }
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void resync_auto_data_col_timers_fn(void) {
@@ -955,6 +947,6 @@ void resync_auto_data_col_timers_fn(void) {
         pay_opt_auto_data_col.count = 0;
     }
 
-    add_def_trans_tx_dec_msg(CMD_STATUS_OK);
-    finish_current_cmd(CMD_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+    finish_current_cmd(CMD_RESP_STATUS_OK);
 }

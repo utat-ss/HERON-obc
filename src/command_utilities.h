@@ -70,11 +70,25 @@ typedef struct {
 #define CMD_RESET_SUBSYS                0x43
 #define CMD_SET_INDEF_LPM_ENABLE        0x44
 
-// Response/command log stataus bytes
-#define CMD_STATUS_OK           0x00
-#define CMD_STATUS_INVALID_ARGS 0x01
-#define CMD_STATUS_TIMED_OUT    0x02
-#define CMD_STATUS_UNKNOWN      0xFF
+// Mask to set MSB on opcode byte for ACK packets
+#define CMD_ACK_OPCODE_MASK             (0x1 << 7)
+
+// ACK status bytes
+#define CMD_ACK_STATUS_OK               0x00
+#define CMD_ACK_STATUS_INVALID_PKT      0x01
+#define CMD_ACK_STATUS_INVALID_DEC_FMT  0x02
+#define CMD_ACK_STATUS_INVALID_OPCODE   0x03
+#define CMD_ACK_STATUS_INVALID_PWD      0x04
+
+// Response/command log status bytes
+#define CMD_RESP_STATUS_OK              0x00
+#define CMD_RESP_STATUS_INVALID_ARGS    0x01
+#define CMD_RESP_STATUS_TIMED_OUT       0x02
+#define CMD_RESP_STATUS_UNKNOWN         0xFF
+
+// For unsuccessful ACKs where opcode/args are unknown
+#define CMD_OPCODE_UNKNOWN              0xFF
+#define CMD_ARG_UNKNOWN                 0xFFFFFFFF
 
 // TODO - change value?
 #define CMD_TIMEOUT_DEF_PERIOD_S    30
@@ -150,6 +164,9 @@ extern volatile auto_data_col_t* all_auto_data_cols[];
 
 extern rtc_date_t restart_date;
 extern rtc_time_t restart_time;
+
+extern bool print_cmds;
+extern bool print_trans_tx_acks;
 
 
 void handle_trans_rx_dec_msg(void);

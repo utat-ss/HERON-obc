@@ -47,20 +47,22 @@
 #define MEM_BPL     7
 
 // Chips are numbered 0-2
-#define MEM_NUM_CHIPS           3
+#define MEM_NUM_CHIPS               3
 // The number of bits used to address all bytes in one chip
 // Because one chip is 2MB and each address is for one byte
-#define MEM_CHIP_ADDR_WIDTH     21
+#define MEM_CHIP_ADDR_WIDTH         21
 // Number of sections in memory layout
-#define MEM_NUM_SECTIONS        6
+#define MEM_NUM_SECTIONS            6
 // Number of bytes in a header
-#define MEM_BYTES_PER_HEADER    10
+#define MEM_BYTES_PER_HEADER        10
+// Location of status byte in header
+#define MEM_STATUS_HEADER_OFFSET    (MEM_BYTES_PER_HEADER - 1)
 // Number of bytes in one field (one measurement)
-#define MEM_BYTES_PER_FIELD     3
+#define MEM_BYTES_PER_FIELD         3
 // Number of bytes in one command log
-#define MEM_BYTES_PER_CMD       9
+#define MEM_BYTES_PER_CMD           9
 // Number of bytes per memory sector
-#define MEM_BYTES_PER_SECTOR    4096
+#define MEM_BYTES_PER_SECTOR        4096
 
 #define MEM_OBC_HK_START_ADDR       0x000000UL
 #define MEM_OBC_HK_END_ADDR         0x0FFFFFUL
@@ -82,9 +84,6 @@
 #define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR      0x170
 #define MEM_PRIM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR 0x180
 #define MEM_SEC_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  0x190
-
-// Location of status byte in header
-#define MEM_STATUS_HEADER_OFFSET   9
 
 
 // Sections in memory
@@ -135,8 +134,6 @@ void read_all_mem_sections_eeprom(void);
 void set_mem_section_curr_block(mem_section_t* section, uint32_t curr_block);
 
 // High-level operations - blocks
-void write_mem_data_block(mem_section_t* section, uint32_t block_num,
-    mem_header_t* header, uint32_t* fields);
 void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
 
@@ -146,7 +143,7 @@ void read_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t
     uint8_t* cmd_num, uint32_t* arg1, uint32_t* arg2);
 
 // High-level operations - headers and fields
-void write_mem_header(mem_section_t* section, uint32_t block_num,
+void write_mem_header_main(mem_section_t* section, uint32_t block_num,
     mem_header_t* header);
 void write_mem_header_status(mem_section_t* section, uint32_t block_num,
     uint8_t status);

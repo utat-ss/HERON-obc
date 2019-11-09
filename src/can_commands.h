@@ -17,6 +17,8 @@ extern queue_t eps_tx_msg_queue;
 extern queue_t pay_tx_msg_queue;
 extern queue_t data_rx_msg_queue;
 
+extern bool print_can_msgs;
+
 
 void handle_rx_msg(void);
 

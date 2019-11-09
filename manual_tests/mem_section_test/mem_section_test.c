@@ -88,7 +88,8 @@ void test_header(char* name, mem_section_t* section) {
     print("Initial value in memory: ");
     print_header(&read);
 
-    write_mem_header(section, section->curr_block, &write);
+    write_mem_header_main(section, section->curr_block, &write);
+    write_mem_header_status(section, section->curr_block, write.status);
     print("Wrote header to memory: ");
     print_header(&write);
 
