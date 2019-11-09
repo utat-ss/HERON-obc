@@ -339,6 +339,11 @@ void sim_send_next_eps_tx_msg(void) {
     uint8_t tx_msg[8] = {0x00};
     dequeue(&eps_tx_msg_queue, tx_msg);
 
+    if (print_can_msgs) {
+        print("CAN TX (EPS): ");
+        print_bytes(tx_msg, 8);
+    }
+
     // Construct the message EPS would send back
     uint8_t rx_msg[8] = {0x00};
     rx_msg[0] = 0x00;
@@ -400,6 +405,11 @@ void sim_send_next_pay_tx_msg(void) {
     // TX and RX defined from OBC's perspective
     uint8_t tx_msg[8] = {0x00};
     dequeue(&pay_tx_msg_queue, tx_msg);
+
+    if (print_can_msgs) {
+        print("CAN TX (PAY): ");
+        print_bytes(tx_msg, 8);
+    }
 
     // Construct the message EPS would send back
     uint8_t rx_msg[8] = {0x00};
