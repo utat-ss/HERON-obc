@@ -1,5 +1,8 @@
 #include "commands.h"
 
+// Uncomment for extra debugging prints
+// #define COMMANDS_DEBUG
+
 
 void nop_fn(void);
 
@@ -640,7 +643,9 @@ void erase_all_mem_fn(void) {
 void col_data_block_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
+#ifdef COMMANDS_DEBUG
             print("Start OBC_HK\n");
+#endif
 
             populate_header(&obc_hk_header, obc_hk_mem_section.curr_block, CMD_RESP_STATUS_OK);
             obc_hk_fields[CAN_OBC_HK_UPTIME] = uptime_s;
@@ -672,15 +677,18 @@ void col_data_block_fn(void) {
                     finish_trans_tx_dec_msg();
                 }
             }
-
+#ifdef COMMANDS_DEBUG
             print("Done OBC_HK\n");
+#endif
             finish_current_cmd(CMD_RESP_STATUS_OK);
             
             // Don't use CAN
             return;
 
         case CMD_EPS_HK:
+#ifdef COMMANDS_DEBUG
             print("Start EPS_HK\n");
+#endif
             populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
             write_mem_header_main(&eps_hk_mem_section, eps_hk_mem_section.curr_block, &eps_hk_header);
             // This increment invalidates the current block number for the
@@ -691,7 +699,9 @@ void col_data_block_fn(void) {
             break;
 
         case CMD_PAY_HK:
+#ifdef COMMANDS_DEBUG
             print ("Start PAY_HK\n");
+#endif
             populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
             write_mem_header_main(&pay_hk_mem_section, pay_hk_mem_section.curr_block, &pay_hk_header);
             inc_and_prepare_mem_section_curr_block(&pay_hk_mem_section);
@@ -699,7 +709,9 @@ void col_data_block_fn(void) {
             break;
 
         case CMD_PAY_OPT:
+#ifdef COMMANDS_DEBUG
             print ("Start PAY_OPT\n");
+#endif
             populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
             write_mem_header_main(&pay_opt_mem_section, pay_opt_mem_section.curr_block, &pay_opt_header);
             inc_and_prepare_mem_section_curr_block(&pay_opt_mem_section);

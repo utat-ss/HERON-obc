@@ -1,5 +1,8 @@
 #include "command_utilities.h"
 
+// Uncomment for extra debugging prints
+// #define COMMAND_UTILITIES_DEBUG
+
 // If you get an error here because `security.h` is not found, copy the dummy
 // `security.h` file from https://github.com/HeronMkII/templates to your `src`
 // folder and try again
@@ -229,7 +232,9 @@ something goes wrong.
 cmd - Command to enqueue
 */
 void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
+#ifdef COMMAND_UTILITIES_DEBUG
     print("enqueue_cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", cmd->opcode, arg1, arg2);
+#endif
 
     // Enqueue the command as an 8-byte array
     uint8_t opcode_data[8] = {0};
@@ -287,8 +292,10 @@ void dequeue_cmd(cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) {
             (((uint32_t) args_data[7]));
     }
 
+#ifdef COMMAND_UTILITIES_DEBUG
     print("dequeue_cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", (*cmd)->opcode,
         *arg1, *arg2);
+#endif
 }
 
 // If the command queue is not empty, dequeues the next command and executes it
@@ -317,8 +324,10 @@ void execute_next_cmd(void) {
             current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
     }
 
+#ifdef COMMAND_UTILITIES_DEBUG
     print("Starting cmd\n");
-    
+#endif
+
     // Start timeout timer at 0
     cmd_timeout_count_s = 0;
 
@@ -363,7 +372,10 @@ void finish_current_cmd(uint8_t status) {
         current_cmd_arg2 = 0;
         cmd_timeout_count_s = 0;
     }
+
+#ifdef COMMAND_UTILITIES_DEBUG
     print("Finished cmd\n");
+#endif
 }
 
 
@@ -478,7 +490,9 @@ void auto_data_col_timer_cb(void) {
         obc_hk_auto_data_col.count += 1;
 
         if (obc_hk_auto_data_col.count >= obc_hk_auto_data_col.period) {
+#ifdef COMMAND_UTILITIES_DEBUG
             print("Auto OBC_HK\n");
+#endif
             obc_hk_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_OBC_HK, 1);    // auto
         }
@@ -488,7 +502,9 @@ void auto_data_col_timer_cb(void) {
         eps_hk_auto_data_col.count += 1;
 
         if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
+#ifdef COMMAND_UTILITIES_DEBUG
             print("Auto EPS_HK\n");
+#endif
             eps_hk_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_EPS_HK, 1);    // auto
         }
@@ -498,7 +514,9 @@ void auto_data_col_timer_cb(void) {
         pay_hk_auto_data_col.count += 1;
 
         if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
+#ifdef COMMAND_UTILITIES_DEBUG
             print("Auto PAY_HK\n");
+#endif
             pay_hk_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_PAY_HK, 1);    // auto
         }
@@ -508,7 +526,9 @@ void auto_data_col_timer_cb(void) {
         pay_opt_auto_data_col.count += 1;
 
         if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
+#ifdef COMMAND_UTILITIES_DEBUG
             print("Auto PAY_OPT\n");
+#endif
             pay_opt_auto_data_col.count = 0;
             enqueue_cmd(&col_data_block_cmd, CMD_PAY_OPT, 1);   // auto
         }

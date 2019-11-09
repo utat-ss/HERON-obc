@@ -1,5 +1,8 @@
 #include "can_commands.h"
 
+// Uncomment for extra debugging prints
+// #define CAN_COMMANDS_DEBUG
+
 queue_t eps_tx_msg_queue;
 queue_t pay_tx_msg_queue;
 queue_t data_rx_msg_queue;
@@ -22,7 +25,6 @@ void handle_rx_msg(void) {
     }
 
     uint8_t msg[8] = {0x00};
-    // print("Dequeued from data_rx_msg_queue\n");
     dequeue(&data_rx_msg_queue, msg);
 
     if (print_can_msgs) {
@@ -87,7 +89,6 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
 
     // Save the data to the local array and flash memory
     if (field_num < CAN_EPS_HK_FIELD_COUNT) {
-        // print("Received EPS_HK #%u\n", field_num);
         eps_hk_fields[field_num] = data;
         write_mem_field(&eps_hk_mem_section, eps_hk_header.block_num, field_num,
             data);
@@ -118,7 +119,9 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
             }
         }
 
+#ifdef CAN_COMMANDS_DEBUG
         print("Done EPS_HK\n");
+#endif
         finish_current_cmd(CMD_RESP_STATUS_OK);
     }
 }
@@ -134,7 +137,6 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
 
     // Save the data to the local array and flash memory
     if (field_num < CAN_PAY_HK_FIELD_COUNT) {
-        // print("modifying pay_hk_fields[%u]\n", field_num);
         pay_hk_fields[field_num] = data;
         write_mem_field(&pay_hk_mem_section, pay_hk_header.block_num, field_num,
             data);
@@ -164,7 +166,9 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
             }
         }
 
+#ifdef CAN_COMMANDS_DEBUG
         print("Done PAY_HK\n");
+#endif
         finish_current_cmd(CMD_RESP_STATUS_OK);
     }
 }
@@ -209,7 +213,9 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
             }
         }
 
+#ifdef CAN_COMMANDS_DEBUG
         print("Done PAY_OPT\n");
+#endif
         finish_current_cmd(CMD_RESP_STATUS_OK);
     }
 }
