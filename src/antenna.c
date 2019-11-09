@@ -139,8 +139,8 @@ void deploy_antenna(void) {
             WDT_ENABLE_SYS_RESET(WDTO_8S);
             _delay_ms(1000);
         }
-         _delay_ms(100);
         set_pin_low(ANT_REL_A, &PORT_ANT_REL);
+        _delay_ms(100);
         set_pin_high(ANT_REL_B, &PORT_ANT_REL);
         for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
             WDT_ENABLE_SYS_RESET(WDTO_8S);
