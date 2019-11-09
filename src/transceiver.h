@@ -58,9 +58,9 @@ boot = 0b0 (application mode)
 */
 #define TRANS_DEF_SCW   0x0303
 
-// Default frequency
-// This is in the 32-bit format, i.e. the output of EnduroSat's utility program
-#define TRANS_DEF_FREQ 0x76620F41UL // TODO - what is this frequency?
+// Default frequency (435MHz, p.6)
+// This is in the 32-bit format, i.e. from the output of EnduroSat's utility program
+#define TRANS_DEF_FREQ 0x76620F41UL
 
 // Default beacon parameters
 #define TRANS_BEACON_DEF_PERIOD_S   60

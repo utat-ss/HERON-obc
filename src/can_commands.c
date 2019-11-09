@@ -12,20 +12,21 @@ queue_t data_rx_msg_queue;
 bool print_can_msgs = false;
 
 
-void handle_eps_hk(uint8_t field_num, uint32_t data);
-void handle_pay_hk(uint8_t field_num, uint32_t data);
-void handle_pay_opt(uint8_t field_num, uint32_t data);
-void handle_pay_ctrl(uint8_t field_num);
+void process_eps_hk(uint8_t field_num, uint32_t data);
+void process_pay_hk(uint8_t field_num, uint32_t data);
+void process_pay_opt(uint8_t field_num, uint32_t data);
+void process_pay_ctrl(uint8_t field_num);
 
 
-void handle_rx_msg(void) {
-    // print("%s\n", __FUNCTION__);
-    if (queue_empty(&data_rx_msg_queue)) {
-        return;
-    }
-
+// If there is an RX messsage in the queue, process it
+void process_next_rx_msg(void) {
     uint8_t msg[8] = {0x00};
-    dequeue(&data_rx_msg_queue, msg);
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&data_rx_msg_queue)) {
+            return;
+        }
+        dequeue(&data_rx_msg_queue, msg);
+    }
 
     if (print_can_msgs) {
         // Extra spaces to align with CAN TX messages
@@ -42,7 +43,7 @@ void handle_rx_msg(void) {
         ((uint32_t) msg[6] << 8) |
         ((uint32_t) msg[7]);
 
-    //General CAN command-Send back data
+    //General CAN command-Intercept and send back data
     if ((current_cmd == &send_eps_can_msg_cmd) || (current_cmd == &send_pay_can_msg_cmd)) {
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
@@ -56,17 +57,17 @@ void handle_rx_msg(void) {
     else {
         switch (opcode) {
             case CAN_EPS_HK:
-                handle_eps_hk(field_num, data);
+                process_eps_hk(field_num, data);
                 break;
             // Don't need an EPS CTRL handler
             case CAN_PAY_HK:
-                handle_pay_hk(field_num, data);
+                process_pay_hk(field_num, data);
                 break;
             case CAN_PAY_OPT:
-                handle_pay_opt(field_num, data);
+                process_pay_opt(field_num, data);
                 break;
             case CAN_PAY_CTRL:
-                handle_pay_ctrl(field_num);
+                process_pay_ctrl(field_num);
                 break;
             default:
                 break;
@@ -75,7 +76,7 @@ void handle_rx_msg(void) {
 }
 
 
-void handle_eps_hk(uint8_t field_num, uint32_t data){
+void process_eps_hk(uint8_t field_num, uint32_t data){
     if (current_cmd != &col_data_block_cmd) {
         return;
     }
@@ -127,7 +128,7 @@ void handle_eps_hk(uint8_t field_num, uint32_t data){
 }
 
 
-void handle_pay_hk(uint8_t field_num, uint32_t data){
+void process_pay_hk(uint8_t field_num, uint32_t data){
     if (current_cmd != &col_data_block_cmd) {
         return;
     }
@@ -173,7 +174,7 @@ void handle_pay_hk(uint8_t field_num, uint32_t data){
     }
 }
 
-void handle_pay_opt(uint8_t field_num, uint32_t data){
+void process_pay_opt(uint8_t field_num, uint32_t data){
     if (current_cmd != &col_data_block_cmd) {
         return;
     }
@@ -220,7 +221,7 @@ void handle_pay_opt(uint8_t field_num, uint32_t data){
     }
 }
 
-void handle_pay_ctrl(uint8_t field_num) {
+void process_pay_ctrl(uint8_t field_num) {
     if (current_cmd == &act_pay_motors_cmd &&
             (field_num == CAN_PAY_CTRL_ACT_UP ||
             field_num == CAN_PAY_CTRL_ACT_DOWN ||
@@ -231,13 +232,6 @@ void handle_pay_ctrl(uint8_t field_num) {
 }
 
 
-// If there is an RX messsage in the queue, handle it
-void process_next_rx_msg(void) {
-    if (!queue_empty(&data_rx_msg_queue)) {
-        handle_rx_msg();
-    }
-}
-
 /*
 If there is a TX message in the EPS queue, sends it
 
@@ -247,18 +241,19 @@ When resume_mob(mob name) is called, it:
 3) sends the data
 4) pauses the mob
 */
-// TODO - refactor?
 void send_next_eps_tx_msg(void) {
-    if (!queue_empty(&eps_tx_msg_queue)) {
-        if (print_can_msgs) {
-            uint8_t tx_msg[8] = { 0x00 };
-            peek_queue(&eps_tx_msg_queue, tx_msg);
-            print("CAN TX (EPS): ");
-            print_bytes(tx_msg, 8);
-        }
-
-        resume_mob(&eps_cmd_tx_mob);
+    if (queue_empty(&eps_tx_msg_queue)) {
+        return;
     }
+
+    if (print_can_msgs) {
+        uint8_t tx_msg[8] = { 0x00 };
+        peek_queue(&eps_tx_msg_queue, tx_msg);
+        print("CAN TX (EPS): ");
+        print_bytes(tx_msg, 8);
+    }
+
+    resume_mob(&eps_cmd_tx_mob);
 }
 
 /*
@@ -271,16 +266,18 @@ When resume_mob(mob name) is called, it:
 4) pauses the mob
 */
 void send_next_pay_tx_msg(void) {
-    if (!queue_empty(&pay_tx_msg_queue)) {
-        if (print_can_msgs) {
-            uint8_t tx_msg[8] = { 0x00 };
-            peek_queue(&pay_tx_msg_queue, tx_msg);
-            print("CAN TX (PAY): ");
-            print_bytes(tx_msg, 8);
-        }
-
-        resume_mob(&pay_cmd_tx_mob);
+    if (queue_empty(&pay_tx_msg_queue)) {
+        return;
     }
+
+    if (print_can_msgs) {
+        uint8_t tx_msg[8] = { 0x00 };
+        peek_queue(&pay_tx_msg_queue, tx_msg);
+        print("CAN TX (PAY): ");
+        print_bytes(tx_msg, 8);
+    }
+
+    resume_mob(&pay_cmd_tx_mob);
 }
 
 
