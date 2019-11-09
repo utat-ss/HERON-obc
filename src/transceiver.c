@@ -53,6 +53,9 @@ In a raw hexdump of bytes, this is:
 
 #include "transceiver.h"
 
+// Uncomment for extra debugging prints
+#define TRANSCEIVER_DEBUG
+
 /*
 All buffers have the following format:
 [...] - characters in buffer (NO '\0' OR '\r' TERMINATION)
@@ -127,10 +130,11 @@ void trans_uptime_cb(void) {
         uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
         get_uart_rx_buf_count() > 0) {
 
+#ifdef TRANSCEIVER_DEBUG
         print("UART RX buf (%u bytes): ", get_uart_rx_buf_count());
         print_bytes((uint8_t*) uart_rx_buf, get_uart_rx_buf_count());
-        clear_uart_rx_buf();
-        print("\nTimed out, cleared UART RX buf\n");
+        print("\nTimed out, clearing UART RX buf\n");
+#endif
 
         // Only send an ACK if we received more than 1 byte from a packet
         // i.e. ignore 1-byte ground station packets that are used to improve
@@ -139,6 +143,9 @@ void trans_uptime_cb(void) {
         if (get_uart_rx_buf_count() > 1) {
             add_trans_tx_ack(CMD_OPCODE_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ACK_STATUS_INVALID_PKT);
         }
+
+        // Clearing buffer must happen after checking length
+        clear_uart_rx_buf();
     }
 }
 
