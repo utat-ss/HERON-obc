@@ -134,8 +134,6 @@ void read_all_mem_sections_eeprom(void);
 void set_mem_section_curr_block(mem_section_t* section, uint32_t curr_block);
 
 // High-level operations - blocks
-void write_mem_data_block(mem_section_t* section, uint32_t block_num,
-    mem_header_t* header, uint32_t* fields);
 void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
 

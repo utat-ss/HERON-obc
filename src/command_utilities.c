@@ -361,12 +361,37 @@ void finish_current_cmd(uint8_t status) {
                 current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
         }
 
+        // If we are collecting a data block, write the status byte to the
+        // header of the data section
+        if (current_cmd == &col_data_block_cmd) {
+            switch (current_cmd_arg1) {
+                case CMD_OBC_HK:
+                    write_mem_header_status(
+                        &obc_hk_mem_section, obc_hk_header.block_num, status);
+                    break;
+                case CMD_EPS_HK:
+                    write_mem_header_status(
+                        &eps_hk_mem_section, eps_hk_header.block_num, status);
+                    break;
+                case CMD_PAY_HK:
+                    write_mem_header_status(
+                        &pay_hk_mem_section, pay_hk_header.block_num, status);
+                    break;
+                case CMD_PAY_OPT:
+                    write_mem_header_status(
+                        &pay_opt_mem_section, pay_opt_header.block_num, status);
+                    break;
+            }
+        }
+
+        // Write the status byte to the appropriate command log (based on command)
         if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
             || current_cmd == &read_sec_cmd_blocks_cmd) {
             write_mem_header_status(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, status);
         } else {
             write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
         }
+        
         current_cmd = &nop_cmd;
         current_cmd_arg1 = 0;
         current_cmd_arg2 = 0;
@@ -543,8 +568,15 @@ void cmd_timeout_timer_cb(void) {
     }
 
     cmd_timeout_count_s += 1;
+
     if (cmd_timeout_count_s >= cmd_timeout_period_s) {
+#ifdef COMMAND_UTILITIES_DEBUG
+        print("COMMAND TIMED OUT\n");
+#endif
+        // TODO - only add trans msg if not auto command?
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
         finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
+        cmd_timeout_count_s = 0;
     }
 }
 

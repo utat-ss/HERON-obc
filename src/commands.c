@@ -660,9 +660,15 @@ void col_data_block_fn(void) {
                 ((uint32_t) restart_time.mm << 8) |
                 ((uint32_t) restart_time.ss << 0);
 
-            // Write data to the section and increment the block number
-            write_mem_data_block(&obc_hk_mem_section, obc_hk_mem_section.curr_block,
-                &obc_hk_header, obc_hk_fields);
+            // Write header (except status)
+            write_mem_header_main(&obc_hk_mem_section, obc_hk_mem_section.curr_block, &obc_hk_header);
+            // Write data fields
+            for (uint8_t i = 0; i < obc_hk_mem_section.fields_per_block; i++) {
+                write_mem_field(&obc_hk_mem_section, obc_hk_mem_section.curr_block, i, obc_hk_fields[i]);
+                // i is field number; fields[i] corresponds to associated field data
+            }
+
+            // Increment the block number
             inc_and_prepare_mem_section_curr_block(&obc_hk_mem_section);
 
             // Only send back a transceiver packet if the command was sent from

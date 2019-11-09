@@ -173,24 +173,6 @@ void set_mem_section_curr_block(mem_section_t* section, uint32_t curr_block) {
     write_mem_section_eeprom(section);
 }
 
-
-void write_mem_data_block(mem_section_t* section, uint32_t block_num,
-    mem_header_t* header, uint32_t* fields) {
-
-    // print("%s: ", __FUNCTION__);
-    // print("start_addr = 0x%.8lX, block_num = %lu\n", section->start_addr,
-    //     block_num);
-
-    // Write header
-    write_mem_header_main(section, block_num, header);
-    write_mem_header_status(section, block_num, header->status);
-    // Write data fields
-    for (uint8_t i = 0; i < section->fields_per_block; i++) {
-        write_mem_field(section, block_num, i, fields[i]);
-        // i is field number; fields[i] corresponds to associated field data
-    }
-}
-
 void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields) {
 

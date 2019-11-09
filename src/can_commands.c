@@ -103,10 +103,6 @@ void process_eps_hk(uint8_t field_num, uint32_t data){
 
     // If we have received all the fields
     if (field_num == CAN_EPS_HK_FIELD_COUNT - 1) {
-        // Successfully finished command
-        write_mem_header_status(&eps_hk_mem_section, eps_hk_header.block_num,
-            CMD_RESP_STATUS_OK);
-
         // Only send back a transceiver packet if the command was sent from
         // ground (arg2 = 0)
         if (current_cmd_arg2 == 0) {
@@ -149,11 +145,7 @@ void process_pay_hk(uint8_t field_num, uint32_t data){
     }
 
     // If we have received all the fields
-    if (field_num == CAN_PAY_HK_FIELD_COUNT - 1) {
-        // Successfully finished command
-        write_mem_header_status(&pay_hk_mem_section, pay_hk_header.block_num,
-            CMD_RESP_STATUS_OK);
-        
+    if (field_num == CAN_PAY_HK_FIELD_COUNT - 1) {        
         // Only send back a transceiver packet if the command was sent from
         // ground (arg2 = 0)
         if (current_cmd_arg2 == 0) {
@@ -196,11 +188,7 @@ void process_pay_opt(uint8_t field_num, uint32_t data){
     }
 
     // If we have received all the fields
-    if (field_num == CAN_PAY_OPT_FIELD_COUNT - 1) {
-        // Successfully finished command
-        write_mem_header_status(&pay_opt_mem_section, pay_opt_header.block_num,
-            CMD_RESP_STATUS_OK);
-        
+    if (field_num == CAN_PAY_OPT_FIELD_COUNT - 1) {        
         // Only send back a transceiver packet if the command was sent from
         // ground (arg2 = 0)
         if (current_cmd_arg2 == 0) {
