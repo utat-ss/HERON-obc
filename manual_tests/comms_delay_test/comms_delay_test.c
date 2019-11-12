@@ -20,6 +20,7 @@ void reset_eeprom(void) {
 
 int main(void) {
     init_uart();
+    init_ant();
 
     print("\n\n");
     print("Starting comms delay test\n");

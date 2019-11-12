@@ -21,8 +21,17 @@
 // Currently 30 minutes
 #define COMMS_DELAY_DEF_S (30 * 60)
 
+#define ANT_REL_A       PC6
+#define ANT_REL_B       PC7
+#define PORT_ANT_REL    PORTC
+#define DDR_ANT_REL     DDRC
+#define ANT_DEP_WARN    PD0
+#define PORT_ANT_WARN   PORTD
+#define DDR_ANT_WARN    DDRD
+
 extern volatile uint32_t comms_delay_s;
 
+void init_ant(void);
 void run_comms_delay(void);
 void deploy_antenna(void);
 uint8_t read_antenna_data(uint8_t* door_positions, uint8_t* mode,
