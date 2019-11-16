@@ -559,11 +559,12 @@ void read_cmd_blocks(mem_section_t* section) {
             block_num++) {
             
             mem_header_t header;
+            uint16_t cmd_id = 0;
             uint8_t opcode = 0;
             uint32_t arg1 = 0;
             uint32_t arg2 = 0;
             read_mem_cmd_block(section, block_num,
-                &header, &opcode, &arg1, &arg2);
+                &header, &cmd_id, &opcode, &arg1, &arg2);
 
             append_header_to_tx_msg(&header);
             append_to_trans_tx_dec_msg(opcode);
