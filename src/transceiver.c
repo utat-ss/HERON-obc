@@ -102,6 +102,15 @@ bool print_trans_msgs = false;
 
 
 
+// TODO: Clean up -> make lib-common PRINT_BUF_SIZE visible to outside
+// UART print buff used ot send commands
+#ifndef PRINT_BUF_SIZE
+#define PRINT_BUF_SIZE 80
+#endif
+extern uint8_t print_buf[PRINT_BUF_SIZE];
+#define COMMAND_BUF_SIZE 80
+static uint8_t command_buf[COMMAND_BUF_SIZE];
+
 
 /*
 Initializes the transceiver for UART RX callbacks (does not change any settings).
@@ -508,6 +517,28 @@ void send_trans_tx_enc_msg(void) {
 }
 
 /*
+ * Calculates the checksum for the string message
+ */
+uint32_t crc32(unsigned char *message) {
+   int8_t i, j;
+   uint32_t byte;
+   uint32_t mask;
+   uint32_t crc = 0xFFFFFFFF;
+
+   i = 0;
+   while (message[i] != 0) {
+      byte = message[i];            // Get next byte.
+      crc = crc ^ byte;
+      for (j = 7; j >= 0; j--) {    // Do eight times.
+         mask = -(crc & 1);
+         crc = (crc >> 1) ^ (0xEDB88320 & mask);    // 0xEDB88320 is 0x04C11DB7 reversed
+      }
+      i = i + 1;
+   }
+   return ~crc;
+}
+
+/*
 Converts a number between 0 and 15 to the ASCII representation of it in hex
 (uses capital letters).
 */
@@ -601,7 +632,7 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
 
     // Check if the string's length matched the expected number of characters
     // Add 1 to account for the '\r' character
-    if (trans_cmd_resp_len != expected_len) {
+    if (trans_cmd_resp_len != expected_len + 9) {
         return 0;
     }
 
@@ -612,20 +643,27 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
 
 bool send_trans_cmd(uint8_t expected_len, char* fmt, ...) {
     va_list args;
+    va_start(args, fmt);
+    vsnprintf((char *) command_buf, PRINT_BUF_SIZE, fmt, args);
+    va_end(args);
+    
+    // Generate check sum
+    uint32_t check_sum = crc32(command_buf);
     
     uint8_t ret = 0;
 
     // Attempt to send some commands and wait for response with timeout
     for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
         // Regenerate the print buffer in case you get interrupted
-        va_start(args, fmt);
-        vsnprintf((char *) get_print_buf(), PRINT_BUF_SIZE, fmt, args);
-        va_end(args);
+        // va_start(args, fmt);
+        // vsnprintf((char *) print_buf, PRINT_BUF_SIZE, fmt, args);
+        // va_end(args);
 
         // Send command
         clear_trans_cmd_resp();
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            send_uart(get_print_buf(), strlen((char*) get_print_buf())); // Command
+            print("\r%s %.8lX\r", command_buf, check_sum);
+            // send_uart(print_buf, strlen((char*) print_buf)); // Command
         }
 
         // Wait for response
@@ -643,7 +681,7 @@ scw - 16-bit data to write to register
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_scw(uint16_t scw) {
-    uint8_t ret = send_trans_cmd(7, "\rES+W%02X00%04X\r", TRANS_ADDR, scw);
+    uint8_t ret = send_trans_cmd(7, "ES+W%02X00%04X", TRANS_ADDR, scw);
     clear_trans_cmd_resp();
     return ret;
 }
@@ -667,7 +705,7 @@ DD - device reset counter (observed to increase by 1 every time the transceiver 
 0303 - contents of status register
 */
 uint8_t get_trans_scw(uint8_t* rssi, uint8_t* reset_count, uint16_t* scw) {
-    uint8_t ret = send_trans_cmd(13, "\rES+R%02X00\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(13, "ES+R%02X00", TRANS_ADDR);
     if (ret) {
         // Extract values
         if (rssi != NULL) {
@@ -809,7 +847,7 @@ freq - frequency to write, already in the converted 32-bit format that the
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_freq(uint32_t freq) {
-    uint8_t ret = send_trans_cmd(2, "\rES+W%02X01%08lX\r", TRANS_ADDR, freq);
+    uint8_t ret = send_trans_cmd(2, "ES+W%02X01%08lX", TRANS_ADDR, freq);
     clear_trans_cmd_resp();
     return ret;
 }
@@ -824,7 +862,7 @@ Returns - 1 for sucess, 0 for failure
 Answer format: OK+[RR][FFFFFF][NN]
 */
 uint8_t get_trans_freq(uint8_t* rssi, uint32_t* freq) {
-    uint8_t ret = send_trans_cmd(13, "\rES+R%02X01\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(13, "ES+R%02X01", TRANS_ADDR);
     if (ret == 0) {
         return 0;
     }
@@ -848,7 +886,7 @@ timeout - timeout (in seconds) to set
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_pipe_timeout(uint8_t timeout) {
-    uint8_t ret = send_trans_cmd(2, "\rES+W%02X06000000%02X\r", TRANS_ADDR, timeout);
+    uint8_t ret = send_trans_cmd(2, "ES+W%02X06000000%02X", TRANS_ADDR, timeout);
     clear_trans_cmd_resp();
     return ret;
 }
@@ -862,7 +900,7 @@ timeout - is set by this function to the timeout (in seconds)
 Returns - 1 for success, 0 for failure
 */
 uint8_t get_trans_pipe_timeout(uint8_t* rssi, uint8_t* timeout) {
-    uint8_t ret = send_trans_cmd(13, "\rES+R%02X06\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(13, "ES+R%02X06", TRANS_ADDR);
     if (ret == 0) {
         return 0;
     }
@@ -887,7 +925,7 @@ Max val = 0xFFFF = 65535s = 1092min = 18.2h
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_beacon_period(uint16_t period) {
-    uint8_t ret = send_trans_cmd(2, "\rES+W%02X070000%04X\r", TRANS_ADDR, period);
+    uint8_t ret = send_trans_cmd(2, "ES+W%02X070000%04X", TRANS_ADDR, period);
     clear_trans_cmd_resp();
     return ret;
 }
@@ -903,7 +941,7 @@ Returns - 1 for success, 0 for failure
 Answer: OK+[RR]0000[TTTT]<CR>
 */
 uint8_t get_trans_beacon_period(uint8_t* rssi, uint16_t* period) {
-    uint8_t ret = send_trans_cmd(13, "\rES+R%02X07\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(13, "ES+R%02X07", TRANS_ADDR);
     if (ret == 0) {
         return 0;
     }
@@ -926,7 +964,7 @@ content - string, must be zero-terminated, but '\0' will not be included in the 
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_beacon_content(char* content) {
-    uint8_t ret = send_trans_cmd(2, "\rES+W%02XFB%02X%s\r", TRANS_ADDR, strlen(content), content);
+    uint8_t ret = send_trans_cmd(2, "ES+W%02XFB%02X%s", TRANS_ADDR, strlen(content), content);
     if (ret == 0) {
         return 0;
     }
@@ -942,7 +980,7 @@ call_sign - the call sign to set (6-byte array without termination or 7-byte arr
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_dest_call_sign(char* call_sign) {
-    uint8_t ret = send_trans_cmd(2, "\rES+W%02XF5%s\r", TRANS_ADDR, call_sign);
+    uint8_t ret = send_trans_cmd(2, "ES+W%02XF5%s", TRANS_ADDR, call_sign);
     clear_trans_cmd_resp();    
     return ret;
 }
@@ -956,7 +994,7 @@ Returns - 1 for success, 0 for failure
 Answer: OK+DDDDDD<CR>
 */
 uint8_t get_trans_dest_call_sign(char* call_sign) {
-    uint8_t ret = send_trans_cmd(9, "\rES+R%02XF5\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(9, "ES+R%02XF5", TRANS_ADDR);
     if (ret == 0) {
         return 0;
     }
@@ -979,7 +1017,7 @@ call_sign - the call sign to set (6-byte array without termination or 7-byte arr
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_src_call_sign(char* call_sign) {
-    uint8_t ret = send_trans_cmd(2, "\rES+W%02XF6%s\r", TRANS_ADDR, call_sign);
+    uint8_t ret = send_trans_cmd(2, "ES+W%02XF6%s", TRANS_ADDR, call_sign);
     clear_trans_cmd_resp();    
     return ret;
 }
@@ -993,7 +1031,7 @@ Returns - 1 for success, 0 for failure
 Answer: OK+DDDDDD<CR>
 */
 uint8_t get_trans_src_call_sign(char* call_sign) {
-    uint8_t ret = send_trans_cmd(9, "\rES+R%02XF6\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(9, "ES+R%02XF6", TRANS_ADDR);
     if (ret == 0) {
         return 0;
     }
@@ -1017,7 +1055,7 @@ uptime - gets set to the uptime
 Returns - 1 for success, 0 for failure
 */
 uint8_t get_trans_uptime(uint8_t* rssi, uint32_t* uptime) {
-    uint8_t ret = send_trans_cmd(13, "\rES+R%02X02\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(13, "ES+R%02X02", TRANS_ADDR);
     if (ret == 0) {
         return 0;
     }
@@ -1041,7 +1079,7 @@ num_tx_packets - gets set to the number of transmitted packets
 Returns - 1 for success, 0 for failure
 */
 uint8_t get_trans_num_tx_packets(uint8_t* rssi, uint32_t* num_tx_packets) {
-    uint8_t ret = send_trans_cmd(13, "\rES+R%02X03\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(13, "ES+R%02X03", TRANS_ADDR);
     if (ret == 0) {
         return 0;
     }
@@ -1065,7 +1103,7 @@ num_rx_packets - gets set to the number of received packets
 Returns - 1 for success, 0 for failure
 */
 uint8_t get_trans_num_rx_packets(uint8_t* rssi, uint32_t* num_rx_packets) {
-    uint8_t ret = send_trans_cmd(13, "\rES+R%02X04\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(13, "ES+R%02X04", TRANS_ADDR);
     if (ret == 0) {
         return 0;
     }
@@ -1089,7 +1127,7 @@ num_rx_packets_crc - gets set to the number of received packets with CRC error
 Returns - 1 for success, 0 for failure
 */
 uint8_t get_trans_num_rx_packets_crc(uint8_t* rssi, uint32_t* num_rx_packets_crc) {
-    uint8_t ret = send_trans_cmd(13, "\rES+R%02X05\r", TRANS_ADDR);
+    uint8_t ret = send_trans_cmd(13, "ES+R%02X05", TRANS_ADDR);
     if (ret == 0) {
         return 0;
     }
