@@ -29,14 +29,6 @@ Other Notes:
 - Need to unplug SCK/RX from the PCB when uploading a new program, then plug it
     back in when the program is running
 - Might need/want to press the reset button on the PCB to restart the program
-
-TODO - seems to have UART RX character dropping issues - first 2-3 commands
-work, then for most of the following commands, the "O" or the "OK" is not
-detected - occasionally the '\r' is not detected - commenting out the first
-couple of commands then allows the following couple of commands to work
-TODO - investigate character dropping in UART library
-It seems like all the write commands work successfully. Perhaps it is because
-write responses are shorter than read responses?
 */
 
 #include <uart/uart.h>

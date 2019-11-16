@@ -48,7 +48,6 @@ following 16 bytes of UART to OBC:
 where [CCCCCCCC] is the 8-byte checksum.
 In a raw hexdump of bytes, this is:
 2b:45:53:54:54:43:20:43:46:42:35:32:44:33:35:0d
-
 */
 
 #include "transceiver.h"
@@ -101,12 +100,7 @@ volatile uint32_t trans_rx_prev_uptime_s = 0;
 // Set to true to print transceiver messages
 bool print_trans_msgs = false;
 
-// TODO: Clean up -> make lib-common PRINT_BUF_SIZE visible to outside
-// UART print buff used ot send commands
-#ifndef PRINT_BUF_SIZE
-#define PRINT_BUF_SIZE 80
-#endif
-extern uint8_t print_buf[PRINT_BUF_SIZE];
+
 
 
 /*
@@ -121,18 +115,15 @@ void init_trans_uart(void) {
     add_uptime_callback(trans_uptime_cb);
 }
 
-extern volatile uint8_t uart_rx_buf[];
-
-
 void trans_uptime_cb(void) {
     // Check for a timeout in receiving characters to clear the buffer
     if (uptime_s > trans_rx_prev_uptime_s &&
         uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
-        get_uart_rx_buf_count() > 0) {
+        get_uart_rx_count() > 0) {
 
 #ifdef TRANSCEIVER_DEBUG
-        print("UART RX buf (%u bytes): ", get_uart_rx_buf_count());
-        print_bytes((uint8_t*) uart_rx_buf, get_uart_rx_buf_count());
+        print("UART RX buf (%u bytes): ", get_uart_rx_count());
+        print_bytes((uint8_t*) get_uart_rx_buf(), get_uart_rx_count());
         print("\nTimed out, clearing UART RX buf\n");
 #endif
 
@@ -140,7 +131,7 @@ void trans_uptime_cb(void) {
         // i.e. ignore 1-byte ground station packets that are used to improve
         // transmission reliability
         // TODO - what threshold?
-        if (get_uart_rx_buf_count() > 1) {
+        if (get_uart_rx_count() > 1) {
             add_trans_tx_ack(CMD_OPCODE_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ACK_STATUS_INVALID_PKT);
         }
 
@@ -628,13 +619,13 @@ bool send_trans_cmd(uint8_t expected_len, char* fmt, ...) {
     for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
         // Regenerate the print buffer in case you get interrupted
         va_start(args, fmt);
-        vsnprintf((char *) print_buf, PRINT_BUF_SIZE, fmt, args);
+        vsnprintf((char *) get_print_buf(), PRINT_BUF_SIZE, fmt, args);
         va_end(args);
 
         // Send command
         clear_trans_cmd_resp();
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            send_uart(print_buf, strlen((char*) print_buf)); // Command
+            send_uart(get_print_buf(), strlen((char*) get_print_buf())); // Command
         }
 
         // Wait for response
