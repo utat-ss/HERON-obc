@@ -31,7 +31,7 @@ uint8_t pay_ctrl_data[NUM_PAY_CTRL_FIELDS] = {0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0
 void eps_hk_test(void){
     for (uint8_t field = 0; field < NUM_EPS_HK_FIELDS; field++){
         uint8_t msg[8] = {0x00};
-        enqueue_eps_hk_tx_msg(field);
+        enqueue_eps_tx_msg(CAN_EPS_HK, field, 0);
         send_next_eps_tx_msg();
         /* Delay to give time to send and receive message */
         _delay_ms(100);
@@ -52,7 +52,7 @@ void eps_ctrl_test(void){
     uint32_t data = 0x00;
     for (uint8_t field = 0; field < NUM_EPS_CTRL_FIELDS; field++){
         uint8_t msg[8] = {0x00};
-        enqueue_eps_ctrl_tx_msg(field, data);
+        enqueue_eps_tx_msg(CAN_EPS_CTRL, field, data);
         send_next_eps_tx_msg();
         /* Delay to give time to send and receive message */
         _delay_ms(100);
@@ -77,7 +77,7 @@ void eps_ctrl_test(void){
 void pay_hk_test(void){
     for (uint8_t field = 0; field < NUM_PAY_HK_FIELDS; field++){
         uint8_t msg[8] = {0x00};
-        enqueue_pay_hk_tx_msg(field);
+        enqueue_pay_tx_msg(CAN_PAY_HK, field, 0);
         send_next_pay_tx_msg();
         /* Delay to give time to send and receive message */
         _delay_ms(100);
@@ -97,7 +97,7 @@ void pay_hk_test(void){
 void pay_opt_test(void){
     for (uint8_t field = 0; field < NUM_PAY_OPT_FIELDS; field++){
         uint8_t msg[8] = {0x00};
-        enqueue_pay_opt_tx_msg(field);
+        enqueue_pay_tx_msg(CAN_PAY_OPT, field, 0);
         send_next_pay_tx_msg();
         /* Delay to give time to send and receive message */
         _delay_ms(100);
@@ -118,7 +118,7 @@ void pay_ctrl_test(void){
     uint32_t data = 0x00;
     for (uint8_t field = 0; field < NUM_PAY_CTRL_FIELDS; field++){
         uint8_t msg[8] = {0x00};
-        enqueue_pay_ctrl_tx_msg(field, data);
+        enqueue_pay_tx_msg(CAN_PAY_CTRL, field, data);
         send_next_pay_tx_msg();
         /* Delay to give time to send and receive message */
         _delay_ms(100);
@@ -138,101 +138,60 @@ void pay_ctrl_test(void){
     }
 }
 
-/* Resets the PAY SSM and verifies that the reset counter increments correctly
-    and the restart reason is correct */
+/* Resets the PAY SSM and verifies that the reset counter increments correctly */
 void pay_reset_test(void){
-    uint32_t num_resets = 0x00;
-    uint32_t num_resets_new = 0x00;
-    uint8_t msg[8] = {0x00};
-    uint8_t data = 0;
+    uint32_t stale_num_restarts = 0x00;
 
-    /* Request and store current amount of resets */
-    enqueue_pay_ctrl_tx_msg(PAY_RESTART_COUNT, data);
-    send_next_pay_tx_msg();
-    _delay_ms(100);
-    dequeue(&data_rx_msg_queue, msg);
-    num_resets = (uint32_t) msg[4] << 24| (uint32_t) msg[5] << 16 | (uint32_t) msg[6] << 8 | (uint32_t) msg[7];
+    hb_send_pay_req = true;
+    run_hb();
+    stale_num_restarts = hb_latest_restart_count;
 
-    /* Request reset */
-    enqueue_pay_ctrl_tx_msg(PAY_RESET_REQUEST, data);
-    send_next_pay_tx_msg();
-    _delay_ms(100);
-    dequeue(&data_rx_msg_queue, msg);
+    send_hb_reset(HB_PAY);
 
-    /* Get number of resets */
-    enqueue_pay_ctrl_tx_msg(PAY_RESTART_COUNT, data);
-    send_next_pay_tx_msg();
-    _delay_ms(100);
-    dequeue(&data_rx_msg_queue, msg);
-    num_resets_new = (uint32_t) msg[4] << 24| (uint32_t) msg[5] << 16 | (uint32_t) msg[6] << 8 | (uint32_t) msg[7];
-    ASSERT_EQ(num_resets_new, num_resets + 1);
+    _delay_ms(1000);
+    hb_send_pay_req = true;
+    run_hb();
 
-    /* Get reset reason and assert that it is due to wdt timeout */
-    enqueue_pay_ctrl_tx_msg(PAY_RESET_REASON, data);
-    send_next_pay_tx_msg();
-    _delay_ms(100);
-    dequeue(&data_rx_msg_queue, msg);
-    restart_reason = (uint32_t) msg[4] << 24| (uint32_t) msg[5] << 16 | (uint32_t) msg[6] << 8 | (uint32_t) msg[7];
-    ASSERT_EQ(restart_reason, UPTIME_RESTART_REASON_RESET_CMD);
+    ASSERT_EQ(hb_latest_restart_count, stale_num_restarts + 1);
+    ASSERT_EQ(hb_latest_restart_reason, UPTIME_RESTART_REASON_EXTRF);
 }
 
-/* Resets the EPS SSM and verifies that the reset counter increments correctly
-    and the restart reason is correct */
+/* Resets the EPS SSM and verifies that the reset counter increments correctly */
 void eps_reset_test(void){
-    uint32_t num_resets = 0x00;
-    uint32_t num_resets_new = 0x00;
-    uint8_t msg[8] = {0x00};
-    uint8_t data = 0x00;
-    uint32_t restart_reason = 0x00;
+    uint32_t stale_num_restarts = 0x00;
 
-    /* Request and store current amount of resets */
-    enqueue_eps_ctrl_tx_msg(EPS_RESTART_COUNT, data);
-    send_next_eps_tx_msg();
-    _delay_ms(100);
-    dequeue(&data_rx_msg_queue, msg);
-    num_resets = (uint32_t) msg[4] << 24| (uint32_t) msg[5] << 16 | (uint32_t) msg[6] << 8 | (uint32_t) msg[7];
+    hb_send_pay_req = true;
+    run_hb();
+    stale_num_restarts = hb_latest_restart_count;
 
-    /* Request reset */
-    enqueue_eps_ctrl_tx_msg(EPS_RESET_REQUEST, data);
-    send_next_eps_tx_msg();
-    _delay_ms(100);
-    dequeue(&data_rx_msg_queue, msg);
+    send_hb_reset(HB_EPS);
 
-    /* Get number of resets */
-    enqueue_eps_ctrl_tx_msg(EPS_RESTART_COUNT, data);
-    send_next_eps_tx_msg();
-    _delay_ms(100);
-    dequeue(&data_rx_msg_queue, msg);
-    num_resets_new = (uint32_t) msg[4] << 24| (uint32_t) msg[5] << 16 | (uint32_t) msg[6] << 8 | (uint32_t) msg[7];
-    ASSERT_EQ(num_resets_new, num_resets + 1);
+    _delay_ms(1000);
+    hb_send_pay_req = true;
+    run_hb();
 
-    /* Get reset reason and assert that it is due to wdt timeout */
-    enqueue_eps_ctrl_tx_msg(EPS_RESET_REASON, data);
-    send_next_eps_tx_msg();
-    _delay_ms(100);
-    dequeue(&data_rx_msg_queue, msg);
-    restart_reason = (uint32_t) msg[4] << 24| (uint32_t) msg[5] << 16 | (uint32_t) msg[6] << 8 | (uint32_t) msg[7];
-    ASSERT_EQ(restart_reason, UPTIME_RESTART_REASON_RESET_CMD);
+    ASSERT_EQ(hb_latest_restart_count, stale_num_restarts + 1);
+    ASSERT_EQ(hb_latest_restart_reason, UPTIME_RESTART_REASON_EXTRF);
 }
 
 /* Send message to invalid field and verify that no response is received */
 void send_invalid_command_test(void){
     /* Send message to invalid field within PAY ctrl */
     uint32_t data = 0x00;
-    enqueue_pay_ctrl_tx_msg(NUM_PAY_CTRL_FIELDS + 1, data);
+    enqueue_pay_tx_msg(CAN_PAY_CTRL, NUM_PAY_CTRL_FIELDS + 1, data);
     send_next_pay_tx_msg();
     /* Delay to give time to send and receive message */
     _delay_ms(100);
     ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
 
-    enqueue_eps_ctrl_tx_msg(-1, data);
+    enqueue_eps_tx_msg(CAN_EPS_CTRL, -1, data);
     send_next_eps_tx_msg();
     /* Delay to give time to send and receive message */
     _delay_ms(100);
     ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
 
     /* 0x10 is an invalid message type */
-    enqueue_tx_msg(&pay_tx_msg_queue, 0x10, 0x01, data);
+    enqueue_pay_tx_msg(0x10, 0x01, data);
     send_next_pay_tx_msg();
     _delay_ms(100);
     ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
@@ -245,12 +204,13 @@ test_t t3 = { .name = "PAY Housekeeping Test", .fn = pay_hk_test };
 test_t t4 = { .name = "PAY Optical Test", .fn = pay_opt_test };
 test_t t5 = { .name = "PAY Control Test", .fn = pay_ctrl_test };
 test_t t6 = { .name = "PAY Reset Test", .fn = pay_reset_test };
-test_t t7 = { .name = "EPS Reset Test", .fn = pay_reset_test };
+test_t t7 = { .name = "EPS Reset Test", .fn = eps_reset_test };
 
 test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7};
 
 int main(void) {
     init_obc_phase1();
+    init_hb(HB_OBC);
     run_tests(suite, TEST_SIZE);
     return 0;
 }
