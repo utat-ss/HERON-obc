@@ -68,7 +68,7 @@ void basic_commands_test (void) {
 
     // Test get and set for data collection, data period
     enqueue_cmd(&set_auto_data_col_period_cmd, 1, 40);
-    enqueue_cmd(&get_auto_data_col_period_cmd, 1, 0);
+    enqueue_cmd(&get_auto_data_col_settings_cmd, 1, 0);
 
     execute_next_cmd();
     ASSERT_EQ(obc_hk_auto_data_col.period, 40);
@@ -193,7 +193,7 @@ void mem_commands_test(void) {
 
     }
 
-    enqueue_cmd(&get_mem_sec_end_addr_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(&get_mem_sec_addrs_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {

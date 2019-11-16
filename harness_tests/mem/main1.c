@@ -323,7 +323,13 @@ void mem_block_test_1(void){
         (write_header[i]).time = rand_rtc_time();
         (write_header[i]).status = 0x00;
         uint32_t prev_block = section->curr_block;
-        write_mem_data_block(section, block_num[i], &(write_header[i]), write_test_fields[i]);
+
+        write_mem_header_main(section, block_num[i], &(write_header[i]));
+        write_mem_header_status(section, block_num[i], write_header[i].status);
+        for (uint8_t field_num = 0; field_num < section->fields_per_block; field_num++) {
+            write_mem_field(section, block_num[i], field_num, write_test_fields[i][field_num]);
+        }
+
         ASSERT_EQ(prev_block, block_num[i]);///////////////
     }
 
@@ -411,7 +417,12 @@ void mem_block_test_2(void){
     write_header.time = rand_rtc_time();
     write_header.status = 0x00;
 
-    write_mem_data_block(section, block_num, &write_header, write_fields_1);
+    write_mem_header_main(section, block_num, &write_header);
+    write_mem_header_status(section, block_num, write_header.status);
+    for (uint8_t field_num = 0; field_num < section->fields_per_block; field_num++) {
+        write_mem_field(section, block_num, field_num, write_fields_1[field_num]);
+    }
+
     ASSERT_EQ(block_num,0);
     read_mem_data_block(section, block_num, &read_header, read_fields_1);
     ASSERT_EQ(block_num,0);
@@ -433,7 +444,12 @@ void mem_block_test_2(void){
     write_header.time = rand_rtc_time();
     write_header.status = 0x00;
 
-    write_mem_data_block(section, block_num, &write_header, write_fields_2);
+    write_mem_header_main(section, block_num, &write_header);
+    write_mem_header_status(section, block_num, write_header.status);
+    for (uint8_t field_num = 0; field_num < section->fields_per_block; field_num++) {
+        write_mem_field(section, block_num, field_num, write_fields_2[field_num]);
+    }
+
     ASSERT_EQ(block_num,0);
     read_mem_data_block(section, block_num, &read_header, read_fields_2);
     ASSERT_EQ(block_num,0);
@@ -455,7 +471,12 @@ void mem_block_test_2(void){
     write_header.time = rand_rtc_time();
     write_header.status = 0x00;
 
-    write_mem_data_block(section, block_num, &write_header, write_fields_3);
+    write_mem_header_main(section, block_num, &write_header);
+    write_mem_header_status(section, block_num, write_header.status);
+    for (uint8_t field_num = 0; field_num < section->fields_per_block; field_num++) {
+        write_mem_field(section, block_num, field_num, write_fields_3[field_num]);
+    }
+
     ASSERT_EQ(block_num,0);
     read_mem_data_block(section, block_num, &read_header, read_fields_3);
     ASSERT_EQ(block_num,0);
