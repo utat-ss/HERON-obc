@@ -13,7 +13,7 @@
 
 
 // Number of characters in the buffer of received UART RX characters
-#define TRANS_CMD_RESP_MAX_SIZE     20
+#define TRANS_CMD_RESP_MAX_SIZE     50
 #define TRANS_RX_ENC_MSG_MAX_SIZE   19
 #define TRANS_RX_DEC_MSG_MAX_SIZE   13
 #define TRANS_TX_DEC_MSG_MAX_SIZE   116
@@ -111,6 +111,8 @@ void encode_trans_tx_msg(void);
 void send_trans_tx_enc_msg(void);
 uint16_t calc_trans_crc(void);
 void update_trans_crc(uint16_t* crc, uint8_t byte);
+uint32_t crc32(unsigned char *message, uint8_t len);
+
 
 // Helper Functions to process responses
 uint8_t hex_to_char(uint8_t num);
