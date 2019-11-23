@@ -102,12 +102,7 @@ bool print_trans_msgs = false;
 
 
 
-// TODO: Clean up -> make lib-common PRINT_BUF_SIZE visible to outside
-// UART print buff used ot send commands
-#ifndef PRINT_BUF_SIZE
-#define PRINT_BUF_SIZE 80
-#endif
-extern uint8_t print_buf[PRINT_BUF_SIZE];
+// UART buff used to send commands
 #define COMMAND_BUF_SIZE 80
 static uint8_t command_buf[COMMAND_BUF_SIZE];
 
@@ -517,7 +512,9 @@ void send_trans_tx_enc_msg(void) {
 }
 
 /**
- * Calculates the checksum for the string message
+ * Calculates the checksum for the string message.
+ * Algorithm retrieved from:
+ * https://stackoverflow.com/questions/21001659/crc32-algorithm-implementation-in-c-without-a-look-up-table-and-with-a-public-li
  */
 uint32_t crc32(unsigned char *message, const uint8_t len) {
    int8_t i, j;
@@ -671,16 +668,17 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
 bool send_trans_cmd(uint8_t expected_len, char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    vsnprintf((char *) command_buf, PRINT_BUF_SIZE, fmt, args);
+    vsnprintf((char *) command_buf, COMMAND_BUF_SIZE, fmt, args);
     va_end(args);
     
     // Generate check sum
     /**
-     * Note: the 0xFF is because we want to use the entire message
+     * Note: Len inputted is entire command buf is because we want to 
+     * use the entire message
      * Could alternatively use strlen((char *) command_buf) but would 
      * result in slower code 
      */
-    uint32_t check_sum = crc32(command_buf, 0xFF);
+    uint32_t check_sum = crc32(command_buf, COMMAND_BUF_SIZE);
 
     
     uint8_t ret = 0;
