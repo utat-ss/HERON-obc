@@ -516,17 +516,17 @@ void send_trans_tx_enc_msg(void) {
     }
 }
 
-/*
+/**
  * Calculates the checksum for the string message
  */
-uint32_t crc32(unsigned char *message) {
+uint32_t crc32(unsigned char *message, const uint8_t len) {
    int8_t i, j;
    uint32_t byte;
    uint32_t mask;
    uint32_t crc = 0xFFFFFFFF;
 
    i = 0;
-   while (message[i] != 0) {
+   while (message[i] != 0 && i < len) {
       byte = message[i];            // Get next byte.
       crc = crc ^ byte;
       for (j = 7; j >= 0; j--) {    // Do eight times.
@@ -536,6 +536,28 @@ uint32_t crc32(unsigned char *message) {
       i = i + 1;
    }
    return ~crc;
+}
+
+/**
+ * Checks the CRC from the response of the transceiver by calculating 
+ * the CRC of the response (excluding ' ' + CRC given) and checks it
+ * with the CRC given after the space.
+ * Note: response is in format:
+ * <Response>[B][CCCCCCCC]<CR>, where [B] is a blank space ASCII 
+ * character, [CCCCCCCC] is the calculated CRC32 in ASCII
+ * Return true if valid.
+ */
+bool verifyCRC(unsigned char *message, const uint8_t len) {
+    // Calculate CRC of response (excluding ' ' + CRC given)
+    uint32_t check_sum = crc32(message, len);
+
+    uint32_t response_check_sum = 0;
+    for (uint8_t i = len+1; i < len+9; ++i) {
+        response_check_sum <<= 4;
+        response_check_sum += char_to_hex(message[i]);
+    }
+
+    return response_check_sum == check_sum;
 }
 
 /*
@@ -636,6 +658,11 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
         return 0;
     }
 
+    // Verify the checksum  
+    if (!verifyCRC((unsigned char *)trans_cmd_resp, expected_len)) {
+        return 0;
+    }
+
     // Succeeded
     // If none of the false conditions returned 0, the response is valid
     return 1;
@@ -648,22 +675,22 @@ bool send_trans_cmd(uint8_t expected_len, char* fmt, ...) {
     va_end(args);
     
     // Generate check sum
-    uint32_t check_sum = crc32(command_buf);
+    /**
+     * Note: the 0xFF is because we want to use the entire message
+     * Could alternatively use strlen((char *) command_buf) but would 
+     * result in slower code 
+     */
+    uint32_t check_sum = crc32(command_buf, 0xFF);
+
     
     uint8_t ret = 0;
 
     // Attempt to send some commands and wait for response with timeout
     for (uint8_t i = 0; (i < TRANS_MAX_CMD_ATTEMPTS) && (ret == 0); i++) {
-        // Regenerate the print buffer in case you get interrupted
-        // va_start(args, fmt);
-        // vsnprintf((char *) print_buf, PRINT_BUF_SIZE, fmt, args);
-        // va_end(args);
-
         // Send command
         clear_trans_cmd_resp();
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             print("\r%s %.8lX\r", command_buf, check_sum);
-            // send_uart(print_buf, strlen((char*) print_buf)); // Command
         }
 
         // Wait for response

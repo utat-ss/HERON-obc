@@ -111,7 +111,7 @@ void encode_trans_tx_msg(void);
 void send_trans_tx_enc_msg(void);
 uint16_t calc_trans_crc(void);
 void update_trans_crc(uint16_t* crc, uint8_t byte);
-uint32_t crc32(unsigned char *message);
+uint32_t crc32(unsigned char *message, uint8_t len);
 
 
 // Helper Functions to process responses
