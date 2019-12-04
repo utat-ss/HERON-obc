@@ -17,7 +17,8 @@ queue_t cmd_opcode_queue;
 queue_t cmd_args_queue;
 
 // Sequenced command ID from ground (or 0 for auto-scheduled)
-volatile uint16_t current_cmd_id = 0x0000;
+// Default to 0xFFFF instead of 0x0000 because that represents an auto command
+volatile uint16_t current_cmd_id = 0xFFFF;
 // A pointer to the currently executing command (or nop_cmd for no command executing)
 // Use double volatile just in case
 volatile cmd_t* volatile current_cmd = &nop_cmd;
@@ -363,8 +364,8 @@ void execute_next_cmd(void) {
     }
 
     if (print_cmds) {
-        print("Cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
-            current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
+        print("Cmd: cmd_id = 0x%.4x, opcode = 0x%.2x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+            current_cmd_id, current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
     }
 
 #ifdef COMMAND_UTILITIES_DEBUG
@@ -436,9 +437,11 @@ void finish_current_cmd(uint8_t status) {
             write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
         }
         
+        current_cmd_id = 0xFFFF;
         current_cmd = &nop_cmd;
         current_cmd_arg1 = 0;
         current_cmd_arg2 = 0;
+
         cmd_timeout_count_s = 0;
     }
 
@@ -453,8 +456,7 @@ void finish_current_cmd(uint8_t status) {
 void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block) {
     // TODO - unit test properly, test edge cases
 
-    // If the next block is going into a different memory sector,
-    // erase it
+    // If the next block is going into a different memory sector, erase it
     // Use the end address because it reaches the farthest possible address
     uint32_t curr_sector = mem_sector_for_addr(mem_block_end_addr(
         section, section->curr_block));

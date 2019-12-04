@@ -567,6 +567,8 @@ void read_cmd_blocks(mem_section_t* section) {
                 &header, &cmd_id, &opcode, &arg1, &arg2);
 
             append_header_to_tx_msg(&header);
+            append_to_trans_tx_dec_msg((cmd_id >> 8) & 0xFF);
+            append_to_trans_tx_dec_msg((cmd_id >> 0) & 0xFF);
             append_to_trans_tx_dec_msg(opcode);
             append_to_trans_tx_dec_msg((arg1 >> 24) & 0xFF);
             append_to_trans_tx_dec_msg((arg1 >> 16) & 0xFF);
@@ -618,8 +620,8 @@ void erase_mem_phy_sector_fn(void) {
     erase_mem_sector(current_cmd_arg1);
 
     // Only send a transceiver packet if the erase was initiated by the ground
-    // station (argument 2 = 0)
-    if (current_cmd_arg2 == 0) {
+    // station
+    if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
     }
 
@@ -673,8 +675,8 @@ void col_data_block_fn(void) {
             inc_and_prepare_mem_section_curr_block(&obc_hk_mem_section);
 
             // Only send back a transceiver packet if the command was sent from
-            // ground (arg2 = 0)
-            if (current_cmd_arg2 == 0) {
+            // ground
+            if (current_cmd_arg2 != CMD_CMD_ID_AUTO_ENQUEUED) {
                 ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
                     start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
                     append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 24) & 0xFF);

@@ -104,8 +104,8 @@ void process_eps_hk(uint8_t field_num, uint32_t data){
     // If we have received all the fields
     if (field_num == CAN_EPS_HK_FIELD_COUNT - 1) {
         // Only send back a transceiver packet if the command was sent from
-        // ground (arg2 = 0)
-        if (current_cmd_arg2 == 0) {
+        // ground
+        if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
                 start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
                 append_to_trans_tx_dec_msg((eps_hk_header.block_num >> 24) & 0xFF);
@@ -147,8 +147,8 @@ void process_pay_hk(uint8_t field_num, uint32_t data){
     // If we have received all the fields
     if (field_num == CAN_PAY_HK_FIELD_COUNT - 1) {        
         // Only send back a transceiver packet if the command was sent from
-        // ground (arg2 = 0)
-        if (current_cmd_arg2 == 0) {
+        // ground
+        if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
                 start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
                 append_to_trans_tx_dec_msg((pay_hk_header.block_num >> 24) & 0xFF);
@@ -190,8 +190,8 @@ void process_pay_opt(uint8_t field_num, uint32_t data){
     // If we have received all the fields
     if (field_num == CAN_PAY_OPT_FIELD_COUNT - 1) {        
         // Only send back a transceiver packet if the command was sent from
-        // ground (arg2 = 0)
-        if (current_cmd_arg2 == 0) {
+        // ground
+        if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
                 start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
                 append_to_trans_tx_dec_msg((pay_opt_header.block_num >> 24) & 0xFF);
