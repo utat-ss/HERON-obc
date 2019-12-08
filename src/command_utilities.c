@@ -150,8 +150,11 @@ void handle_trans_rx_dec_msg(void) {
         received_pwd[3] = msg[14];
 
         // NACK if the MSB of the command ID is 1
+        // Send back the unknown command ID because if we sent back the actual
+        // ID, the MSB would be 1 so ground would interpret it as a response
+        // rather than an ACK packet
         if ((cmd_id >> 15) & 0x01) {
-            add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_INVALID_CMD_ID);
+            add_trans_tx_ack(CMD_CMD_ID_UNKNOWN, CMD_ACK_STATUS_INVALID_CMD_ID);
             return;
         }
 
@@ -190,6 +193,9 @@ void handle_trans_rx_dec_msg(void) {
         add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_OK);
         enqueue_cmd(cmd_id, cmd, arg1, arg2);
 
+        // Update the last command ID for the one we just received
+        trans_last_cmd_id = cmd_id;
+
         // Restart the counter for not receiving communication from ground
         // TODO - should this also happen when we receive the reset command ID request?
         restart_com_timeout();
@@ -208,7 +214,8 @@ void process_trans_tx_ack(void) {
                 trans_tx_ack_cmd_id, trans_tx_ack_status);
         }
 
-        uint16_t cmd_id = trans_tx_ack_cmd_id | CMD_ACK_CMD_ID_MASK;
+        // No mask on the command ID because this is an ACK
+        uint16_t cmd_id = trans_tx_ack_cmd_id;
         uint8_t status = trans_tx_ack_status;
 
         // Can't use the standard trans_tx_dec functions because they use the current_cmd variables
@@ -223,10 +230,12 @@ void process_trans_tx_ack(void) {
 
 // NOTE: these three functions should be used within the same atomic block
 
+// TODO - rename to clarify this is only for response packets
 void start_trans_tx_dec_msg(uint8_t status) {
     // TODO - global variable and put in queue for current cmd id
-    trans_tx_dec_msg[0] = (current_cmd_id >> 8) & 0xFF;
-    trans_tx_dec_msg[1] = (current_cmd_id >> 0) & 0xFF;
+    uint16_t cmd_id = current_cmd_id | CMD_RESP_CMD_ID_MASK;
+    trans_tx_dec_msg[0] = (cmd_id >> 8) & 0xFF;
+    trans_tx_dec_msg[1] = (cmd_id >> 0) & 0xFF;
     trans_tx_dec_msg[2] = status;
 
     trans_tx_dec_len = 10;
