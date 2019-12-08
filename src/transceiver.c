@@ -303,7 +303,6 @@ void decode_trans_rx_msg(void) {
         // Check invalid checksum
         if (expected_checksum != actual_checksum) {
             // NACK for invalid checksum
-            // TODO - unknown cmd id?
             add_trans_tx_ack(CMD_CMD_ID_UNKNOWN, CMD_ACK_STATUS_INVALID_CSUM);
             return;
         }
@@ -387,6 +386,7 @@ void send_trans_tx_enc_msg(void) {
         if (!trans_tx_enc_avail) {
             return;
         }
+        trans_tx_enc_avail = false;
 
         if (print_trans_msgs) {
             print("Trans TX (Encoded): %u bytes: ", trans_tx_enc_len);
@@ -396,16 +396,18 @@ void send_trans_tx_enc_msg(void) {
         // We only need to supply the message, not any additional packet
         // information from Transceiver Packet Protocol document
 
-        // Send a CR termination to terminate any packet accidentally sent from
-        // print statements we previously sent over UART
-        put_uart_char('\r');
+        // There is no need for a delimiter character, as far as the transmitter
+        // is concerned
+        // For the default 9600-2400 mode, need about 100ms between sent packets
+        // Do this to separate intentional packets from each other and from
+        // unintentional packets from other UART output
+
+        // TODO - how long?
+        _delay_ms(200);
         for (uint8_t i = 0; i < trans_tx_enc_len; i++) {
             put_uart_char(trans_tx_enc_msg[i]);
         }
-        // Need to terminate the packet to send it
-        put_uart_char('\r');
-
-        trans_tx_enc_avail = false;
+        _delay_ms(200);
     }
 }
 

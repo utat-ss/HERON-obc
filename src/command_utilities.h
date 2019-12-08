@@ -71,7 +71,7 @@ typedef struct {
 #define CMD_SET_INDEF_LPM_ENABLE        0x44
 
 // Mask to set MSB on opcode byte for response packets
-#define CMD_RESP_CMD_ID_MASK             (0x1 << 15)
+#define CMD_RESP_CMD_ID_MASK            (0x1 << 15)
 
 // ACK status bytes
 #define CMD_ACK_STATUS_OK                   0x00
@@ -85,6 +85,7 @@ typedef struct {
 #define CMD_ACK_STATUS_REPEATED_CMD_ID      0x08
 #define CMD_ACK_STATUS_INVALID_OPCODE       0x09
 #define CMD_ACK_STATUS_INVALID_PWD          0x0A
+#define CMD_ACK_STATUS_FULL_CMD_QUEUE       0x0B
 
 // Response/command log status bytes
 #define CMD_RESP_STATUS_OK              0x00
@@ -93,7 +94,7 @@ typedef struct {
 #define CMD_RESP_STATUS_UNKNOWN         0xFF
 
 // For unsuccessful ACKs where opcode/args are unknown
-// TODO - what should this be?
+// This is OK because we don't ACK the auto enqueued commands
 #define CMD_CMD_ID_UNKNOWN              0x0000
 // When a command is automatically enqueued by OBC
 #define CMD_CMD_ID_AUTO_ENQUEUED        0x0000
@@ -182,9 +183,9 @@ extern bool print_trans_tx_acks;
 void handle_trans_rx_dec_msg(void);
 void process_trans_tx_ack(void);
 
-void start_trans_tx_dec_msg(uint8_t status);
-void append_to_trans_tx_dec_msg(uint8_t byte);
-void finish_trans_tx_dec_msg(void);
+void start_trans_tx_resp(uint8_t status);
+void append_to_trans_tx_resp(uint8_t byte);
+void finish_trans_tx_resp(void);
 
 cmd_t* cmd_opcode_to_cmd(uint8_t opcode);
 

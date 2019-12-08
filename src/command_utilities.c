@@ -105,8 +105,6 @@ void handle_trans_rx_dec_msg(void) {
             print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_len);
         }
 
-        // TODO - what to set as cmd id for ACK when unknown
-
         // Before checking for full message length, check for the reset command ID request
         // Only needs 2 bytes to work
         if (trans_rx_dec_len >= 2 &&
@@ -188,7 +186,14 @@ void handle_trans_rx_dec_msg(void) {
                 }
             }
         }
-        
+
+        // Check if either command queue is full (they should both be the same
+        // size, but check both just in case)
+        if (queue_full(&cmd_opcode_queue) || queue_full(&cmd_args_queue)) {
+            add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_FULL_CMD_QUEUE);
+            return;
+        }
+
         // If all the checks passed, the command is OK to put into the queue
         add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_OK);
         enqueue_cmd(cmd_id, cmd, arg1, arg2);
@@ -197,7 +202,8 @@ void handle_trans_rx_dec_msg(void) {
         trans_last_cmd_id = cmd_id;
 
         // Restart the counter for not receiving communication from ground
-        // TODO - should this also happen when we receive the reset command ID request?
+        // By design, OBC will not reset the communication timeout when it
+        // receives a reset command ID request
         restart_com_timeout();
     }
 }
@@ -230,25 +236,23 @@ void process_trans_tx_ack(void) {
 
 // NOTE: these three functions should be used within the same atomic block
 
-// TODO - rename to clarify this is only for response packets
-void start_trans_tx_dec_msg(uint8_t status) {
-    // TODO - global variable and put in queue for current cmd id
+void start_trans_tx_resp(uint8_t status) {
     uint16_t cmd_id = current_cmd_id | CMD_RESP_CMD_ID_MASK;
     trans_tx_dec_msg[0] = (cmd_id >> 8) & 0xFF;
     trans_tx_dec_msg[1] = (cmd_id >> 0) & 0xFF;
     trans_tx_dec_msg[2] = status;
 
-    trans_tx_dec_len = 10;
+    trans_tx_dec_len = 3;
 }
 
-void append_to_trans_tx_dec_msg(uint8_t byte) {
+void append_to_trans_tx_resp(uint8_t byte) {
     if (trans_tx_dec_len < TRANS_TX_DEC_MSG_MAX_SIZE) {
         trans_tx_dec_msg[trans_tx_dec_len] = byte;
         trans_tx_dec_len++;
     }
 }
 
-void finish_trans_tx_dec_msg(void) {
+void finish_trans_tx_resp(void) {
     trans_tx_dec_avail = true;
 }
 
@@ -513,29 +517,29 @@ void populate_header(mem_header_t* header, uint32_t block_num, uint8_t status) {
 
 void add_def_trans_tx_dec_msg(uint8_t status) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(status);
-        finish_trans_tx_dec_msg();
+        start_trans_tx_resp(status);
+        finish_trans_tx_resp();
     }
 }
 
 void append_header_to_tx_msg(mem_header_t* header) {
-    append_to_trans_tx_dec_msg((header->block_num >> 16) & 0xFF);
-    append_to_trans_tx_dec_msg((header->block_num >> 8) & 0xFF);
-    append_to_trans_tx_dec_msg(header->block_num & 0xFF);
-    append_to_trans_tx_dec_msg(header->date.yy);
-    append_to_trans_tx_dec_msg(header->date.mm);
-    append_to_trans_tx_dec_msg(header->date.dd);
-    append_to_trans_tx_dec_msg(header->time.hh);
-    append_to_trans_tx_dec_msg(header->time.mm);
-    append_to_trans_tx_dec_msg(header->time.ss);
-    append_to_trans_tx_dec_msg(header->status);
+    append_to_trans_tx_resp((header->block_num >> 16) & 0xFF);
+    append_to_trans_tx_resp((header->block_num >> 8) & 0xFF);
+    append_to_trans_tx_resp(header->block_num & 0xFF);
+    append_to_trans_tx_resp(header->date.yy);
+    append_to_trans_tx_resp(header->date.mm);
+    append_to_trans_tx_resp(header->date.dd);
+    append_to_trans_tx_resp(header->time.hh);
+    append_to_trans_tx_resp(header->time.mm);
+    append_to_trans_tx_resp(header->time.ss);
+    append_to_trans_tx_resp(header->status);
 }
 
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields) {
     for (uint8_t i = 0; i < num_fields; i++) {
-        append_to_trans_tx_dec_msg((fields[i] >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((fields[i] >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(fields[i] & 0xFF);
+        append_to_trans_tx_resp((fields[i] >> 16) & 0xFF);
+        append_to_trans_tx_resp((fields[i] >> 8) & 0xFF);
+        append_to_trans_tx_resp(fields[i] & 0xFF);
     }
 }
 

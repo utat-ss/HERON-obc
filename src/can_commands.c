@@ -46,11 +46,11 @@ void process_next_rx_msg(void) {
     //General CAN command-Intercept and send back data
     if ((current_cmd == &send_eps_can_msg_cmd) || (current_cmd == &send_pay_can_msg_cmd)) {
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+            start_trans_tx_resp(CMD_RESP_STATUS_OK);
             for (uint8_t i = 0; i < 8; i++) {
-                append_to_trans_tx_dec_msg(msg[i]);
+                append_to_trans_tx_resp(msg[i]);
             }
-            finish_trans_tx_dec_msg();
+            finish_trans_tx_resp();
         }
         finish_current_cmd(CMD_RESP_STATUS_OK);
     }
@@ -107,12 +107,12 @@ void process_eps_hk(uint8_t field_num, uint32_t data){
         // ground
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-                append_to_trans_tx_dec_msg((eps_hk_header.block_num >> 24) & 0xFF);
-                append_to_trans_tx_dec_msg((eps_hk_header.block_num >> 16) & 0xFF);
-                append_to_trans_tx_dec_msg((eps_hk_header.block_num >> 8) & 0xFF);
-                append_to_trans_tx_dec_msg((eps_hk_header.block_num >> 0) & 0xFF);
-                finish_trans_tx_dec_msg();
+                start_trans_tx_resp(CMD_RESP_STATUS_OK);
+                append_to_trans_tx_resp((eps_hk_header.block_num >> 24) & 0xFF);
+                append_to_trans_tx_resp((eps_hk_header.block_num >> 16) & 0xFF);
+                append_to_trans_tx_resp((eps_hk_header.block_num >> 8) & 0xFF);
+                append_to_trans_tx_resp((eps_hk_header.block_num >> 0) & 0xFF);
+                finish_trans_tx_resp();
             }
         }
 
@@ -150,12 +150,12 @@ void process_pay_hk(uint8_t field_num, uint32_t data){
         // ground
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-                append_to_trans_tx_dec_msg((pay_hk_header.block_num >> 24) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_hk_header.block_num >> 16) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_hk_header.block_num >> 8) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_hk_header.block_num >> 0) & 0xFF);
-                finish_trans_tx_dec_msg();
+                start_trans_tx_resp(CMD_RESP_STATUS_OK);
+                append_to_trans_tx_resp((pay_hk_header.block_num >> 24) & 0xFF);
+                append_to_trans_tx_resp((pay_hk_header.block_num >> 16) & 0xFF);
+                append_to_trans_tx_resp((pay_hk_header.block_num >> 8) & 0xFF);
+                append_to_trans_tx_resp((pay_hk_header.block_num >> 0) & 0xFF);
+                finish_trans_tx_resp();
             }
         }
 
@@ -193,12 +193,12 @@ void process_pay_opt(uint8_t field_num, uint32_t data){
         // ground
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-                append_to_trans_tx_dec_msg((pay_opt_header.block_num >> 24) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_opt_header.block_num >> 16) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_opt_header.block_num >> 8) & 0xFF);
-                append_to_trans_tx_dec_msg((pay_opt_header.block_num >> 0) & 0xFF);
-                finish_trans_tx_dec_msg();
+                start_trans_tx_resp(CMD_RESP_STATUS_OK);
+                append_to_trans_tx_resp((pay_opt_header.block_num >> 24) & 0xFF);
+                append_to_trans_tx_resp((pay_opt_header.block_num >> 16) & 0xFF);
+                append_to_trans_tx_resp((pay_opt_header.block_num >> 8) & 0xFF);
+                append_to_trans_tx_resp((pay_opt_header.block_num >> 0) & 0xFF);
+                finish_trans_tx_resp();
             }
         }
 

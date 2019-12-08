@@ -274,14 +274,14 @@ void get_rtc_fn(void) {
     rtc_time_t time = read_rtc_time();
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-        append_to_trans_tx_dec_msg(date.yy);
-        append_to_trans_tx_dec_msg(date.mm);
-        append_to_trans_tx_dec_msg(date.dd);
-        append_to_trans_tx_dec_msg(time.hh);
-        append_to_trans_tx_dec_msg(time.mm);
-        append_to_trans_tx_dec_msg(time.ss);
-        finish_trans_tx_dec_msg();
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
+        append_to_trans_tx_resp(date.yy);
+        append_to_trans_tx_resp(date.mm);
+        append_to_trans_tx_resp(date.dd);
+        append_to_trans_tx_resp(time.hh);
+        append_to_trans_tx_resp(time.mm);
+        append_to_trans_tx_resp(time.ss);
+        finish_trans_tx_resp();
     }
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
@@ -309,12 +309,12 @@ void read_obc_eeprom_fn(void) {
     uint32_t data = read_eeprom((uint16_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-        append_to_trans_tx_dec_msg((data >> 24) & 0xFF);
-        append_to_trans_tx_dec_msg((data >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((data >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(data & 0xFF);
-        finish_trans_tx_dec_msg();
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
+        append_to_trans_tx_resp((data >> 24) & 0xFF);
+        append_to_trans_tx_resp((data >> 16) & 0xFF);
+        append_to_trans_tx_resp((data >> 8) & 0xFF);
+        append_to_trans_tx_resp(data & 0xFF);
+        finish_trans_tx_resp();
     }
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
@@ -338,9 +338,9 @@ void read_obc_ram_byte_fn(void) {
     uint8_t data = *pointer;
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-        append_to_trans_tx_dec_msg(data);
-        finish_trans_tx_dec_msg();
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
+        append_to_trans_tx_resp(data);
+        finish_trans_tx_resp();
     }
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
@@ -441,25 +441,25 @@ void read_rec_status_info_fn(void) {
     read_mem_data_block(&pay_hk_mem_section, pay_block, &pay_hk_header, pay_hk_fields);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
         for (uint8_t i = CAN_OBC_HK_UPTIME; i <= CAN_OBC_HK_RESTART_TIME; i++) {
-            append_to_trans_tx_dec_msg((obc_hk_fields[i] >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((obc_hk_fields[i] >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg(obc_hk_fields[i] & 0xFF);
+            append_to_trans_tx_resp((obc_hk_fields[i] >> 16) & 0xFF);
+            append_to_trans_tx_resp((obc_hk_fields[i] >> 8) & 0xFF);
+            append_to_trans_tx_resp(obc_hk_fields[i] & 0xFF);
         }
         for (uint8_t i = CAN_EPS_HK_UPTIME; i <= CAN_EPS_HK_RESTART_REASON; i++) {
-            append_to_trans_tx_dec_msg((eps_hk_fields[i] >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((eps_hk_fields[i] >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg(eps_hk_fields[i] & 0xFF);
+            append_to_trans_tx_resp((eps_hk_fields[i] >> 16) & 0xFF);
+            append_to_trans_tx_resp((eps_hk_fields[i] >> 8) & 0xFF);
+            append_to_trans_tx_resp(eps_hk_fields[i] & 0xFF);
         }
         for (uint8_t i = CAN_PAY_HK_UPTIME; i <= CAN_PAY_HK_RESTART_REASON; i++) {
-            append_to_trans_tx_dec_msg((pay_hk_fields[i] >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((pay_hk_fields[i] >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg(pay_hk_fields[i] & 0xFF);
+            append_to_trans_tx_resp((pay_hk_fields[i] >> 16) & 0xFF);
+            append_to_trans_tx_resp((pay_hk_fields[i] >> 8) & 0xFF);
+            append_to_trans_tx_resp(pay_hk_fields[i] & 0xFF);
         }
         
-        finish_trans_tx_dec_msg();
+        finish_trans_tx_resp();
     }
 
     finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -467,7 +467,7 @@ void read_rec_status_info_fn(void) {
 
 void read_data_block_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
         switch (current_cmd_arg1) {
             case CMD_OBC_HK:
@@ -504,7 +504,7 @@ void read_data_block_fn(void) {
                 return;
         }
 
-        finish_trans_tx_dec_msg();
+        finish_trans_tx_resp();
     }
 
     finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -512,7 +512,7 @@ void read_data_block_fn(void) {
 
 void read_rec_loc_data_block_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
         switch (current_cmd_arg1) {
             case CMD_OBC_HK:
@@ -537,7 +537,7 @@ void read_rec_loc_data_block_fn(void) {
                 return;
         }
 
-        finish_trans_tx_dec_msg();
+        finish_trans_tx_resp();
     }
 
     finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -552,7 +552,7 @@ void read_cmd_blocks(mem_section_t* section) {
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
         for (uint32_t block_num = current_cmd_arg1;
             block_num < current_cmd_arg1 + current_cmd_arg2;
@@ -567,20 +567,20 @@ void read_cmd_blocks(mem_section_t* section) {
                 &header, &cmd_id, &opcode, &arg1, &arg2);
 
             append_header_to_tx_msg(&header);
-            append_to_trans_tx_dec_msg((cmd_id >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((cmd_id >> 0) & 0xFF);
-            append_to_trans_tx_dec_msg(opcode);
-            append_to_trans_tx_dec_msg((arg1 >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((arg1 >> 0) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((arg2 >> 0) & 0xFF);
+            append_to_trans_tx_resp((cmd_id >> 8) & 0xFF);
+            append_to_trans_tx_resp((cmd_id >> 0) & 0xFF);
+            append_to_trans_tx_resp(opcode);
+            append_to_trans_tx_resp((arg1 >> 24) & 0xFF);
+            append_to_trans_tx_resp((arg1 >> 16) & 0xFF);
+            append_to_trans_tx_resp((arg1 >> 8) & 0xFF);
+            append_to_trans_tx_resp((arg1 >> 0) & 0xFF);
+            append_to_trans_tx_resp((arg2 >> 24) & 0xFF);
+            append_to_trans_tx_resp((arg2 >> 16) & 0xFF);
+            append_to_trans_tx_resp((arg2 >> 8) & 0xFF);
+            append_to_trans_tx_resp((arg2 >> 0) & 0xFF);
         }
 
-        finish_trans_tx_dec_msg();
+        finish_trans_tx_resp();
     }
 
     finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -606,11 +606,11 @@ void read_raw_mem_bytes_fn(void) {
     read_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
         for (uint8_t i = 0; i < (uint8_t) current_cmd_arg2; i++) {
-            append_to_trans_tx_dec_msg(data[i]);
+            append_to_trans_tx_resp(data[i]);
         }
-        finish_trans_tx_dec_msg();
+        finish_trans_tx_resp();
     }
 
     finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -678,12 +678,12 @@ void col_data_block_fn(void) {
             // ground
             if (current_cmd_arg2 != CMD_CMD_ID_AUTO_ENQUEUED) {
                 ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                    start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-                    append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 24) & 0xFF);
-                    append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 16) & 0xFF);
-                    append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 8) & 0xFF);
-                    append_to_trans_tx_dec_msg((obc_hk_mem_section.curr_block >> 0) & 0xFF);
-                    finish_trans_tx_dec_msg();
+                    start_trans_tx_resp(CMD_RESP_STATUS_OK);
+                    append_to_trans_tx_resp((obc_hk_mem_section.curr_block >> 24) & 0xFF);
+                    append_to_trans_tx_resp((obc_hk_mem_section.curr_block >> 16) & 0xFF);
+                    append_to_trans_tx_resp((obc_hk_mem_section.curr_block >> 8) & 0xFF);
+                    append_to_trans_tx_resp((obc_hk_mem_section.curr_block >> 0) & 0xFF);
+                    finish_trans_tx_resp();
                 }
             }
 #ifdef COMMANDS_DEBUG
@@ -738,16 +738,16 @@ void col_data_block_fn(void) {
 
 void get_cur_block_nums_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
         for (uint8_t i = 0; i < MEM_NUM_SECTIONS; i++) {
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->curr_block >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->curr_block >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->curr_block >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->curr_block >> 0) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->curr_block >> 24) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->curr_block >> 16) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->curr_block >> 8) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->curr_block >> 0) & 0xFF);
         }
         
-        finish_trans_tx_dec_msg();
+        finish_trans_tx_resp();
     }
 
     finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -785,20 +785,20 @@ void set_cur_block_num_fn(void) {
 
 void get_mem_sec_addrs_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
         for (uint8_t i = 0; i < MEM_NUM_SECTIONS; i++) {
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->start_addr >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->start_addr >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->start_addr >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->start_addr >> 0) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->end_addr >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->end_addr >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->end_addr >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((all_mem_sections[i]->end_addr >> 0) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->start_addr >> 24) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->start_addr >> 16) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->start_addr >> 8) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->start_addr >> 0) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->end_addr >> 24) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->end_addr >> 16) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->end_addr >> 8) & 0xFF);
+            append_to_trans_tx_resp((all_mem_sections[i]->end_addr >> 0) & 0xFF);
         }
         
-        finish_trans_tx_dec_msg();
+        finish_trans_tx_resp();
     }
 
     finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -866,21 +866,21 @@ void set_mem_sec_end_addr_fn(void) {
 
 void get_auto_data_col_settings_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
         for (uint8_t i = 0; i < NUM_AUTO_DATA_COL_SECTIONS; i++) {
-            append_to_trans_tx_dec_msg((uint8_t) all_auto_data_cols[i]->enabled);
-            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->period >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->period >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->period >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->period >> 0) & 0xFF);
-            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->count >> 24) & 0xFF);
-            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->count >> 16) & 0xFF);
-            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->count >> 8) & 0xFF);
-            append_to_trans_tx_dec_msg((all_auto_data_cols[i]->count >> 0) & 0xFF);
+            append_to_trans_tx_resp((uint8_t) all_auto_data_cols[i]->enabled);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 24) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 16) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 8) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 0) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 24) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 16) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 8) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 0) & 0xFF);
         }
         
-        finish_trans_tx_dec_msg();
+        finish_trans_tx_resp();
     }
 
     finish_current_cmd(CMD_RESP_STATUS_OK);
