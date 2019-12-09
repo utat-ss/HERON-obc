@@ -271,11 +271,11 @@ void clear_local_data_fn(void) {
 
 void read_all_mem_blocks_to_local_fn(void) {
     // TODO
-    enqueue_cmd(&read_data_block_cmd, CMD_EPS_HK,
+    enqueue_cmd(CMD_CMD_ID_UNKNOWN, &read_data_block_cmd, CMD_EPS_HK,
         eps_hk_mem_section.curr_block - 1);
-    enqueue_cmd(&read_data_block_cmd, CMD_PAY_HK,
+    enqueue_cmd(CMD_CMD_ID_UNKNOWN, &read_data_block_cmd, CMD_PAY_HK,
         pay_hk_mem_section.curr_block - 1);
-    enqueue_cmd(&read_data_block_cmd, CMD_PAY_OPT,
+    enqueue_cmd(CMD_CMD_ID_UNKNOWN, &read_data_block_cmd, CMD_PAY_OPT,
         pay_opt_mem_section.curr_block - 1);
 
     finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -497,7 +497,7 @@ uint8_t uart_cb(const uint8_t* data, uint8_t len) {
         uint8_t i = data[0] - '0';
 
         if (all_cmds[i].bypass_trans) {
-            enqueue_cmd(all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
+            enqueue_cmd(CMD_CMD_ID_UNKNOWN, all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
         } else {
             uint8_t opcode = all_cmds[i].cmd->opcode;
             uint32_t arg1 = all_cmds[i].arg1;

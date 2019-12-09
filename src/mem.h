@@ -60,7 +60,7 @@
 // Number of bytes in one field (one measurement)
 #define MEM_BYTES_PER_FIELD         3
 // Number of bytes in one command log
-#define MEM_BYTES_PER_CMD           9
+#define MEM_BYTES_PER_CMD           11
 // Number of bytes per memory sector
 #define MEM_BYTES_PER_SECTOR        4096
 
@@ -137,10 +137,12 @@ void set_mem_section_curr_block(mem_section_t* section, uint32_t curr_block);
 void read_mem_data_block(mem_section_t* section, uint32_t block_num,
     mem_header_t* header, uint32_t* fields);
 
-uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
-    uint8_t cmd_num, uint32_t arg1, uint32_t arg2);
-void read_mem_cmd_block(mem_section_t* section, uint32_t block_num, mem_header_t* header,
-    uint8_t* cmd_num, uint32_t* arg1, uint32_t* arg2);
+uint8_t write_mem_cmd_block(mem_section_t* section, uint32_t block_num,
+    mem_header_t* header, uint16_t cmd_id, uint8_t opcode, uint32_t arg1,
+    uint32_t arg2);
+void read_mem_cmd_block(mem_section_t* section, uint32_t block_num,
+    mem_header_t* header, uint16_t* cmd_id,
+    uint8_t* opcode, uint32_t* arg1, uint32_t* arg2);
 
 // High-level operations - headers and fields
 void write_mem_header_main(mem_section_t* section, uint32_t block_num,

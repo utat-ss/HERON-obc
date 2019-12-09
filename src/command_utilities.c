@@ -16,6 +16,9 @@ queue_t cmd_opcode_queue;
 // Arguments corresponding to each command
 queue_t cmd_args_queue;
 
+// Sequenced command ID from ground (or 0 for auto-scheduled)
+// Default to 0xFFFF instead of 0x0000 because that represents an auto command
+volatile uint16_t current_cmd_id = 0xFFFF;
 // A pointer to the currently executing command (or nop_cmd for no command executing)
 // Use double volatile just in case
 volatile cmd_t* volatile current_cmd = &nop_cmd;
@@ -102,48 +105,105 @@ void handle_trans_rx_dec_msg(void) {
             print_bytes((uint8_t*) trans_rx_dec_msg, trans_rx_dec_len);
         }
 
-        // Only accept 13 byte messages
-        if (trans_rx_dec_len < 13) {
+        // Before checking for full message length, check for the reset command ID request
+        // Only needs 2 bytes to work
+        if (trans_rx_dec_len >= 2 &&
+                trans_rx_dec_msg[0] == 0x00 &&
+                trans_rx_dec_msg[1] == 0x00) {
+            trans_last_cmd_id = 0x0000;
+            add_trans_tx_ack(CMD_CMD_ID_UNKNOWN, CMD_ACK_STATUS_RESET_CMD_ID);
+            // Return here because we don't want to continue and put anything
+            // into the command queue
+            return;
+        }
+
+        // Only accept 15 byte messages
+        if (trans_rx_dec_len < 15) {
             // Don't know the opcode/args
-            add_trans_tx_ack(CMD_OPCODE_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ARG_UNKNOWN, CMD_ACK_STATUS_INVALID_DEC_FMT);
+            add_trans_tx_ack(CMD_CMD_ID_UNKNOWN, CMD_ACK_STATUS_INVALID_DEC_FMT);
             return;
         }
 
         // Use shorter variable names for convenience
         volatile uint8_t* msg = (volatile uint8_t*) trans_rx_dec_msg;
-        uint8_t opcode = msg[0];
-        uint32_t arg1 =
-            ((uint32_t) msg[1] << 24) |
-            ((uint32_t) msg[2] << 16) |
-            ((uint32_t) msg[3] << 8) |
-            ((uint32_t) msg[4]);
-        uint32_t arg2 =
-            ((uint32_t) msg[5] << 24) |
-            ((uint32_t) msg[6] << 16) |
-            ((uint32_t) msg[7] << 8) |
-            ((uint32_t) msg[8]);
 
-        cmd_t* cmd = cmd_opcode_to_cmd(opcode);
-        if (cmd == &nop_cmd) {
-            add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_INVALID_OPCODE);
+        uint16_t cmd_id =
+            ((uint16_t) msg[0] << 8) |
+            ((uint16_t) msg[1] << 0);
+        uint8_t opcode = msg[2];
+        uint32_t arg1 =
+            ((uint32_t) msg[3] << 24) |
+            ((uint32_t) msg[4] << 16) |
+            ((uint32_t) msg[5] << 8) |
+            ((uint32_t) msg[6]);
+        uint32_t arg2 =
+            ((uint32_t) msg[7] << 24) |
+            ((uint32_t) msg[8] << 16) |
+            ((uint32_t) msg[9] << 8) |
+            ((uint32_t) msg[10]);
+        uint8_t received_pwd[4];
+        received_pwd[0] = msg[11];
+        received_pwd[1] = msg[12];
+        received_pwd[2] = msg[13];
+        received_pwd[3] = msg[14];
+
+        // NACK if the MSB of the command ID is 1
+        // Send back the unknown command ID because if we sent back the actual
+        // ID, the MSB would be 1 so ground would interpret it as a response
+        // rather than an ACK packet
+        if ((cmd_id >> 15) & 0x01) {
+            add_trans_tx_ack(CMD_CMD_ID_UNKNOWN, CMD_ACK_STATUS_INVALID_CMD_ID);
             return;
         }
 
-        // Password is indices 9-12 - check 4-byte password if necessary for the command
+        // NACK if the command ID is less than the previous received ID
+        if (cmd_id < trans_last_cmd_id) {
+            add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_DECREMENTED_CMD_ID);
+            return;
+        }
+
+        // NACK if the command ID is equal to the previous received ID (repeated command)
+        if (cmd_id == trans_last_cmd_id) {
+            add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_REPEATED_CMD_ID);
+            return;
+        }
+
+        // Get the corresponding cmd_t struct for the opcode
+        cmd_t* cmd = cmd_opcode_to_cmd(opcode);
+        // Check if it is a valid opcode/command
+        if (cmd == &nop_cmd) {
+            add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_INVALID_OPCODE);
+            return;
+        }
+
+        // Check 4-byte password if necessary for the command
         if (cmd->pwd_protected) {
             for (uint8_t i = 0; i < 4; i++) {
-                if (msg[9 + i] != correct_pwd[i]) {
+                if (received_pwd[i] != correct_pwd[i]) {
                     // NACK
-                    add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_INVALID_PWD);
+                    add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_INVALID_PWD);
                     return;
                 }
             }
         }
-        
-        add_trans_tx_ack(opcode, arg1, arg2, CMD_ACK_STATUS_OK);
-        enqueue_cmd(cmd, arg1, arg2);
+
+        // Check if either command queue is full (they should both be the same
+        // size, but check both just in case)
+        if (queue_full(&cmd_opcode_queue) || queue_full(&cmd_args_queue)) {
+            add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_FULL_CMD_QUEUE);
+            return;
+        }
+
+        // If all the checks passed, the command is OK to put into the queue
+        add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_OK);
+        enqueue_cmd(cmd_id, cmd, arg1, arg2);
+
+        // Update the last command ID for the one we just received
+        trans_last_cmd_id = cmd_id;
 
         // Restart the counter for not receiving communication from ground
+        // By design, OBC will not reset the communication timeout when it
+        // receives a reset command ID request
         restart_com_timeout();
     }
 }
@@ -156,52 +216,43 @@ void process_trans_tx_ack(void) {
         trans_tx_ack_avail = false;
 
         if (print_trans_tx_acks) {
-            print("ACK: op = 0x%.2x, arg1 = 0x%.8lx, arg2 = 0x%.8lx, stat = 0x%.2x\n",
-                trans_tx_ack_opcode, trans_tx_ack_arg1, trans_tx_ack_arg2, trans_tx_ack_status);
+            print("ACK: cmd_id = 0x%.4x, status = 0x%.2x\n",
+                trans_tx_ack_cmd_id, trans_tx_ack_status);
         }
 
-        // Can't use the standard trans_tx_dec functions because they use the current_cmd variables
-        trans_tx_dec_msg[0] = trans_tx_ack_opcode | CMD_ACK_OPCODE_MASK;
-        trans_tx_dec_msg[1] = (trans_tx_ack_arg1 >> 24) & 0xFF;
-        trans_tx_dec_msg[2] = (trans_tx_ack_arg1 >> 16) & 0xFF;
-        trans_tx_dec_msg[3] = (trans_tx_ack_arg1 >> 8) & 0xFF;
-        trans_tx_dec_msg[4] = (trans_tx_ack_arg1 >> 0) & 0xFF;
-        trans_tx_dec_msg[5] = (trans_tx_ack_arg2 >> 24) & 0xFF;
-        trans_tx_dec_msg[6] = (trans_tx_ack_arg2 >> 16) & 0xFF;
-        trans_tx_dec_msg[7] = (trans_tx_ack_arg2 >> 8) & 0xFF;
-        trans_tx_dec_msg[8] = (trans_tx_ack_arg2 >> 0) & 0xFF;
-        trans_tx_dec_msg[9] = trans_tx_ack_status;
+        // No mask on the command ID because this is an ACK
+        uint16_t cmd_id = trans_tx_ack_cmd_id;
+        uint8_t status = trans_tx_ack_status;
 
-        trans_tx_dec_len = 10;
+        // Can't use the standard trans_tx_dec functions because they use the current_cmd variables
+        trans_tx_dec_msg[0] = (cmd_id >> 8) & 0xFF;
+        trans_tx_dec_msg[1] = (cmd_id >> 0) & 0xFF;
+        trans_tx_dec_msg[2] = status;
+
+        trans_tx_dec_len = 3;
         trans_tx_dec_avail = true;
     }
 }
 
 // NOTE: these three functions should be used within the same atomic block
 
-void start_trans_tx_dec_msg(uint8_t status) {
-    trans_tx_dec_msg[0] = current_cmd->opcode;
-    trans_tx_dec_msg[1] = (current_cmd_arg1 >> 24) & 0xFF;
-    trans_tx_dec_msg[2] = (current_cmd_arg1 >> 16) & 0xFF;
-    trans_tx_dec_msg[3] = (current_cmd_arg1 >> 8) & 0xFF;
-    trans_tx_dec_msg[4] = current_cmd_arg1 & 0xFF;
-    trans_tx_dec_msg[5] = (current_cmd_arg2 >> 24) & 0xFF;
-    trans_tx_dec_msg[6] = (current_cmd_arg2 >> 16) & 0xFF;
-    trans_tx_dec_msg[7] = (current_cmd_arg2 >> 8) & 0xFF;
-    trans_tx_dec_msg[8] = current_cmd_arg2 & 0xFF;
-    trans_tx_dec_msg[9] = status;
+void start_trans_tx_resp(uint8_t status) {
+    uint16_t cmd_id = current_cmd_id | CMD_RESP_CMD_ID_MASK;
+    trans_tx_dec_msg[0] = (cmd_id >> 8) & 0xFF;
+    trans_tx_dec_msg[1] = (cmd_id >> 0) & 0xFF;
+    trans_tx_dec_msg[2] = status;
 
-    trans_tx_dec_len = 10;
+    trans_tx_dec_len = 3;
 }
 
-void append_to_trans_tx_dec_msg(uint8_t byte) {
+void append_to_trans_tx_resp(uint8_t byte) {
     if (trans_tx_dec_len < TRANS_TX_DEC_MSG_MAX_SIZE) {
         trans_tx_dec_msg[trans_tx_dec_len] = byte;
         trans_tx_dec_len++;
     }
 }
 
-void finish_trans_tx_dec_msg(void) {
+void finish_trans_tx_resp(void) {
     trans_tx_dec_avail = true;
 }
 
@@ -231,14 +282,17 @@ Enqueue the opcode instead of the function pointer because it's safer in case
 something goes wrong.
 cmd - Command to enqueue
 */
-void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
+void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("enqueue_cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", cmd->opcode, arg1, arg2);
+    print("enqueue_cmd: cmd_id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+        cmd_id, cmd->opcode, arg1, arg2);
 #endif
 
     // Enqueue the command as an 8-byte array
-    uint8_t opcode_data[8] = {0};
-    opcode_data[0] = cmd->opcode;
+    uint8_t id_opcode_data[8] = {0};
+    id_opcode_data[0] = (cmd_id >> 8) & 0xFF;
+    id_opcode_data[1] = (cmd_id >> 0) & 0xFF;
+    id_opcode_data[2] = cmd->opcode;
 
     uint8_t args_data[8] = {0};
     args_data[0] = (arg1 >> 24) & 0xFF;
@@ -252,7 +306,7 @@ void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
 
     // Make sure modifications to the states of the two queues are atomic/consistent
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        enqueue(&cmd_opcode_queue, opcode_data);
+        enqueue(&cmd_opcode_queue, id_opcode_data);
         enqueue(&cmd_args_queue, args_data);
     }
 }
@@ -262,9 +316,9 @@ cmd - The struct must already exist (be allocated) before calling this function,
       then this function sets the value of cmd->fn
       Use a double pointer because we need to set the value of the cmd pointer
 */
-void dequeue_cmd(cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) {
+void dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) {
     // Dequeue the command as an 8-byte array
-    uint8_t opcode_data[8] = {0};
+    uint8_t id_opcode_data[8] = {0};
     uint8_t args_data[8] = {0};
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -274,12 +328,15 @@ void dequeue_cmd(cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) {
         if (queue_empty(&cmd_args_queue)) {
             return;
         }
-        dequeue(&cmd_opcode_queue, opcode_data);
+        dequeue(&cmd_opcode_queue, id_opcode_data);
         dequeue(&cmd_args_queue, args_data);
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        *cmd = cmd_opcode_to_cmd(opcode_data[0]);
+        *cmd_id =
+            ((uint16_t) id_opcode_data[0] << 8) |
+            ((uint16_t) id_opcode_data[1] << 0);
+        *cmd = cmd_opcode_to_cmd(id_opcode_data[2]);
         *arg1 =
             (((uint32_t) args_data[0]) << 24) |
             (((uint32_t) args_data[1]) << 16) |
@@ -293,8 +350,8 @@ void dequeue_cmd(cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) {
     }
 
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("dequeue_cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n", (*cmd)->opcode,
-        *arg1, *arg2);
+    print("dequeue_cmd: cmd_id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+        *cmd_id, (*cmd)->opcode, *arg1, *arg2);
 #endif
 }
 
@@ -315,13 +372,13 @@ void execute_next_cmd(void) {
         }
 
         // Fetch the next command
-        dequeue_cmd((cmd_t**) &current_cmd,
+        dequeue_cmd((uint16_t*) &current_cmd_id, (cmd_t**) &current_cmd,
             (uint32_t*) &current_cmd_arg1, (uint32_t*) &current_cmd_arg2);
     }
 
     if (print_cmds) {
-        print("Cmd: opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
-            current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
+        print("Cmd: cmd_id = 0x%.4x, opcode = 0x%.2x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+            current_cmd_id, current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
     }
 
 #ifdef COMMAND_UTILITIES_DEBUG
@@ -342,8 +399,8 @@ void execute_next_cmd(void) {
     // Log everything for the command (except the status byte)
     populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, CMD_RESP_STATUS_UNKNOWN);
     write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block,
-        &cmd_log_header,
-        current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
+        &cmd_log_header, current_cmd_id, current_cmd->opcode, current_cmd_arg1,
+        current_cmd_arg2);
     inc_and_prepare_mem_section_curr_block(cmd_log_mem_section);
 
     // Execute the command's function
@@ -358,7 +415,8 @@ void finish_current_cmd(uint8_t status) {
         if (current_cmd == &erase_all_mem_cmd) {
             write_mem_cmd_block(&prim_cmd_log_mem_section,
                 prim_cmd_log_mem_section.curr_block - 1, &cmd_log_header,
-                current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
+                current_cmd_id, current_cmd->opcode, current_cmd_arg1,
+                current_cmd_arg2);
         }
 
         // If we are collecting a data block, write the status byte to the
@@ -392,9 +450,11 @@ void finish_current_cmd(uint8_t status) {
             write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
         }
         
+        current_cmd_id = 0xFFFF;
         current_cmd = &nop_cmd;
         current_cmd_arg1 = 0;
         current_cmd_arg2 = 0;
+
         cmd_timeout_count_s = 0;
     }
 
@@ -409,8 +469,7 @@ void finish_current_cmd(uint8_t status) {
 void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block) {
     // TODO - unit test properly, test edge cases
 
-    // If the next block is going into a different memory sector,
-    // erase it
+    // If the next block is going into a different memory sector, erase it
     // Use the end address because it reaches the farthest possible address
     uint32_t curr_sector = mem_sector_for_addr(mem_block_end_addr(
         section, section->curr_block));
@@ -418,7 +477,7 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
         section, next_block));
     if (next_sector != curr_sector) {
         // TODO - should use enqueue_front to guaranteed to be executed next
-        enqueue_cmd(&erase_mem_phy_sector_cmd,
+        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &erase_mem_phy_sector_cmd,
             mem_addr_for_sector(next_sector), 1);    // auto
     }
 
@@ -458,29 +517,29 @@ void populate_header(mem_header_t* header, uint32_t block_num, uint8_t status) {
 
 void add_def_trans_tx_dec_msg(uint8_t status) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_dec_msg(status);
-        finish_trans_tx_dec_msg();
+        start_trans_tx_resp(status);
+        finish_trans_tx_resp();
     }
 }
 
 void append_header_to_tx_msg(mem_header_t* header) {
-    append_to_trans_tx_dec_msg((header->block_num >> 16) & 0xFF);
-    append_to_trans_tx_dec_msg((header->block_num >> 8) & 0xFF);
-    append_to_trans_tx_dec_msg(header->block_num & 0xFF);
-    append_to_trans_tx_dec_msg(header->date.yy);
-    append_to_trans_tx_dec_msg(header->date.mm);
-    append_to_trans_tx_dec_msg(header->date.dd);
-    append_to_trans_tx_dec_msg(header->time.hh);
-    append_to_trans_tx_dec_msg(header->time.mm);
-    append_to_trans_tx_dec_msg(header->time.ss);
-    append_to_trans_tx_dec_msg(header->status);
+    append_to_trans_tx_resp((header->block_num >> 16) & 0xFF);
+    append_to_trans_tx_resp((header->block_num >> 8) & 0xFF);
+    append_to_trans_tx_resp(header->block_num & 0xFF);
+    append_to_trans_tx_resp(header->date.yy);
+    append_to_trans_tx_resp(header->date.mm);
+    append_to_trans_tx_resp(header->date.dd);
+    append_to_trans_tx_resp(header->time.hh);
+    append_to_trans_tx_resp(header->time.mm);
+    append_to_trans_tx_resp(header->time.ss);
+    append_to_trans_tx_resp(header->status);
 }
 
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields) {
     for (uint8_t i = 0; i < num_fields; i++) {
-        append_to_trans_tx_dec_msg((fields[i] >> 16) & 0xFF);
-        append_to_trans_tx_dec_msg((fields[i] >> 8) & 0xFF);
-        append_to_trans_tx_dec_msg(fields[i] & 0xFF);
+        append_to_trans_tx_resp((fields[i] >> 16) & 0xFF);
+        append_to_trans_tx_resp((fields[i] >> 8) & 0xFF);
+        append_to_trans_tx_resp(fields[i] & 0xFF);
     }
 }
 
@@ -519,7 +578,7 @@ void auto_data_col_timer_cb(void) {
             print("Auto OBC_HK\n");
 #endif
             obc_hk_auto_data_col.count = 0;
-            enqueue_cmd(&col_data_block_cmd, CMD_OBC_HK, 1);    // auto
+            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_OBC_HK, 1);    // auto
         }
     }
 
@@ -531,7 +590,7 @@ void auto_data_col_timer_cb(void) {
             print("Auto EPS_HK\n");
 #endif
             eps_hk_auto_data_col.count = 0;
-            enqueue_cmd(&col_data_block_cmd, CMD_EPS_HK, 1);    // auto
+            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_EPS_HK, 1);    // auto
         }
     }
 
@@ -543,7 +602,7 @@ void auto_data_col_timer_cb(void) {
             print("Auto PAY_HK\n");
 #endif
             pay_hk_auto_data_col.count = 0;
-            enqueue_cmd(&col_data_block_cmd, CMD_PAY_HK, 1);    // auto
+            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_HK, 1);    // auto
         }
     }
 
@@ -555,7 +614,7 @@ void auto_data_col_timer_cb(void) {
             print("Auto PAY_OPT\n");
 #endif
             pay_opt_auto_data_col.count = 0;
-            enqueue_cmd(&col_data_block_cmd, CMD_PAY_OPT, 1);   // auto
+            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_OPT, 1);   // auto
         }
     }
 }

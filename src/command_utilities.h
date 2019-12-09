@@ -70,15 +70,22 @@ typedef struct {
 #define CMD_RESET_SUBSYS                0x43
 #define CMD_SET_INDEF_LPM_ENABLE        0x44
 
-// Mask to set MSB on opcode byte for ACK packets
-#define CMD_ACK_OPCODE_MASK             (0x1 << 7)
+// Mask to set MSB on opcode byte for response packets
+#define CMD_RESP_CMD_ID_MASK            (0x1 << 15)
 
 // ACK status bytes
-#define CMD_ACK_STATUS_OK               0x00
-#define CMD_ACK_STATUS_INVALID_PKT      0x01
-#define CMD_ACK_STATUS_INVALID_DEC_FMT  0x02
-#define CMD_ACK_STATUS_INVALID_OPCODE   0x03
-#define CMD_ACK_STATUS_INVALID_PWD      0x04
+#define CMD_ACK_STATUS_OK                   0x00
+#define CMD_ACK_STATUS_RESET_CMD_ID         0x01
+#define CMD_ACK_STATUS_INVALID_ENC_FMT      0x02
+#define CMD_ACK_STATUS_INVALID_LEN          0x03
+#define CMD_ACK_STATUS_INVALID_CSUM         0x04
+#define CMD_ACK_STATUS_INVALID_DEC_FMT      0x05
+#define CMD_ACK_STATUS_INVALID_CMD_ID       0x06
+#define CMD_ACK_STATUS_DECREMENTED_CMD_ID   0x07
+#define CMD_ACK_STATUS_REPEATED_CMD_ID      0x08
+#define CMD_ACK_STATUS_INVALID_OPCODE       0x09
+#define CMD_ACK_STATUS_INVALID_PWD          0x0A
+#define CMD_ACK_STATUS_FULL_CMD_QUEUE       0x0B
 
 // Response/command log status bytes
 #define CMD_RESP_STATUS_OK              0x00
@@ -87,8 +94,10 @@ typedef struct {
 #define CMD_RESP_STATUS_UNKNOWN         0xFF
 
 // For unsuccessful ACKs where opcode/args are unknown
-#define CMD_OPCODE_UNKNOWN              0xFF
-#define CMD_ARG_UNKNOWN                 0xFFFFFFFF
+// This is OK because we don't ACK the auto enqueued commands
+#define CMD_CMD_ID_UNKNOWN              0x0000
+// When a command is automatically enqueued by OBC
+#define CMD_CMD_ID_AUTO_ENQUEUED        0x0000
 
 // TODO - change value?
 #define CMD_TIMEOUT_DEF_PERIOD_S    30
@@ -96,6 +105,7 @@ typedef struct {
 // Default 6 hours
 #define BEACON_INHIBIT_DEF_PERIOD_S (6 * 60 * 60)
 
+// TODO
 // Max memory read
 #define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 13)
 
@@ -135,6 +145,7 @@ typedef struct {
 extern queue_t cmd_opcode_queue;
 extern queue_t cmd_args_queue;
 
+extern volatile uint16_t current_cmd_id;
 extern volatile cmd_t* volatile current_cmd;
 extern volatile uint32_t current_cmd_arg1;
 extern volatile uint32_t current_cmd_arg2;
@@ -172,14 +183,14 @@ extern bool print_trans_tx_acks;
 void handle_trans_rx_dec_msg(void);
 void process_trans_tx_ack(void);
 
-void start_trans_tx_dec_msg(uint8_t status);
-void append_to_trans_tx_dec_msg(uint8_t byte);
-void finish_trans_tx_dec_msg(void);
+void start_trans_tx_resp(uint8_t status);
+void append_to_trans_tx_resp(uint8_t byte);
+void finish_trans_tx_resp(void);
 
 cmd_t* cmd_opcode_to_cmd(uint8_t opcode);
 
-void enqueue_cmd(cmd_t* cmd, uint32_t arg1, uint32_t arg2);
-void dequeue_cmd(cmd_t** cmd, uint32_t* arg1, uint32_t* arg2);
+void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2);
+void dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2);
 
 void execute_next_cmd(void);
 void finish_current_cmd(uint8_t status);
