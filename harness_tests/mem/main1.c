@@ -561,9 +561,11 @@ void section_byte_isolation_test(void) {
     read_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, read_eps_hk, 5);
     ASSERT_EQ_ARRAY(read_eps_hk, ones, 5);
 
-    // TODO - probably need to erase in between writes
+    uint32_t full_write_start_addr = eps_hk_section_addr + eps_hk_mem_section.start_addr;
     ASSERT_FALSE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, write_eps_hk, 10));
+    erase_mem_sector(full_write_start_addr);
     ASSERT_FALSE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, write_eps_hk, 6));
+    erase_mem_sector(full_write_start_addr);
     ASSERT_TRUE(write_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, write_eps_hk, 5));
     read_mem_section_bytes(&eps_hk_mem_section, eps_hk_section_addr, read_eps_hk, 5);
     ASSERT_EQ_ARRAY(read_eps_hk, write_eps_hk, 5);
