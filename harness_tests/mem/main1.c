@@ -589,32 +589,36 @@ void cmd_block_test(void) {
 
     uint32_t block_num;
 
-    uint8_t write_cmd_num;
+    uint16_t write_cmd_num;
+    uint8_t write_opcode;
     uint32_t write_arg1;
     uint32_t write_arg2;
 
-    uint8_t read_cmd_num;
+    uint16_t read_cmd_num;
+    uint8_t read_opcode;
     uint32_t read_arg1;
     uint32_t read_arg2;
 
     block_num = 13542;
     write_cmd_num = 5;
+    write_opcode = 1;
     write_arg1 = 1000000000;
     write_arg2 = 132497;
-    ASSERT_TRUE(write_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
+    ASSERT_TRUE(write_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &write_header, write_cmd_num, write_opcode, write_arg1, write_arg2));
     write_mem_header_status(&prim_cmd_log_mem_section, block_num, write_header.status);
 
-    read_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &read_header, &read_cmd_num, &read_arg1, &read_arg2);
+    read_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &read_header, &read_cmd_num, &read_opcode, &read_arg1, &read_arg2);
     ASSERT_EQ(write_header.block_num, read_header.block_num);
     ASSERT_EQ(write_header.status, read_header.status);
     ASSERT_EQ_DATE(write_header.date, read_header.date);
     ASSERT_EQ_TIME(write_header.time, read_header.time);
     ASSERT_EQ(write_cmd_num, read_cmd_num);
+    ASSERT_EQ(write_opcode, read_opcode);
     ASSERT_EQ(write_arg1, read_arg1);
     ASSERT_EQ(write_arg2, read_arg2);
 
     block_num = 1000000;
-    ASSERT_FALSE(write_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &write_header, write_cmd_num, write_arg1, write_arg2));
+    ASSERT_FALSE(write_mem_cmd_block(&prim_cmd_log_mem_section, block_num, &write_header, write_cmd_num, write_opcode, write_arg1, write_arg2));
     write_mem_header_status(&prim_cmd_log_mem_section, block_num, write_header.status);
 }
 
