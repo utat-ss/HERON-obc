@@ -472,7 +472,7 @@ void mem_block_test_2(void){
     }
 
     //test pay housekeeping
-    section = all_mem_sections[1];
+    section = all_mem_sections[2];
     section->curr_block = 0;//
 
     block_num = section->curr_block;
