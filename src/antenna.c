@@ -48,6 +48,8 @@ void run_comms_delay(void) {
 /*
 NOTE: Must call init_spi() followed by init_i2c() before this function
 */
+// TODO - check all return values from I2C reads/writes and act accordingly
+// TODO - rename timer and timer_s
 void deploy_antenna(void) {
     print("Antenna deploying now!\n");
 
@@ -74,25 +76,29 @@ void deploy_antenna(void) {
     uint8_t timer_s = 0x00;
     uint8_t i2c_status = 0x00;
     uint8_t timer = 0;
+    uint8_t ret = 0;
 
     write_antenna_clear(&i2c_status);
     _delay_ms(1000);
 
-    read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
-
+    ret = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
     // Start algorithm 1 for all doors, each door takes a maximum of 15 seconds
     write_antenna_alg1(&i2c_status);
-    read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+    ret = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+    
     timer = 70; //Wait more than 15*4=60 seconds for algorithm to finish
+
+    // The mode is only valid if reading antenna data over I2C was successful
+    // TODO - perhaps `while ((ret == 0 || mode != 0) && timer > 0) {` ?
     while (mode != 0 && timer > 0) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
         _delay_ms(1000);
-        timer -= 1;
         read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+        timer -= 1;
     }
 
     // Use algorithm 2 on doors not open
-    read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+    ret = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
     uint8_t doors_to_redeploy = 0x00;
     uint8_t num_doors = 0;
     for (uint8_t i = 0; i < 4; i ++) {
@@ -105,7 +111,7 @@ void deploy_antenna(void) {
 
     // Start Algorithm 2 for not opened doors
     write_antenna_alg2(doors_to_redeploy, &i2c_status);
-    read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+    ret = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
     // Wait ~35seconds per door for algorithm to finish
     timer = 35 * num_doors;
 #ifdef ANTENNA_DEBUG
@@ -115,11 +121,11 @@ void deploy_antenna(void) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
         _delay_ms(1000);
         timer -= 1;
-        read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+        ret = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
     }
 
     // Check which doors are still open
-    uint8_t ret_status = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+    ret = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
     num_doors = 0;
     for (uint8_t i = 0; i < 4; i ++) {
         // Door closed and heaters not on
@@ -132,7 +138,7 @@ void deploy_antenna(void) {
     _delay_ms(1000);
 
     // I2C failed or doors are still open
-    if (ret_status == 0 || num_doors > 0) {
+    if (ret == 0 || num_doors > 0) {
         // Manual release for 5 seconds for each burning resistor
         set_pin_high(ANT_REL_A, &PORT_ANT_REL);
         for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
