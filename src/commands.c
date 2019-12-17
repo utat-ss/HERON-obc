@@ -676,7 +676,7 @@ void col_data_block_fn(void) {
 
             // Only send back a transceiver packet if the command was sent from
             // ground
-            if (current_cmd_arg2 != CMD_CMD_ID_AUTO_ENQUEUED) {
+            if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
                 ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
                     start_trans_tx_resp(CMD_RESP_STATUS_OK);
                     append_to_trans_tx_resp((obc_hk_mem_section.curr_block >> 24) & 0xFF);

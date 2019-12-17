@@ -301,6 +301,7 @@ void cmd_to_bytes(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2,
 }
 
 /*
+Enqueues a command and arguments to the back of the queues.
 Enqueue the opcode instead of the function pointer because it's safer in case
 something goes wrong.
 */
@@ -320,6 +321,31 @@ void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
 
         enqueue(&cmd_queue_1, bytes1);
         enqueue(&cmd_queue_2, bytes2);
+    }
+}
+
+/*
+Enqueues a command and arguments to the front of the queues so it is guaranteed
+to be the next executed command.
+Enqueue the opcode instead of the function pointer because it's safer in case
+something goes wrong.
+*/
+void enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
+#ifdef COMMAND_UTILITIES_DEBUG
+    print("enqueue_cmd_front: cmd_id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+        cmd_id, cmd->opcode, arg1, arg2);
+#endif
+
+    // Enqueue the command as two 8-byte arrays
+    uint8_t bytes1[8] = {0};
+    uint8_t bytes2[8] = {0};
+    
+    // Make sure modifications to the states of the two queues are atomic/consistent
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        cmd_to_bytes(cmd_id, cmd, arg1, arg2, bytes1, bytes2);
+
+        enqueue_front(&cmd_queue_1, bytes1);
+        enqueue_front(&cmd_queue_2, bytes2);
     }
 }
 
@@ -498,9 +524,9 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
     uint32_t next_sector = mem_sector_for_addr(mem_block_end_addr(
         section, next_block));
     if (next_sector != curr_sector) {
-        // TODO - should use enqueue_front to guaranteed to be executed next
-        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &erase_mem_phy_sector_cmd,
-            mem_addr_for_sector(next_sector), 1);    // auto
+        // Enqueue to front to be guaranteed to be executed next
+        enqueue_cmd_front(CMD_CMD_ID_AUTO_ENQUEUED, &erase_mem_phy_sector_cmd,
+            mem_addr_for_sector(next_sector), 0);    // auto
     }
 
     // Set the new block number
