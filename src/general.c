@@ -16,8 +16,8 @@ void init_obc_phase1(void) {
     init_queue(&pay_tx_msg_queue);
     init_queue(&data_rx_msg_queue);
 
-    init_queue(&cmd_opcode_queue);
-    init_queue(&cmd_args_queue);
+    init_queue(&cmd_queue_1);
+    init_queue(&cmd_queue_2);
 
     init_can();
     init_rx_mob(&cmd_rx_mob);

@@ -12,9 +12,10 @@
 const uint8_t correct_pwd[] = SECURITY_CORRECT_PWD;
 
 // Queue of commands that need to be executed but have not been executed yet
-queue_t cmd_opcode_queue;
-// Arguments corresponding to each command
-queue_t cmd_args_queue;
+// Contains command ID and opcode
+queue_t cmd_queue_1;
+// Contains arguments 1 and 2
+queue_t cmd_queue_2;
 
 // Sequenced command ID from ground (or 0 for auto-scheduled)
 // Default to 0xFFFF instead of 0x0000 because that represents an auto command
@@ -189,7 +190,7 @@ void handle_trans_rx_dec_msg(void) {
 
         // Check if either command queue is full (they should both be the same
         // size, but check both just in case)
-        if (queue_full(&cmd_opcode_queue) || queue_full(&cmd_args_queue)) {
+        if (queue_full(&cmd_queue_1) || queue_full(&cmd_queue_2)) {
             add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_FULL_CMD_QUEUE);
             return;
         }
@@ -278,9 +279,30 @@ cmd_t* cmd_opcode_to_cmd(uint8_t opcode) {
 // TODO - develop a harness test for enqueueing and dequeueing commands
 
 /*
+Serialize command information to bytes.
+Assumes bytes1 and bytes2 are each 8-byte arrays.
+*/
+void cmd_to_bytes(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2,
+        uint8_t* bytes1, uint8_t* bytes2) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        bytes1[0] = (cmd_id >> 8) & 0xFF;
+        bytes1[1] = (cmd_id >> 0) & 0xFF;
+        bytes1[2] = cmd->opcode;
+
+        bytes2[0] = (arg1 >> 24) & 0xFF;
+        bytes2[1] = (arg1 >> 16) & 0xFF;
+        bytes2[2] = (arg1 >> 8) & 0xFF;
+        bytes2[3] = arg1 & 0xFF;
+        bytes2[4] = (arg2 >> 24) & 0xFF;
+        bytes2[5] = (arg2 >> 16) & 0xFF;
+        bytes2[6] = (arg2 >> 8) & 0xFF;
+        bytes2[7] = arg2 & 0xFF;
+    }
+}
+
+/*
 Enqueue the opcode instead of the function pointer because it's safer in case
 something goes wrong.
-cmd - Command to enqueue
 */
 void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
 #ifdef COMMAND_UTILITIES_DEBUG
@@ -288,26 +310,41 @@ void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
         cmd_id, cmd->opcode, arg1, arg2);
 #endif
 
-    // Enqueue the command as an 8-byte array
-    uint8_t id_opcode_data[8] = {0};
-    id_opcode_data[0] = (cmd_id >> 8) & 0xFF;
-    id_opcode_data[1] = (cmd_id >> 0) & 0xFF;
-    id_opcode_data[2] = cmd->opcode;
-
-    uint8_t args_data[8] = {0};
-    args_data[0] = (arg1 >> 24) & 0xFF;
-    args_data[1] = (arg1 >> 16) & 0xFF;
-    args_data[2] = (arg1 >> 8) & 0xFF;
-    args_data[3] = arg1 & 0xFF;
-    args_data[4] = (arg2 >> 24) & 0xFF;
-    args_data[5] = (arg2 >> 16) & 0xFF;
-    args_data[6] = (arg2 >> 8) & 0xFF;
-    args_data[7] = arg2 & 0xFF;
-
+    // Enqueue the command as two 8-byte arrays
+    uint8_t bytes1[8] = {0};
+    uint8_t bytes2[8] = {0};
+    
     // Make sure modifications to the states of the two queues are atomic/consistent
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        enqueue(&cmd_opcode_queue, id_opcode_data);
-        enqueue(&cmd_args_queue, args_data);
+        cmd_to_bytes(cmd_id, cmd, arg1, arg2, bytes1, bytes2);
+
+        enqueue(&cmd_queue_1, bytes1);
+        enqueue(&cmd_queue_2, bytes2);
+    }
+}
+
+/*
+Deserialize command information from bytes.
+Assumes bytes1 and bytes2 are each 8-byte arrays.
+*/
+void bytes_to_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2,
+        uint8_t* bytes1, uint8_t* bytes2) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        *cmd_id =
+            ((uint16_t) bytes1[0] << 8) |
+            ((uint16_t) bytes1[1] << 0);
+        *cmd = cmd_opcode_to_cmd(bytes1[2]);
+
+        *arg1 =
+            (((uint32_t) bytes2[0]) << 24) |
+            (((uint32_t) bytes2[1]) << 16) |
+            (((uint32_t) bytes2[2]) << 8) |
+            (((uint32_t) bytes2[3]));
+        *arg2 =
+            (((uint32_t) bytes2[4]) << 24) |
+            (((uint32_t) bytes2[5]) << 16) |
+            (((uint32_t) bytes2[6]) << 8) |
+            (((uint32_t) bytes2[7]));
     }
 }
 
@@ -318,35 +355,20 @@ cmd - The struct must already exist (be allocated) before calling this function,
 */
 void dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) {
     // Dequeue the command as an 8-byte array
-    uint8_t id_opcode_data[8] = {0};
-    uint8_t args_data[8] = {0};
+    uint8_t bytes1[8] = {0};
+    uint8_t bytes2[8] = {0};
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (queue_empty(&cmd_opcode_queue)) {
+        if (queue_empty(&cmd_queue_1)) {
             return;
         }
-        if (queue_empty(&cmd_args_queue)) {
+        if (queue_empty(&cmd_queue_2)) {
             return;
         }
-        dequeue(&cmd_opcode_queue, id_opcode_data);
-        dequeue(&cmd_args_queue, args_data);
-    }
+        dequeue(&cmd_queue_1, bytes1);
+        dequeue(&cmd_queue_2, bytes2);
 
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        *cmd_id =
-            ((uint16_t) id_opcode_data[0] << 8) |
-            ((uint16_t) id_opcode_data[1] << 0);
-        *cmd = cmd_opcode_to_cmd(id_opcode_data[2]);
-        *arg1 =
-            (((uint32_t) args_data[0]) << 24) |
-            (((uint32_t) args_data[1]) << 16) |
-            (((uint32_t) args_data[2]) << 8) |
-            (((uint32_t) args_data[3]));
-        *arg2 =
-            (((uint32_t) args_data[4]) << 24) |
-            (((uint32_t) args_data[5]) << 16) |
-            (((uint32_t) args_data[6]) << 8) |
-            (((uint32_t) args_data[7]));
+        bytes_to_cmd(cmd_id, cmd, arg1, arg2, bytes1, bytes2);
     }
 
 #ifdef COMMAND_UTILITIES_DEBUG
@@ -360,10 +382,10 @@ void execute_next_cmd(void) {
     // TODO - maybe check if one queue has more items than the other and correct
     // if necessary?
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (queue_empty(&cmd_opcode_queue)) {
+        if (queue_empty(&cmd_queue_1)) {
             return;
         }
-        if (queue_empty(&cmd_args_queue)) {
+        if (queue_empty(&cmd_queue_2)) {
             return;
         }
         // Only continue if we are open to start a new command

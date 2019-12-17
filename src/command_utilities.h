@@ -142,8 +142,8 @@ typedef struct {
 } auto_data_col_t;
 
 
-extern queue_t cmd_opcode_queue;
-extern queue_t cmd_args_queue;
+extern queue_t cmd_queue_1;
+extern queue_t cmd_queue_2;
 
 extern volatile uint16_t current_cmd_id;
 extern volatile cmd_t* volatile current_cmd;
@@ -189,7 +189,11 @@ void finish_trans_tx_resp(void);
 
 cmd_t* cmd_opcode_to_cmd(uint8_t opcode);
 
+void cmd_to_bytes(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2,
+        uint8_t* bytes1, uint8_t* bytes2);
 void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2);
+void bytes_to_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2,
+        uint8_t* bytes1, uint8_t* bytes2);
 void dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2);
 
 void execute_next_cmd(void);
