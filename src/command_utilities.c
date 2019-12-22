@@ -521,8 +521,6 @@ void finish_current_cmd(uint8_t status) {
 
 
 void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block) {
-    // TODO - unit test properly, test edge cases
-
     // If the next block is going into a different memory sector, erase it
     // Use the end address because it reaches the farthest possible address
     uint32_t curr_end_addr = mem_block_end_addr(section, section->curr_block);
