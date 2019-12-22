@@ -16,13 +16,18 @@
 #include "../../src/general.h"
 #include "../../src/transceiver.h"
 
+#define ASSERT_BYTES_EQ(bytes1, bytes2, count)  \
+    for (uint8_t __i = 0; __i < (count); __i++) { \
+        ASSERT_EQ((bytes1)[__i], (bytes2)[__i]);    \
+    }
+
 /**
  * Test some basic set and get commands
  */
 void basic_commands_test (void) {
     // Set the date to yr = 255, month = 4, date = 1, disregard time
-    enqueue_cmd(&set_rtc_cmd, 0x210401, 0); 
-    enqueue_cmd(&get_rtc_cmd, 0, 0);
+    enqueue_cmd(1, &set_rtc_cmd, 0x210401, 0); 
+    enqueue_cmd(2, &get_rtc_cmd, 0, 0);
     
     execute_next_cmd();
     rtc_date_t date = read_rtc_date();
@@ -51,7 +56,7 @@ void basic_commands_test (void) {
     }
 
     // Try to read 12 bytes of raw memory
-    enqueue_cmd(&read_raw_mem_bytes_cmd, 0x200, 12);
+    enqueue_cmd(4, &read_raw_mem_bytes_cmd, 0x200, 12);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail){
@@ -59,7 +64,7 @@ void basic_commands_test (void) {
     }
 
     // Read the recent status info, just confirm length, content doesn't matter
-    enqueue_cmd(&read_rec_status_info_cmd, 0, 0);
+    enqueue_cmd(12, &read_rec_status_info_cmd, 0, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -67,8 +72,8 @@ void basic_commands_test (void) {
     }
 
     // Test get and set for data collection, data period
-    enqueue_cmd(&set_auto_data_col_period_cmd, 1, 40);
-    enqueue_cmd(&get_auto_data_col_settings_cmd, 1, 0);
+    enqueue_cmd(13, &set_auto_data_col_period_cmd, 1, 40);
+    enqueue_cmd(14, &get_auto_data_col_settings_cmd, 1, 0);
 
     execute_next_cmd();
     ASSERT_EQ(obc_hk_auto_data_col.period, 40);
@@ -82,11 +87,11 @@ void basic_commands_test (void) {
     }
 
     // Enable the data collection
-    enqueue_cmd(&set_auto_data_col_enable_cmd, 1, 1);
+    enqueue_cmd(15, &set_auto_data_col_enable_cmd, 1, 1);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     ASSERT_TRUE(obc_hk_auto_data_col.enabled);
-    enqueue_cmd(&get_auto_data_col_settings_cmd, 1, 0);
+    enqueue_cmd(17, &get_auto_data_col_settings_cmd, 1, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -95,11 +100,11 @@ void basic_commands_test (void) {
     }
 
     // Disable the data collection
-    enqueue_cmd(&set_auto_data_col_enable_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(19, &set_auto_data_col_enable_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     ASSERT_FALSE(obc_hk_auto_data_col.enabled);
-    enqueue_cmd(&get_auto_data_col_settings_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(20, &get_auto_data_col_settings_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -107,7 +112,7 @@ void basic_commands_test (void) {
         ASSERT_EQ(trans_tx_dec_msg[9], 0);
     }
 
-    enqueue_cmd(&read_prim_cmd_blocks_cmd, 0, 5);
+    enqueue_cmd(25, &read_prim_cmd_blocks_cmd, 0, 5);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -124,8 +129,8 @@ void basic_commands_test (void) {
  */
 void data_collection_test(void) {
     int curr_block_num = 10;
-    enqueue_cmd(&set_cur_block_num_cmd, CMD_OBC_HK, 10);
-    enqueue_cmd(&get_cur_block_nums_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(55, &set_cur_block_num_cmd, CMD_OBC_HK, 10);
+    enqueue_cmd(56, &get_cur_block_nums_cmd, CMD_OBC_HK, 0);
     
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
@@ -143,7 +148,7 @@ void data_collection_test(void) {
     }
 
     // Collect a data block and make sure block number increments
-    enqueue_cmd(&col_data_block_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(57, &col_data_block_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -151,7 +156,7 @@ void data_collection_test(void) {
     }
     ++curr_block_num;   // The block number should increase with a read
 
-    enqueue_cmd(&get_cur_block_nums_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(99, &get_cur_block_nums_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -170,8 +175,8 @@ void mem_commands_test(void) {
     int valid_start = 0x3e8;    // 1000
     int valid_end = 0x7d0;      // 2000
     // Set the memory addresses
-    enqueue_cmd(&set_mem_sec_start_addr_cmd, 1, valid_start);
-    enqueue_cmd(&set_mem_sec_end_addr_cmd, 1, valid_end);
+    enqueue_cmd(5, &set_mem_sec_start_addr_cmd, 1, valid_start);
+    enqueue_cmd(13, &set_mem_sec_end_addr_cmd, 1, valid_end);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     ASSERT_EQ(obc_hk_mem_section.start_addr, 0x3e8);
@@ -181,7 +186,7 @@ void mem_commands_test(void) {
 
 
     // Get the memory addresses
-    enqueue_cmd(&get_mem_sec_addrs_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(17, &get_mem_sec_addrs_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -193,7 +198,7 @@ void mem_commands_test(void) {
 
     }
 
-    enqueue_cmd(&get_mem_sec_addrs_cmd, CMD_OBC_HK, 0);
+    enqueue_cmd(20, &get_mem_sec_addrs_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
@@ -206,23 +211,145 @@ void mem_commands_test(void) {
 
     // Try setting the memory addresses to invalid address, it shouldn't change
     // Set the end address to be before the start
-    enqueue_cmd(&set_mem_sec_end_addr_cmd, 1, 100);
+    enqueue_cmd(29, &set_mem_sec_end_addr_cmd, 1, 100);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     ASSERT_EQ(obc_hk_mem_section.end_addr, 0x7d0);
     
     // Set the start address to an out of range address
-    enqueue_cmd(&set_mem_sec_start_addr_cmd, 1, 0x600001);  // TODO: Command implementation needs to be fixed to check for out of bounds
+    enqueue_cmd(42, &set_mem_sec_start_addr_cmd, 1, 0x600001);  // TODO: Command implementation needs to be fixed to check for out of bounds
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     ASSERT_EQ(obc_hk_mem_section.start_addr, 0x3e8);
 }
 
+// Test that when an erase memory sector command is enqueued, it goes directly
+// to the front of the queue
+void auto_erase_mem_sector_test(void) {
+    // Make sure queues are empty after any previous tests
+    init_queue(&cmd_queue_1);
+    init_queue(&cmd_queue_2);
+    ASSERT_EQ(queue_size(&cmd_queue_1), 0);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 0);
+
+    // These got changed in a previous test, set them back to defaults
+    obc_hk_mem_section.start_addr = MEM_OBC_HK_START_ADDR;
+    obc_hk_mem_section.end_addr = MEM_OBC_HK_END_ADDR;
+
+    // Each OBC block is 5 fields (15 bytes) + header (10 bytes)
+    // Total number of bytes in section is 0x100000
+    // Say we want to cross the sector boundary at 0xF0000 -> can fit 39,321 complete blocks
+
+    // This block number should not rollover, but the next one should
+    set_mem_section_curr_block(&obc_hk_mem_section, 39319);
+
+    // Make sure OBC_HK section parameters are what we expect
+    ASSERT_EQ(obc_hk_mem_section.start_addr, MEM_OBC_HK_START_ADDR);
+    ASSERT_EQ(obc_hk_mem_section.end_addr, MEM_OBC_HK_END_ADDR);
+    ASSERT_EQ(obc_hk_mem_section.curr_block, 39319);
+    ASSERT_EQ(obc_hk_mem_section.curr_block_eeprom_addr, MEM_OBC_HK_CURR_BLOCK_EEPROM_ADDR);
+    ASSERT_EQ(obc_hk_mem_section.fields_per_block, CAN_OBC_HK_FIELD_COUNT);
+
+    uint8_t cmd_101_1[8];
+    uint8_t cmd_101_2[8];
+    enqueue_cmd(0x101, &col_data_block_cmd, CMD_OBC_HK, 0);
+    cmd_to_bytes(0x101, &col_data_block_cmd, CMD_OBC_HK, 0, cmd_101_1, cmd_101_2);
+
+    uint8_t cmd_102_1[8];
+    uint8_t cmd_102_2[8];
+    enqueue_cmd(0x102, &col_data_block_cmd, CMD_OBC_HK, 0);
+    cmd_to_bytes(0x102, &col_data_block_cmd, CMD_OBC_HK, 0, cmd_102_1, cmd_102_2);
+
+    uint8_t erase_1[8];
+    uint8_t erase_2[8];
+    cmd_to_bytes(CMD_CMD_ID_AUTO_ENQUEUED, &erase_mem_phy_sector_cmd, 0xF0000, 0, erase_1, erase_2);
+
+    uint8_t cmd_105_1[8];
+    uint8_t cmd_105_2[8];
+    enqueue_cmd(0x105, &ping_obc_cmd, 0, 0);
+    cmd_to_bytes(0x105, &ping_obc_cmd, 0, 0, cmd_105_1, cmd_105_2);
+
+    uint8_t cmd_109_1[8];
+    uint8_t cmd_109_2[8];
+    enqueue_cmd(0x109, &get_rtc_cmd, 0, 0);
+    cmd_to_bytes(0x109, &get_rtc_cmd, 0, 0, cmd_109_1, cmd_109_2);
+    
+    ASSERT_EQ(queue_size(&cmd_queue_1), 4);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 4);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[0], cmd_101_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[0], cmd_101_2, 8);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[1], cmd_102_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[1], cmd_102_2, 8);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[2], cmd_105_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[2], cmd_105_2, 8);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[3], cmd_109_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[3], cmd_109_2, 8);
+
+    execute_next_cmd();
+
+    // Should not get an erase memory sector command
+    ASSERT_EQ(queue_size(&cmd_queue_1), 3);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 3);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[1], cmd_102_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[1], cmd_102_2, 8);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[2], cmd_105_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[2], cmd_105_2, 8);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[3], cmd_109_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[3], cmd_109_2, 8);
+
+    execute_next_cmd();
+
+    // Expect an erase memory sector command at the front of the queue
+    ASSERT_EQ(queue_size(&cmd_queue_1), 3);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 3);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[1], erase_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[1], erase_2, 8);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[2], cmd_105_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[2], cmd_105_2, 8);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[3], cmd_109_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[3], cmd_109_2, 8);
+
+    uint8_t read_1[8];
+    uint8_t read_2[8];
+    peek_queue(&cmd_queue_1, read_1);
+    peek_queue(&cmd_queue_2, read_2);
+    ASSERT_BYTES_EQ(read_1, erase_1, 8);
+    ASSERT_BYTES_EQ(read_2, erase_2, 8);
+
+    ASSERT_EQ(queue_size(&cmd_queue_1), 3);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 3);
+
+    // Execute the auto erase memory sector command
+    execute_next_cmd();
+
+    ASSERT_EQ(queue_size(&cmd_queue_1), 2);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 2);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[2], cmd_105_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[2], cmd_105_2, 8);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[3], cmd_109_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[3], cmd_109_2, 8);
+
+    // Ping
+    execute_next_cmd();
+
+    ASSERT_EQ(queue_size(&cmd_queue_1), 1);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 1);
+    ASSERT_BYTES_EQ(cmd_queue_1.content[3], cmd_109_1, 8);
+    ASSERT_BYTES_EQ(cmd_queue_2.content[3], cmd_109_2, 8);
+
+    // Get RTC
+    execute_next_cmd();
+
+    ASSERT_EQ(queue_size(&cmd_queue_1), 0);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 0);
+}
+
 test_t t1 = { .name = "basic commands test", .fn = basic_commands_test };
 test_t t2 = { .name = "data collection test", .fn = data_collection_test };
 test_t t3 = { .name = "memory commands test", .fn = mem_commands_test };
+test_t t4 = { .name = "auto erase mem sector test", .fn = auto_erase_mem_sector_test };
 
-test_t* suite[] = {&t1, &t2, &t3};
+test_t* suite[] = {&t1, &t2, &t3, &t4};
 
 int main( void ) {
     init_obc_phase1();

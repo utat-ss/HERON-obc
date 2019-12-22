@@ -103,7 +103,7 @@ mem_section_t* all_mem_sections[MEM_NUM_SECTIONS] = {
 
 
 
-
+// TODO - store section start and end addresses in EEPROM
 void init_mem(void){
 /*
     intializes the chip select pin, unlocks (un-write protects)
