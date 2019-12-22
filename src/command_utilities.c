@@ -288,6 +288,12 @@ void cmd_to_bytes(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2,
         bytes1[0] = (cmd_id >> 8) & 0xFF;
         bytes1[1] = (cmd_id >> 0) & 0xFF;
         bytes1[2] = cmd->opcode;
+        // Fill unused bytes with zeros just in case it is uninitialized
+        bytes1[3] = 0x00;
+        bytes1[4] = 0x00;
+        bytes1[5] = 0x00;
+        bytes1[6] = 0x00;
+        bytes1[7] = 0x00;
 
         bytes2[0] = (arg1 >> 24) & 0xFF;
         bytes2[1] = (arg1 >> 16) & 0xFF;
@@ -519,10 +525,19 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
 
     // If the next block is going into a different memory sector, erase it
     // Use the end address because it reaches the farthest possible address
-    uint32_t curr_sector = mem_sector_for_addr(mem_block_end_addr(
-        section, section->curr_block));
-    uint32_t next_sector = mem_sector_for_addr(mem_block_end_addr(
-        section, next_block));
+    uint32_t curr_end_addr = mem_block_end_addr(section, section->curr_block);
+    uint32_t curr_sector = mem_sector_for_addr(curr_end_addr);
+    uint32_t next_end_addr = mem_block_end_addr(section, next_block);
+    uint32_t next_sector = mem_sector_for_addr(next_end_addr);
+    
+#ifdef COMMAND_UTILITIES_DEBUG
+    print("Preparing mem section block\n");
+    print("Current: block = 0x%lx, end_addr = 0x%lx, sector = 0x%lx\n",
+        section->curr_block, curr_end_addr, curr_sector);
+    print("Next: block = 0x%lx, end_addr = 0x%lx, sector = 0x%lx\n",
+        next_block, next_end_addr, next_sector);
+#endif
+
     if (next_sector != curr_sector) {
         // Enqueue to front to be guaranteed to be executed next
         enqueue_cmd_front(CMD_CMD_ID_AUTO_ENQUEUED, &erase_mem_phy_sector_cmd,

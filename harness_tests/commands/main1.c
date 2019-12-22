@@ -226,8 +226,29 @@ void mem_commands_test(void) {
 // Test that when an erase memory sector command is enqueued, it goes directly
 // to the front of the queue
 void auto_erase_mem_sector_test(void) {
-    // TODO - figure out proper block number just before rollover
-    set_mem_section_curr_block(&obc_hk_mem_section, 1000);
+    // Make sure queues are empty after any previous tests
+    init_queue(&cmd_queue_1);
+    init_queue(&cmd_queue_2);
+    ASSERT_EQ(queue_size(&cmd_queue_1), 0);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 0);
+
+    // These got changed in a previous test, set them back to defaults
+    obc_hk_mem_section.start_addr = MEM_OBC_HK_START_ADDR;
+    obc_hk_mem_section.end_addr = MEM_OBC_HK_END_ADDR;
+
+    // Each OBC block is 5 fields (15 bytes) + header (10 bytes)
+    // Total number of bytes in section is 0x100000
+    // Say we want to cross the sector boundary at 0xF0000 -> can fit 39,321 complete blocks
+
+    // This block number should not rollover, but the next one should
+    set_mem_section_curr_block(&obc_hk_mem_section, 39319);
+
+    // Make sure OBC_HK section parameters are what we expect
+    ASSERT_EQ(obc_hk_mem_section.start_addr, MEM_OBC_HK_START_ADDR);
+    ASSERT_EQ(obc_hk_mem_section.end_addr, MEM_OBC_HK_END_ADDR);
+    ASSERT_EQ(obc_hk_mem_section.curr_block, 39319);
+    ASSERT_EQ(obc_hk_mem_section.curr_block_eeprom_addr, MEM_OBC_HK_CURR_BLOCK_EEPROM_ADDR);
+    ASSERT_EQ(obc_hk_mem_section.fields_per_block, CAN_OBC_HK_FIELD_COUNT);
 
     uint8_t cmd_101_1[8];
     uint8_t cmd_101_2[8];
@@ -241,7 +262,7 @@ void auto_erase_mem_sector_test(void) {
 
     uint8_t erase_1[8];
     uint8_t erase_2[8];
-    cmd_to_bytes(CMD_CMD_ID_AUTO_ENQUEUED, &erase_mem_phy_sector_cmd, 0x1000 /* TODO */, 0, erase_1, erase_2);
+    cmd_to_bytes(CMD_CMD_ID_AUTO_ENQUEUED, &erase_mem_phy_sector_cmd, 0xF0000, 0, erase_1, erase_2);
 
     uint8_t cmd_105_1[8];
     uint8_t cmd_105_2[8];
