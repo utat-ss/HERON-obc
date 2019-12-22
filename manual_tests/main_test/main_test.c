@@ -1,14 +1,8 @@
 /*
 This is the highest-level (most comprehensive) test in the OBC repository.
 
-It simulates the entire operation of OBC, except for simulating the transceiver
-by adding commands to the command queue directly.
-
-It provides a UART interface to select a command to enqueue, then executes it.
-
-The `use_ext_can` variable controls whether to use actual CAN or simulate it.
-If set to true, it assumes both the EPS and PAY PCBs are connected over CAN.
-If set to false, it simulate both the EPS and PAY PCBs responding to CAN messages.
+It runs all the code in the main OBC program, with some extra debugging features
+for special modes, to enable/disable/modify specific features, etc.
 */
 
 #include <stdbool.h>
@@ -30,257 +24,12 @@ bool sim_eps = false;
 bool sim_pay = false;
 // Set to true to simulate using the transceiver
 bool sim_trans = false;
-// Set to true to simulate getting UART from the transceiver
-bool sim_trans_uart = false;
 
 bool reset_comms_delay_eeprom = false;
 bool skip_comms_delay = false;
 bool skip_deploy_antenna = false;
 
 bool disable_hb = false;
-
-
-// Normal command with a string description to print on UART
-typedef struct {
-    char* description;
-    cmd_t* cmd;
-    uint32_t arg1;
-    uint32_t arg2;
-    // true to bypass enqueuing a transceiver message and just enqueue directly
-    // in command queue
-    bool bypass_trans;
-} uart_cmd_t;
-
-
-// Special command just for this test to print local data
-void print_local_data_fn(void);
-cmd_t print_local_data_cmd = {
-    .fn = print_local_data_fn
-};
-
-// Special command just for this test to clear local data (set to all 0s)
-void clear_local_data_fn(void);
-cmd_t clear_local_data_cmd = {
-    .fn = clear_local_data_fn
-};
-
-void read_all_mem_blocks_to_local_fn(void);
-cmd_t read_all_mem_blocks_to_local_cmd = {
-    .fn = read_all_mem_blocks_to_local_fn
-};
-
-
-// All possible commands
-uart_cmd_t all_cmds[] = {
-    {
-        .description = "Ping OBC",
-        .cmd = &ping_obc_cmd,
-        .arg1 = 0,
-        .arg2 = 0,
-        .bypass_trans = false
-    },
-    {
-        .description = "Get restart and uptime",
-        .cmd = &read_rec_status_info_cmd,
-        .arg1 = 0,
-        .arg2 = 0,
-        .bypass_trans = false
-    },
-    {
-        .description = "Print all local data blocks",
-        .cmd = &print_local_data_cmd,
-        .arg1 = 0,
-        .arg2 = 0,
-        .bypass_trans = true
-    },
-    {
-        .description = "Clear local data",
-        .cmd = &clear_local_data_cmd,
-        .arg1 = 0,
-        .arg2 = 0,
-        .bypass_trans = true
-    },
-    {
-        .description = "Read all mem blocks to local data",
-        .cmd = &read_all_mem_blocks_to_local_cmd,
-        .arg1 = 0,
-        .arg2 = 0,
-        .bypass_trans = true
-    },
-    {
-        .description = "Request EPS HK",
-        .cmd = &col_data_block_cmd,
-        .arg1 = CMD_EPS_HK,
-        .arg2 = 0,
-        .bypass_trans = false
-    },
-    {
-        .description = "Request PAY HK",
-        .cmd = &col_data_block_cmd,
-        .arg1 = CMD_PAY_HK,
-        .arg2 = 0,
-        .bypass_trans = false
-    },
-    {
-        .description = "Request PAY OPT",
-        .cmd = &col_data_block_cmd,
-        .arg1 = CMD_PAY_OPT,
-        .arg2 = 0,
-        .bypass_trans = false
-    },
-    {
-        .description = "Actuate motors up",
-        .cmd = &act_pay_motors_cmd,
-        .arg1 = CAN_PAY_CTRL_ACT_UP,
-        .arg2 = 0,
-        .bypass_trans = false
-    },
-    {
-        .description = "Actuate motors down",
-        .cmd = &act_pay_motors_cmd,
-        .arg1 = CAN_PAY_CTRL_ACT_DOWN,
-        .arg2 = 0,
-        .bypass_trans = false
-    }
-};
-
-// Length of array
-const uint8_t all_cmds_len = sizeof(all_cmds) / sizeof(all_cmds[0]);
-
-
-void print_uart_cmds(void) {
-    for (uint8_t i = 0; i < all_cmds_len; i++) {
-        print("%u: %s\n", i, all_cmds[i].description);
-    }
-}
-
-void print_voltage(uint16_t raw_data) {
-    print(" 0x%.3X = %f V\n", raw_data, adc_raw_to_circ_vol(raw_data, 1e4, 1e4));
-}
-
-void print_current(uint16_t raw_data) {
-    print(" 0x%.3X = %f A\n", raw_data, adc_raw_to_circ_cur(raw_data, 0.008, 0.0));
-}
-
-void print_therm_temp(uint16_t raw_data) {
-    print(" 0x%.3X = %f C\n", raw_data, adc_raw_to_therm_temp(raw_data));
-}
-
-void print_gyro_data(uint16_t raw_data) {
-    print(" 0x%.4X = %.3f rad/s\n", raw_data, imu_raw_data_to_gyro(raw_data));
-}
-
-void print_header(mem_header_t header) {
-    print("block_num = %lu, status = %u, ", header.block_num, header.status);
-    print("date = %02u:%02u:%02u, time = %02u:%02u:%02u\n",
-        header.date.yy, header.date.mm, header.date.dd,
-        header.time.hh, header.time.mm, header.time.ss);
-}
-
-void print_local_data_fn(void) {
-    print("\nEPS HK:\n");
-
-    // print("Header: ");
-    print_header(eps_hk_header);
-
-    // print("Fields: ");
-    for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
-        print("0x%.6lX ", eps_hk_fields[i]);
-    }
-    print("\n");
-
-    print("Bat Temp 1:");
-    print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP1]);
-    print("Bat Temp 2:");
-    print_therm_temp(eps_hk_fields[CAN_EPS_HK_BAT_TEMP2]);
-    print("Bat Vol:");
-    print_voltage(eps_hk_fields[CAN_EPS_HK_BAT_VOL]);
-    print("Bat Cur:");
-    print_current(eps_hk_fields[CAN_EPS_HK_BAT_CUR]);
-    print("Gyro (uncal) X:");
-    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_UNCAL_X]);
-    print("Gyro (uncal) Y:");
-    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_UNCAL_Y]);
-    print("Gyro (uncal) Z:");
-    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_UNCAL_Z]);
-    print("Gyro (cal) X:");
-    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_CAL_X]);
-    print("Gyro (cal) Y:");
-    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_CAL_Y]);
-    print("Gyro (cal) Z:");
-    print_gyro_data(eps_hk_fields[CAN_EPS_HK_GYR_CAL_Z]);
-    
-
-    print("\nPAY HK:\n");
-
-    // print("Header: ");
-    print_header(pay_hk_header);
-
-    // print("Fields: ");
-    for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
-        print("0x%.6lX ", pay_hk_fields[i]);
-    }
-    print("\n");
-
-    print("Hum: 0x%.6lX = %.3f %%RH\n", pay_hk_fields[CAN_PAY_HK_HUM],
-        hum_raw_data_to_humidity(pay_hk_fields[CAN_PAY_HK_HUM]));
-    print("Pres: 0x%.6lX = %.3f kPa\n", pay_hk_fields[CAN_PAY_HK_PRES],
-        pres_raw_data_to_pressure(pay_hk_fields[CAN_PAY_HK_PRES]));
-
-
-    print("\nPAY OPT:\n");
-
-    // print("Header: ");
-    print_header(pay_opt_header);
-
-    // print("Fields: ");
-    for (uint8_t i = 0; i < CAN_PAY_OPT_FIELD_COUNT; i++) {
-        print("0x%.6lX ", pay_opt_fields[i]);
-    }
-    print("\n");
-
-    for (uint8_t i = 0; i < CAN_PAY_OPT_FIELD_COUNT; i++) {
-        print("Well %u: 0x%.6lX = %.6f %%\n", i, pay_opt_fields[i],
-            ((double) pay_opt_fields[i]) / 0xFFFFFF * 100.0);
-    }
-
-    finish_current_cmd(CMD_RESP_STATUS_OK);
-}
-
-
-
-
-void clear_local_data_fn(void) {
-    clear_mem_header(&eps_hk_header);
-    for (uint8_t i = 0; i < CAN_EPS_HK_FIELD_COUNT; i++) {
-        eps_hk_fields[i] = 0;
-    }
-    clear_mem_header(&pay_hk_header);
-    for (uint8_t i = 0; i < CAN_PAY_HK_FIELD_COUNT; i++) {
-        pay_hk_fields[i] = 0;
-    }
-    clear_mem_header(&pay_opt_header);
-    for (uint8_t i = 0; i < CAN_PAY_OPT_FIELD_COUNT; i++) {
-        pay_opt_fields[i] = 0;
-    }
-
-    print("Cleared local data\n");
-
-    finish_current_cmd(CMD_RESP_STATUS_OK);
-}
-
-void read_all_mem_blocks_to_local_fn(void) {
-    // TODO
-    enqueue_cmd(CMD_CMD_ID_UNKNOWN, &read_data_block_cmd, CMD_EPS_HK,
-        eps_hk_mem_section.curr_block - 1);
-    enqueue_cmd(CMD_CMD_ID_UNKNOWN, &read_data_block_cmd, CMD_PAY_HK,
-        pay_hk_mem_section.curr_block - 1);
-    enqueue_cmd(CMD_CMD_ID_UNKNOWN, &read_data_block_cmd, CMD_PAY_OPT,
-        pay_opt_mem_section.curr_block - 1);
-
-    finish_current_cmd(CMD_RESP_STATUS_OK);
-}
-
 
 
 // Generates a random number in the range [0, 2^31)
@@ -475,82 +224,17 @@ void sim_send_next_pay_tx_msg(void) {
 }
 
 
-
-
-uint8_t uart_cb(const uint8_t* data, uint8_t len) {
-    if (len == 0) {
-        return 0;
-    }
-
-    // Print the typed character
-    print("%c\n", data[0]);
-    print("0x%.2X\n", data[0]);
-
-    // Check for printing the help menu
-    if (data[0] == 'h') {
-        print_uart_cmds();
-    }
-
-    // Check for a valid command number
-    else if ('0' <= data[0] && data[0] < '0' + all_cmds_len) {
-        // Enqueue the selected command
-        uint8_t i = data[0] - '0';
-
-        if (all_cmds[i].bypass_trans) {
-            enqueue_cmd(CMD_CMD_ID_UNKNOWN, all_cmds[i].cmd, all_cmds[i].arg1, all_cmds[i].arg2);
-        } else {
-            uint8_t opcode = all_cmds[i].cmd->opcode;
-            uint32_t arg1 = all_cmds[i].arg1;
-            uint32_t arg2 = all_cmds[i].arg2;
-
-            // Encode one byte to two ASCII hex bytes
-            trans_rx_enc_msg[0] = 0x00;
-            trans_rx_enc_msg[1] = 9 * 2;
-            trans_rx_enc_msg[2] = hex_to_char((opcode >> 4) & 0x0F);
-            trans_rx_enc_msg[3] = hex_to_char((opcode >> 0) & 0x0F);
-            trans_rx_enc_msg[4] = hex_to_char((arg1 >> 28) & 0x0F);
-            trans_rx_enc_msg[5] = hex_to_char((arg1 >> 24) & 0x0F);
-            trans_rx_enc_msg[6] = hex_to_char((arg1 >> 20) & 0x0F);
-            trans_rx_enc_msg[7] = hex_to_char((arg1 >> 16) & 0x0F);
-            trans_rx_enc_msg[8] = hex_to_char((arg1 >> 12) & 0x0F);
-            trans_rx_enc_msg[9] = hex_to_char((arg1 >> 8) & 0x0F);
-            trans_rx_enc_msg[10] = hex_to_char((arg1 >> 4) & 0x0F);
-            trans_rx_enc_msg[11] = hex_to_char((arg1 >> 0) & 0x0F);
-            trans_rx_enc_msg[12] = hex_to_char((arg2 >> 28) & 0x0F);
-            trans_rx_enc_msg[13] = hex_to_char((arg2 >> 24) & 0x0F);
-            trans_rx_enc_msg[14] = hex_to_char((arg2 >> 20) & 0x0F);
-            trans_rx_enc_msg[15] = hex_to_char((arg2 >> 16) & 0x0F);
-            trans_rx_enc_msg[16] = hex_to_char((arg2 >> 12) & 0x0F);
-            trans_rx_enc_msg[17] = hex_to_char((arg2 >> 8) & 0x0F);
-            trans_rx_enc_msg[18] = hex_to_char((arg2 >> 4) & 0x0F);
-            trans_rx_enc_msg[19] = hex_to_char((arg2 >> 0) & 0x0F);
-
-            trans_rx_enc_len = 20;
-            trans_rx_enc_avail = true;
-        }
-    }
-
-    else {
-        print("Invalid cmd\n");
-    }
-
-    // Processed 1 character
-    return 1;
-}
-
-
 int main(void){
     WDT_OFF();
     WDT_ENABLE_SYS_RESET(WDTO_8S);
 
     init_obc_phase1();
 
-    print("\n\n\nStarting commands test\n\n");
+    print("\n\n\nStarting OBC main test\n\n");
 
     sim_eps = true;
     sim_pay = true;
     sim_trans = true;
-    sim_trans_uart = false;
     comms_delay_s = 30;
     reset_comms_delay_eeprom = false;
     skip_comms_delay = true;
@@ -608,15 +292,8 @@ int main(void){
     }
 
     if (sim_trans) {
-        if (sim_trans_uart) {
-            print("Overwriting UART RX cb\n");
-            set_uart_rx_cb(uart_cb);
-            // print("Press h to list commands\n\n");
-            print_uart_cmds();
-        } else {
-            print("Init trans UART\n");
-            init_trans_uart();
-        }
+        print("Init trans UART\n");
+        init_trans_uart();
     } else {
         print("Init OBC trans\n");
         init_obc_phase2();
