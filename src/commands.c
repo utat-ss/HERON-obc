@@ -257,6 +257,11 @@ cmd_t* all_cmds_list[] = {
 const uint8_t all_cmds_list_len = sizeof(all_cmds_list) / sizeof(all_cmds_list[0]);
 
 
+// State variables for set_indef_lpm_enable_cmd
+bool set_indef_lpm_enable_rcvd_eps_resp = false;
+bool set_indef_lpm_enable_rcvd_pay_resp = false;
+
+
 // Command callback functions
 
 void nop_fn(void) {
@@ -348,8 +353,10 @@ void read_obc_ram_byte_fn(void) {
 void set_beacon_inhibit_enable_fn(void) {
     if (current_cmd_arg1 == 0) {
         // Stop inhibiting
+        // The beacon command must go outside the atomic block because it
+        // requires UART RX interrupts to see the transceiver's response
+        turn_on_trans_beacon();
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            turn_on_trans_beacon();
             beacon_inhibit_enabled = false;
             beacon_inhibit_count_s = 0;
         }
@@ -380,15 +387,30 @@ void send_pay_can_msg_fn(void) {
 }
 
 void act_pay_motors_fn(void) {
-    // Enqueue temporary low-power mode CAN commands
-    // These will both be sent before the actuate motors CAN command
-    enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_START_TEMP_LPM, 0);
-    enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_START_TEMP_LPM, 0);
+    // Must have a valid argument corresponding to one of the CAN field numbers
+    // for motor commands
+    if (current_cmd_arg1 == CAN_PAY_CTRL_ACT_UP ||
+            current_cmd_arg1 == CAN_PAY_CTRL_ACT_DOWN ||
+            current_cmd_arg1 == CAN_PAY_CTRL_BLIST_DEP_SEQ) {
+    
+        // Enqueue temporary low-power mode CAN command for EPS
+        // These will both be sent before the actuate motors CAN command
+        enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_START_TEMP_LPM, 0);
 
-    // TODO - what if not a valid motor field number?
-    enqueue_pay_tx_msg(CAN_PAY_CTRL, current_cmd_arg1, 0);
+        // Send extra PAY messages (essentially no-ops) before the motors
+        // command to give some time for EPS to active temp LPM (mainly
+        // switching off its heaters)
+        // This could be important to allow power distribution to stabilize
+        // before activating a large transient load
+        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_PING, 0);
+        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_PING, 0);
+        enqueue_pay_tx_msg(CAN_PAY_CTRL, current_cmd_arg1, 0);
 
-    // Continues from CAN callbacks
+        // Continues from CAN callbacks
+    } else {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+    }
 }
 
 void reset_subsys_fn(void) {
@@ -419,13 +441,26 @@ void reset_subsys_fn(void) {
     }
 }
 
-// TODO - should only send TX packet after receiving both responses
 void set_indef_lpm_enable_fn(void) {
-    enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
-    enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
+    // Reset response states
+    // Need to wait to receive both responses before finishing command
+    set_indef_lpm_enable_rcvd_eps_resp = false;
+    set_indef_lpm_enable_rcvd_pay_resp = false;
 
-    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-    finish_current_cmd(CMD_RESP_STATUS_OK);
+    if (current_cmd_arg1 == 0) {
+        // Disable indefinite LPM mode
+        enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_DISABLE_INDEF_LPM, 0);
+        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_DISABLE_INDEF_LPM, 0);
+    } else if (current_cmd_arg1 == 1) {
+        // Enable indefinite LPM mode
+        enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
+        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
+    } else {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+    }
+
+    // Will continue from CAN callbacks if field number was valid
 }
 
 void read_rec_status_info_fn(void) {    

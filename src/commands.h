@@ -51,4 +51,7 @@ extern cmd_t resync_auto_data_col_timers_cmd;
 extern cmd_t* all_cmds_list[];
 extern const uint8_t all_cmds_list_len;
 
+extern bool set_indef_lpm_enable_rcvd_eps_resp;
+extern bool set_indef_lpm_enable_rcvd_pay_resp;
+
 #endif

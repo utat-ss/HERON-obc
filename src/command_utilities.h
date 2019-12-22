@@ -107,7 +107,7 @@ typedef struct {
 
 // TODO
 // Max memory read
-#define CMD_READ_MEM_MAX_COUNT (TRANS_TX_DEC_MSG_MAX_SIZE - 13)
+#define CMD_READ_MEM_MAX_COUNT 115
 
 
 // Number of sections using auto data collection

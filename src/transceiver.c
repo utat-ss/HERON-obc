@@ -96,7 +96,6 @@ volatile bool       trans_tx_enc_avail = false;
 volatile uint32_t trans_rx_prev_uptime_s = 0;
 
 // Command ID of the most recently received request
-// TODO - what if the MCU resets? should it be in EEPROM?
 uint16_t trans_last_cmd_id = 0x0000;
 
 // Set to true to print transceiver messages
@@ -134,11 +133,10 @@ void trans_uptime_cb(void) {
 #endif
 
         // Only send an ACK for invalid encoded format if we received more than
-        // 1 byte from a packet
+        // the specified number of bytes from a packet
         // i.e. ignore 1-byte ground station packets that are used to improve
         // transmission reliability
-        // TODO - what threshold?
-        if (get_uart_rx_count() > 1) {
+        if (get_uart_rx_count() >= TRANS_RX_INVALID_ENC_FMT_COUNT_THRESH) {
             add_trans_tx_ack(CMD_CMD_ID_UNKNOWN, CMD_ACK_STATUS_INVALID_ENC_FMT);
         }
 

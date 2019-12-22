@@ -200,7 +200,6 @@ void test_pipe(void) {
     // This should send data (TX packet)
     // It should stay in pipe mode because we refresh the 5s timeout every time
     // we send data
-    // TODO - is it sending 5 separate packets or 1 single packet?
     print("\n");
     for (uint8_t i = 0; i < 10; i++) {
         print("Sending data in pipe mode\n");

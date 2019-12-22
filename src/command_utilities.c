@@ -521,8 +521,6 @@ void finish_current_cmd(uint8_t status) {
 
 
 void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block) {
-    // TODO - unit test properly, test edge cases
-
     // If the next block is going into a different memory sector, erase it
     // Use the end address because it reaches the farthest possible address
     uint32_t curr_end_addr = mem_block_end_addr(section, section->curr_block);
@@ -695,9 +693,12 @@ void cmd_timeout_timer_cb(void) {
 #ifdef COMMAND_UTILITIES_DEBUG
         print("COMMAND TIMED OUT\n");
 #endif
-        // TODO - only add trans msg if not auto command?
-        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
-        finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
+        // Only add response packet if not auto command
+        if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
+            finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
+        }
+
         cmd_timeout_count_s = 0;
     }
 }
