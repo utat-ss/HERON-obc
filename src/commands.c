@@ -903,16 +903,17 @@ void get_auto_data_col_settings_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
+        // TODO - maybe add uptime to data?
         for (uint8_t i = 0; i < NUM_AUTO_DATA_COL_SECTIONS; i++) {
             append_to_trans_tx_resp((uint8_t) all_auto_data_cols[i]->enabled);
             append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 24) & 0xFF);
             append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 16) & 0xFF);
             append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 8) & 0xFF);
             append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 0) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 24) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 16) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 8) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 0) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->prev_col_uptime_s >> 24) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->prev_col_uptime_s >> 16) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->prev_col_uptime_s >> 8) & 0xFF);
+            append_to_trans_tx_resp((all_auto_data_cols[i]->prev_col_uptime_s >> 0) & 0xFF);
         }
         
         finish_trans_tx_resp();
@@ -979,10 +980,9 @@ void set_auto_data_col_period_fn(void) {
 
 void resync_auto_data_col_timers_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        obc_hk_auto_data_col.count = 0;
-        eps_hk_auto_data_col.count = 0;
-        pay_hk_auto_data_col.count = 0;
-        pay_opt_auto_data_col.count = 0;
+        for (uint8_t i = 0; i < NUM_AUTO_DATA_COL_SECTIONS; i++) {
+            all_auto_data_cols[i]->prev_col_uptime_s = uptime_s;
+        }
     }
 
     add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);

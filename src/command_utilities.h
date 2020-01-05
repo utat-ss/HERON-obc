@@ -88,10 +88,11 @@ typedef struct {
 #define CMD_ACK_STATUS_FULL_CMD_QUEUE       0x0B
 
 // Response/command log status bytes
-#define CMD_RESP_STATUS_OK              0x00
-#define CMD_RESP_STATUS_INVALID_ARGS    0x01
-#define CMD_RESP_STATUS_TIMED_OUT       0x02
-#define CMD_RESP_STATUS_UNKNOWN         0xFF
+#define CMD_RESP_STATUS_OK                      0x00
+#define CMD_RESP_STATUS_INVALID_ARGS            0x01
+#define CMD_RESP_STATUS_TIMED_OUT               0x02
+#define CMD_RESP_STATUS_DATA_COL_IN_PROGRESS    0x03
+#define CMD_RESP_STATUS_UNKNOWN                 0xFF
 
 // For unsuccessful ACKs where opcode/args are unknown
 // This is OK because we don't ACK the auto enqueued commands

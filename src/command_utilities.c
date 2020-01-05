@@ -451,11 +451,21 @@ void execute_next_cmd(void) {
     }
 
     // Log everything for the command (except the status byte)
-    populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, CMD_RESP_STATUS_UNKNOWN);
-    write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block,
-        &cmd_log_header, current_cmd_id, current_cmd->opcode, current_cmd_arg1,
-        current_cmd_arg2);
-    inc_and_prepare_mem_section_curr_block(cmd_log_mem_section);
+    // If we are running col_data_block_cmd, only populate the header and write
+    // to the command log if it is field 0 (starting the command)
+    if ((current_cmd != &col_data_block_cmd) ||
+            (current_cmd == &col_data_block_cmd && current_cmd_arg2 == 0)) {
+        populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, CMD_RESP_STATUS_UNKNOWN);
+        write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block,
+            &cmd_log_header, current_cmd_id, current_cmd->opcode, current_cmd_arg1,
+            current_cmd_arg2);
+        inc_and_prepare_mem_section_curr_block(cmd_log_mem_section);
+    }
+    else {
+#ifdef COMMAND_UTILITIES_DEBUG
+    print("Not writing to command log\n");
+#endif
+    }
 
     // Execute the command's function
     (current_cmd->fn)();
@@ -463,6 +473,10 @@ void execute_next_cmd(void) {
 
 // Finishes executing the current command and writes the status byte in the command log
 void finish_current_cmd(uint8_t status) {
+#ifdef COMMAND_UTILITIES_DEBUG
+    print("%s: status = 0x%.2x\n", __FUNCTION__, status);
+#endif
+
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // The erase flash command erases the command log as well, therefore re-write the command log
         // for the erase flash command
@@ -473,37 +487,55 @@ void finish_current_cmd(uint8_t status) {
                 current_cmd_arg2);
         }
 
-        // If we are collecting a data block, write the status byte to the
-        // header of the data section
+        // If we are collecting a data block and it is the last field, write the
+        // status byte to the header of the data section and the header of the
+        // primary command log
         if (current_cmd == &col_data_block_cmd) {
-            switch (current_cmd_arg1) {
-                case CMD_OBC_HK:
+            // Only do this if the status argument is not the dummy value that
+            // indicates data collection is still in progress
+            if (status != CMD_RESP_STATUS_DATA_COL_IN_PROGRESS) {
+    #ifdef COMMAND_UTILITIES_DEBUG
+                print("Writing memory header status\n");
+    #endif
+                mem_section_t* section = NULL;
+                mem_header_t* header = NULL;
+
+                if (current_cmd_arg1 == CMD_OBC_HK && current_cmd_arg2 == CAN_OBC_HK_FIELD_COUNT) {
+                    section = &obc_hk_mem_section;
+                    header = &obc_hk_header;
+                }
+                if (current_cmd_arg1 == CMD_EPS_HK && current_cmd_arg2 == CAN_EPS_HK_FIELD_COUNT) {
+                    section = &eps_hk_mem_section;
+                    header = &eps_hk_header;
+                }
+                if (current_cmd_arg1 == CMD_PAY_HK && current_cmd_arg2 == CAN_PAY_HK_FIELD_COUNT) {
+                    section = &pay_hk_mem_section;
+                    header = &pay_hk_header;
+                }
+                if (current_cmd_arg1 == CMD_PAY_OPT && current_cmd_arg2 == CAN_PAY_OPT_FIELD_COUNT) {
+                    section = &pay_opt_mem_section;
+                    header = &pay_opt_header;
+                }
+
+                if (section != NULL && header != NULL) {
                     write_mem_header_status(
-                        &obc_hk_mem_section, obc_hk_header.block_num, status);
-                    break;
-                case CMD_EPS_HK:
-                    write_mem_header_status(
-                        &eps_hk_mem_section, eps_hk_header.block_num, status);
-                    break;
-                case CMD_PAY_HK:
-                    write_mem_header_status(
-                        &pay_hk_mem_section, pay_hk_header.block_num, status);
-                    break;
-                case CMD_PAY_OPT:
-                    write_mem_header_status(
-                        &pay_opt_mem_section, pay_opt_header.block_num, status);
-                    break;
+                        section, header->block_num, status);
+                    write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
+                }
             }
         }
 
-        // Write the status byte to the appropriate command log (based on command)
-        if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
-            || current_cmd == &read_sec_cmd_blocks_cmd) {
-            write_mem_header_status(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, status);
-        } else {
-            write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
+        else {
+            // TODO - refactor detecting whether command is primary or secondary
+            // Write the status byte to the appropriate command log (based on command)
+            if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
+                || current_cmd == &read_sec_cmd_blocks_cmd) {
+                write_mem_header_status(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, status);
+            } else {
+                write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
+            }
         }
-        
+
         current_cmd_id = 0xFFFF;
         current_cmd = &nop_cmd;
         current_cmd_arg1 = 0;
@@ -543,6 +575,9 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
     }
 
     // Set the new block number
+    // TODO - might not always want to do this to reduce EEPROM wear?
+    // Maybe once every 5-10 times?
+    // Maybe command to force write to EEPROM?
     set_mem_section_curr_block(section, next_block);
 }
 
