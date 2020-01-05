@@ -53,22 +53,22 @@ mem_header_t cmd_log_header;
 volatile auto_data_col_t obc_hk_auto_data_col = {
     .enabled = false,
     .period = OBC_HK_AUTO_DATA_COL_PERIOD,
-    .count = 0
+    .prev_col_uptime_s = 0
 };
 volatile auto_data_col_t eps_hk_auto_data_col = {
     .enabled = false,
     .period = EPS_HK_AUTO_DATA_COL_PERIOD,
-    .count = 0
+    .prev_col_uptime_s = 0
 };
 volatile auto_data_col_t pay_hk_auto_data_col = {
     .enabled = false,
     .period = PAY_HK_AUTO_DATA_COL_PERIOD,
-    .count = 0
+    .prev_col_uptime_s = 0
 };
 volatile auto_data_col_t pay_opt_auto_data_col = {
     .enabled = false,
     .period = PAY_OPT_AUTO_DATA_COL_PERIOD,
-    .count = 0
+    .prev_col_uptime_s = 0
 };
 
 volatile auto_data_col_t* all_auto_data_cols[NUM_AUTO_DATA_COL_SECTIONS] = {
@@ -623,60 +623,55 @@ void init_auto_data_col(void) {
         PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, PAY_HK_AUTO_DATA_COL_PERIOD);
     pay_opt_auto_data_col.period = read_eeprom_or_default(
         PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, PAY_OPT_AUTO_DATA_COL_PERIOD);
-
-    add_uptime_callback(auto_data_col_timer_cb);
 }
 
-// Automatic data collection timer callback (for 16-bit timer)
-void auto_data_col_timer_cb(void) {
-    // print("Auto data col timer cb\n");
-
-    if (obc_hk_auto_data_col.enabled) {
-        obc_hk_auto_data_col.count += 1;
-
-        if (obc_hk_auto_data_col.count >= obc_hk_auto_data_col.period) {
+// Automatic data collection functionality to run in main loop
+void run_auto_data_col(void) {
 #ifdef COMMAND_UTILITIES_DEBUG
-            print("Auto OBC_HK\n");
+    print("Auto data col\n");
 #endif
-            obc_hk_auto_data_col.count = 0;
-            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_OBC_HK, 1);    // auto
-        }
+
+    if (obc_hk_auto_data_col.enabled &&
+            (uptime_s >= obc_hk_auto_data_col.prev_col_uptime_s + obc_hk_auto_data_col.period)) {
+#ifdef COMMAND_UTILITIES_DEBUG
+        print("Auto OBC_HK\n");
+#endif
+
+        obc_hk_auto_data_col.prev_col_uptime_s = uptime_s;
+        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_OBC_HK, 0);
     }
 
-    if (eps_hk_auto_data_col.enabled) {
-        eps_hk_auto_data_col.count += 1;
+    // Use ifs instead of else ifs because we could have multiple types triggering
+    // data collection at the same time
 
-        if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
+    if (eps_hk_auto_data_col.enabled &&
+            (uptime_s >= eps_hk_auto_data_col.prev_col_uptime_s + eps_hk_auto_data_col.period)) {
 #ifdef COMMAND_UTILITIES_DEBUG
-            print("Auto EPS_HK\n");
+        print("Auto EPS_HK\n");
 #endif
-            eps_hk_auto_data_col.count = 0;
-            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_EPS_HK, 1);    // auto
-        }
+
+        eps_hk_auto_data_col.prev_col_uptime_s = uptime_s;
+        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_EPS_HK, 0);
     }
 
-    if (pay_hk_auto_data_col.enabled) {
-        pay_hk_auto_data_col.count += 1;
-
-        if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
+    if (pay_hk_auto_data_col.enabled &&
+            (uptime_s >= pay_hk_auto_data_col.prev_col_uptime_s + pay_hk_auto_data_col.period)) {
 #ifdef COMMAND_UTILITIES_DEBUG
-            print("Auto PAY_HK\n");
+        print("Auto PAY_HK\n");
 #endif
-            pay_hk_auto_data_col.count = 0;
-            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_HK, 1);    // auto
-        }
+
+        pay_hk_auto_data_col.prev_col_uptime_s = uptime_s;
+        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_HK, 0);
     }
 
-    if (pay_opt_auto_data_col.enabled) {
-        pay_opt_auto_data_col.count += 1;
-
-        if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
+    if (pay_opt_auto_data_col.enabled &&
+            (uptime_s >= pay_opt_auto_data_col.prev_col_uptime_s + pay_opt_auto_data_col.period)) {
 #ifdef COMMAND_UTILITIES_DEBUG
-            print("Auto PAY_OPT\n");
+        print("Auto PAY_OPT\n");
 #endif
-            pay_opt_auto_data_col.count = 0;
-            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_OPT, 1);   // auto
-        }
+
+        pay_opt_auto_data_col.prev_col_uptime_s = uptime_s;
+        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_OPT, 0);
     }
 }
 

@@ -307,6 +307,8 @@ int main(void){
             run_hb();
         }
 
+        run_auto_data_col();
+
         // Trans RX (encoded)
         decode_trans_rx_msg();
         // Trans RX (decoded)

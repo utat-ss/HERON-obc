@@ -16,6 +16,8 @@ int main(void) {
 
         run_hb();
 
+        run_auto_data_col();
+
         decode_trans_rx_msg();
         handle_trans_rx_dec_msg();
 

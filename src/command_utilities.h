@@ -137,8 +137,9 @@ typedef struct {
     bool enabled;
     // Seconds between collection
     uint32_t period;
-    // Number of seconds counted (start at 0, go to `period`)
-    uint32_t count;
+    // Value of `uptime_s` when we last collected this type of data
+    // TODO - set this value when enabling this collection type
+    uint32_t prev_col_uptime_s;
 } auto_data_col_t;
 
 
@@ -209,7 +210,7 @@ void append_header_to_tx_msg(mem_header_t* header);
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);
 
 void init_auto_data_col(void);
-void auto_data_col_timer_cb(void);
+void run_auto_data_col(void);
 void cmd_timeout_timer_cb(void);
 void beacon_inhibit_timer_cb(void);
 
