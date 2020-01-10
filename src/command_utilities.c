@@ -1,7 +1,8 @@
 #include "command_utilities.h"
 
 // Uncomment for extra debugging prints
-// #define COMMAND_UTILITIES_DEBUG
+#define COMMAND_UTILITIES_DEBUG
+// #define COMMAND_UTILITIES_VERBOSE
 
 // If you get an error here because `security.h` is not found, copy the dummy
 // `security.h` file from https://github.com/HeronMkII/templates to your `src`
@@ -729,51 +730,36 @@ void init_auto_data_col(void) {
 
 // Automatic data collection functionality to run in main loop
 void run_auto_data_col(void) {
-#ifdef COMMAND_UTILITIES_DEBUG
+#ifdef COMMAND_UTILITIES_VERBOSE
     print("Auto data col\n");
 #endif
 
-    if (obc_hk_data_col.auto_enabled &&
-            (uptime_s >= obc_hk_data_col.prev_auto_col_uptime_s + obc_hk_data_col.auto_period)) {
+    // Atomic because uptime_s could be changed by interrupt
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        // Could have multiple triggering at the same time
+        for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+            data_col_t* data_col = all_data_cols[i];
+
+            if (data_col->auto_enabled &&
+                    (uptime_s >= data_col->prev_auto_col_uptime_s + data_col->auto_period)) {
 #ifdef COMMAND_UTILITIES_DEBUG
-        print("Auto OBC_HK\n");
+                print("Auto %s\n", data_col->name);
 #endif
 
-        obc_hk_data_col.prev_auto_col_uptime_s = uptime_s;
-        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_OBC_HK, 0);
-    }
-
-    // Use ifs instead of else ifs because we could have multiple types triggering
-    // data collection at the same time
-
-    if (eps_hk_data_col.auto_enabled &&
-            (uptime_s >= eps_hk_data_col.prev_auto_col_uptime_s + eps_hk_data_col.auto_period)) {
+                // To avoid filling up the command queue, only enqueue it if
+                // the queue does not alreay contain a collect data block
+                // command for this block type
+                if (!cmd_queue_contains_col_data_block(data_col->cmd_arg1)) {
+                    data_col->prev_auto_col_uptime_s = uptime_s;
+                    enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, data_col->cmd_arg1, 0);
+                }
+                else {
 #ifdef COMMAND_UTILITIES_DEBUG
-        print("Auto EPS_HK\n");
+                    print("Already in cmd queue\n");
 #endif
-
-        eps_hk_data_col.prev_auto_col_uptime_s = uptime_s;
-        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_EPS_HK, 0);
-    }
-
-    if (pay_hk_data_col.auto_enabled &&
-            (uptime_s >= pay_hk_data_col.prev_auto_col_uptime_s + pay_hk_data_col.auto_period)) {
-#ifdef COMMAND_UTILITIES_DEBUG
-        print("Auto PAY_HK\n");
-#endif
-
-        pay_hk_data_col.prev_auto_col_uptime_s = uptime_s;
-        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_HK, 0);
-    }
-
-    if (pay_opt_data_col.auto_enabled &&
-            (uptime_s >= pay_opt_data_col.prev_auto_col_uptime_s + pay_opt_data_col.auto_period)) {
-#ifdef COMMAND_UTILITIES_DEBUG
-        print("Auto PAY_OPT\n");
-#endif
-
-        pay_opt_data_col.prev_auto_col_uptime_s = uptime_s;
-        enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_OPT, 0);
+                }
+            }
+        }
     }
 }
 

@@ -701,7 +701,7 @@ void col_data_block_fn(void) {
         }
 
 #ifdef COMMANDS_DEBUG
-        print("Done %s\n", data_col.name);
+        print("Done %s\n", data_col->name);
 #endif
 
         // Don't use CAN
