@@ -465,8 +465,8 @@ bool cmd_queue_contains_col_data_block(uint8_t block_type) {
             bytes_to_cmd(&cmd_id, &cmd, &arg1, &arg2, cmd_queue_1.content[i], cmd_queue_2.content[i]);
 
             if (cmd == &col_data_block_cmd && arg1 == ((uint32_t) block_type)) {
-#ifdef COMMAND_UTILITIES_DEBUG
-                print("Found col data block cmd in queue (%lu, %lu)\n", arg1, arg2);
+#ifdef COMMAND_UTILITIES_VERBOSE
+                print("Found col data cmd in queue (%lu, %lu)\n", arg1, arg2);
 #endif
                 return true;
             }
@@ -543,7 +543,7 @@ void execute_next_cmd(void) {
         inc_and_prepare_mem_section_curr_block(cmd_log_mem_section);
     }
     else {
-#ifdef COMMAND_UTILITIES_DEBUG
+#ifdef COMMAND_UTILITIES_VERBOSE
     print("Not writing to cmd log\n");
 #endif
     }
@@ -554,7 +554,7 @@ void execute_next_cmd(void) {
 
 // Finishes executing the current command and writes the status byte in the command log
 void finish_current_cmd(uint8_t status) {
-#ifdef COMMAND_UTILITIES_DEBUG
+#ifdef COMMAND_UTILITIES_VERBOSE
     print("%s: stat = 0x%.2x\n", __FUNCTION__, status);
 #endif
 
@@ -575,15 +575,17 @@ void finish_current_cmd(uint8_t status) {
             // Only do this if the status argument is not the dummy value that
             // indicates data collection is still in progress
             if (status != CMD_RESP_STATUS_DATA_COL_IN_PROGRESS) {
-    #ifdef COMMAND_UTILITIES_DEBUG
+    #ifdef COMMAND_UTILITIES_VERBOSE
                 print("Writing mem header status\n");
     #endif
 
                 for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
                     data_col_t* data_col = all_data_cols[i];
 
+                    // If we just finished the last field of a command
+                    // or it was OBC_HK (is only enqueued and executed once)
                     if (current_cmd_arg1 == data_col->cmd_arg1 &&
-                            current_cmd_arg2 == data_col->mem_section->fields_per_block) {
+                            (current_cmd_arg2 == data_col->mem_section->fields_per_block || current_cmd_arg1 == CMD_OBC_HK)) {
                         write_mem_header_status(
                             data_col->mem_section, data_col->header.block_num,
                             status);
@@ -613,7 +615,7 @@ void finish_current_cmd(uint8_t status) {
     }
 
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("Finished cmd\n");
+    print("Finish cmd: stat = 0x%.2x\n", status);
 #endif
 }
 

@@ -2,6 +2,7 @@
 
 // Uncomment for extra debugging prints
 #define COMMANDS_DEBUG
+// #define COMMANDS_VERBOSE
 
 
 void nop_fn(void);
@@ -648,7 +649,7 @@ void erase_all_mem_fn(void) {
 // Starts requesting block data (field 0)
 void col_data_block_fn(void) {
     if (current_cmd_arg1 == CMD_OBC_HK) {
-#ifdef COMMANDS_DEBUG
+#ifdef COMMANDS_VERBOSE
         print("Start %s\n", obc_hk_data_col.name);
 #endif
 
@@ -686,23 +687,25 @@ void col_data_block_fn(void) {
             // i is field number; fields[i] corresponds to associated field data
         }
 
+#ifdef COMMANDS_VERBOSE
+        print("Done %s\n", data_col->name);
+#endif
+
         // Only send back a transceiver packet if the command was sent from
         // ground (not auto)
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
                 start_trans_tx_resp(CMD_RESP_STATUS_OK);
-                // TODO - is this the correct block number? has it already been incremented?
-                append_to_trans_tx_resp((data_col->mem_section->curr_block >> 24) & 0xFF);
-                append_to_trans_tx_resp((data_col->mem_section->curr_block >> 16) & 0xFF);
-                append_to_trans_tx_resp((data_col->mem_section->curr_block >> 8) & 0xFF);
-                append_to_trans_tx_resp((data_col->mem_section->curr_block >> 0) & 0xFF);
+                // Need to use the block number from the header because the block
+                // number for the memory section has already been incremented
+                // past the block just collected
+                append_to_trans_tx_resp((data_col->header.block_num >> 24) & 0xFF);
+                append_to_trans_tx_resp((data_col->header.block_num >> 16) & 0xFF);
+                append_to_trans_tx_resp((data_col->header.block_num >> 8) & 0xFF);
+                append_to_trans_tx_resp((data_col->header.block_num >> 0) & 0xFF);
                 finish_trans_tx_resp();
             }
         }
-
-#ifdef COMMANDS_DEBUG
-        print("Done %s\n", data_col->name);
-#endif
 
         // Don't use CAN
         finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -719,13 +722,13 @@ void col_data_block_fn(void) {
             
             if (data_col->cmd_arg1 == current_cmd_arg1) {
                 uint32_t cmd_field = current_cmd_arg2;
-#ifdef COMMANDS_DEBUG
+#ifdef COMMANDS_VERBOSE
                 print("%s: field %lu\n", data_col->name, cmd_field);
                 print("prev field uptime = %lu\n", data_col->prev_field_col_uptime_s);
 #endif
 
                 if (cmd_field == 0) {
-#ifdef COMMANDS_DEBUG
+#ifdef COMMANDS_VERBOSE
                     print("Start data col\n", data_col->name, cmd_field);
 #endif
 
@@ -814,7 +817,7 @@ void col_data_block_fn(void) {
 
                             // If the field number received in the CAN message is what we are expecting
                             if (field_num == cmd_field - 1) {
-#ifdef COMMANDS_DEBUG
+#ifdef COMMANDS_VERBOSE
                                 print("Received field %u\n", field_num);
 #endif
 
@@ -843,7 +846,7 @@ void col_data_block_fn(void) {
                                         &col_data_block_cmd, current_cmd_arg1,
                                         next_field_num + 1);
 
-#ifdef COMMANDS_DEBUG
+#ifdef COMMANDS_VERBOSE
                                     print("Requesting field %u\n", next_field_num);
 #endif
                                 }
@@ -864,7 +867,7 @@ void col_data_block_fn(void) {
                                         }
                                     }
 
-#ifdef COMMANDS_DEBUG
+#ifdef COMMANDS_VERBOSE
                                     print("Done %s\n", data_col->name);
 #endif
                                     finish_current_cmd(CMD_RESP_STATUS_OK);

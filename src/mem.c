@@ -18,7 +18,7 @@ Flash is designed so that you can erase large sections at once, which means sett
 #include "mem.h"
 
 // Useful to comment/uncomment for debugging
-// #define MEM_DEBUG
+#define MEM_DEBUG
 
 
 // Chip selects for each of the memory chips
@@ -511,7 +511,7 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
 #ifdef MEM_DEBUG
     print("%s: ", __FUNCTION__);
-    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+    print("addr = 0x%.8lX, len = %u\n", address, data_len);
     print("data = ");
     print_bytes(data, data_len);
 #endif
@@ -625,7 +625,7 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 
 #ifdef MEM_DEBUG
     print("%s: ", __FUNCTION__);
-    print("address = 0x%.8lX, data_len = %u\n", address, data_len);
+    print("addr = 0x%.8lX, len = %u\n", address, data_len);
     print("data = ");
     print_bytes(data, data_len);
 #endif
