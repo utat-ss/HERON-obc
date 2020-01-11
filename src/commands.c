@@ -1,7 +1,7 @@
 #include "commands.h"
 
 // Uncomment for extra debugging prints
-// #define COMMANDS_DEBUG
+#define COMMANDS_DEBUG
 
 
 void nop_fn(void);
@@ -726,7 +726,7 @@ void col_data_block_fn(void) {
 
                 if (cmd_field == 0) {
 #ifdef COMMANDS_DEBUG
-                    print("Starting data col\n", data_col->name, cmd_field);
+                    print("Start data col\n", data_col->name, cmd_field);
 #endif
 
                     populate_header(&data_col->header,
@@ -763,7 +763,7 @@ void col_data_block_fn(void) {
                     if (uptime_s >= data_col->prev_field_col_uptime_s +
                             CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S) {
 #ifdef COMMANDS_DEBUG
-                        print("COL DATA BLOCK TIMED OUT\n");
+                        print("COL DATA TIMED OUT\n");
 #endif
                         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
                         finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
@@ -815,7 +815,7 @@ void col_data_block_fn(void) {
                             // If the field number received in the CAN message is what we are expecting
                             if (field_num == cmd_field - 1) {
 #ifdef COMMANDS_DEBUG
-                                print("Received field #%u\n", field_num);
+                                print("Received field %u\n", field_num);
 #endif
 
                                 // Update the current uptime for receiving this field
@@ -833,10 +833,18 @@ void col_data_block_fn(void) {
                                 // Send request for next field if there are more fields
                                 uint8_t next_field_num = field_num + 1;
                                 if (next_field_num < data_col->mem_section->fields_per_block) {
+                                    // Enqueue CAN message
                                     enqueue_tx_msg(data_col->can_tx_queue,
                                         data_col->can_opcode, next_field_num, 0);
+                                    // Enqueue command to check for the response
+                                    // (note command argument 2 must be 1 greater
+                                    // than the field number in the CAN message)
+                                    enqueue_cmd(current_cmd_id,
+                                        &col_data_block_cmd, current_cmd_arg1,
+                                        next_field_num + 1);
+
 #ifdef COMMANDS_DEBUG
-                                    print("Requesting field #%u\n", next_field_num);
+                                    print("Requesting field %u\n", next_field_num);
 #endif
                                 }
 

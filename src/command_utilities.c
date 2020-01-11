@@ -354,7 +354,7 @@ something goes wrong.
 */
 void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("enqueue_cmd: cmd_id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+    print("enqueue_cmd: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         cmd_id, cmd->opcode, arg1, arg2);
 #endif
 
@@ -379,7 +379,7 @@ something goes wrong.
 */
 void enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("enqueue_cmd_front: cmd_id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+    print("enqueue_cmd_front: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         cmd_id, cmd->opcode, arg1, arg2);
 #endif
 
@@ -445,7 +445,7 @@ void dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) 
     }
 
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("dequeue_cmd: cmd_id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+    print("dequeue_cmd: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         *cmd_id, (*cmd)->opcode, *arg1, *arg2);
 #endif
 }
@@ -466,7 +466,7 @@ bool cmd_queue_contains_col_data_block(uint8_t block_type) {
 
             if (cmd == &col_data_block_cmd && arg1 == ((uint32_t) block_type)) {
 #ifdef COMMAND_UTILITIES_DEBUG
-                print("Found col data block command in queue (arg1 = %lu, arg2 = %lu)\n", arg1, arg2);
+                print("Found col data block cmd in queue (%lu, %lu)\n", arg1, arg2);
 #endif
                 return true;
             }
@@ -498,7 +498,7 @@ void execute_next_cmd(void) {
     }
 
     if (print_cmds) {
-        print("Cmd: cmd_id = 0x%.4x, opcode = 0x%.2x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+        print("Cmd: id = 0x%.4x, opcode = 0x%.2x, arg1 = 0x%lx, arg2 = 0x%lx\n",
             current_cmd_id, current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
     }
 
@@ -544,7 +544,7 @@ void execute_next_cmd(void) {
     }
     else {
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("Not writing to command log\n");
+    print("Not writing to cmd log\n");
 #endif
     }
 
@@ -555,7 +555,7 @@ void execute_next_cmd(void) {
 // Finishes executing the current command and writes the status byte in the command log
 void finish_current_cmd(uint8_t status) {
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("%s: status = 0x%.2x\n", __FUNCTION__, status);
+    print("%s: stat = 0x%.2x\n", __FUNCTION__, status);
 #endif
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -576,7 +576,7 @@ void finish_current_cmd(uint8_t status) {
             // indicates data collection is still in progress
             if (status != CMD_RESP_STATUS_DATA_COL_IN_PROGRESS) {
     #ifdef COMMAND_UTILITIES_DEBUG
-                print("Writing memory header status\n");
+                print("Writing mem header status\n");
     #endif
 
                 for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
@@ -628,7 +628,7 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
     uint32_t next_end_addr = mem_block_end_addr(section, next_block);
     uint32_t next_sector = mem_sector_for_addr(next_end_addr);
     
-#ifdef COMMAND_UTILITIES_DEBUG
+#ifdef COMMAND_UTILITIES_VERBOSE
     print("Preparing mem section block\n");
     print("Current: block = 0x%lx, end_addr = 0x%lx, sector = 0x%lx\n",
         section->curr_block, curr_end_addr, curr_sector);
@@ -774,7 +774,7 @@ void cmd_timeout_timer_cb(void) {
 
     if (cmd_timeout_count_s >= cmd_timeout_period_s) {
 #ifdef COMMAND_UTILITIES_DEBUG
-        print("COMMAND TIMED OUT\n");
+        print("CMD TIMED OUT\n");
 #endif
         // Only add response packet if not auto command
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
