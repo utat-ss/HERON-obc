@@ -781,7 +781,11 @@ void col_data_block_fn(void) {
                     uint32_t data = 0;
 
                     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                        // If there are no messages in the CAN RX queue, re-enqueue
+                        // this command to the command queue and stop
                         if (queue_empty(&data_rx_msg_queue)) {
+                            enqueue_cmd(current_cmd_id, &col_data_block_cmd,
+                                current_cmd_arg1, current_cmd_arg2);
                             finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
                             return;
                         }
@@ -877,6 +881,7 @@ void col_data_block_fn(void) {
                         }
                         
                         // If the opcode does not match this block type, leave it in the queue
+                        // TODO  - re-enqueue same command?
                         else {
                             if (print_can_msgs) {
                                 print("Left msg in queue\n");

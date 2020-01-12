@@ -2,6 +2,7 @@
 
 // Uncomment for extra debugging prints
 #define COMMAND_UTILITIES_DEBUG
+// #define COMMAND_UTILITIES_DEBUG_QUEUES
 // #define COMMAND_UTILITIES_VERBOSE
 
 // If you get an error here because `security.h` is not found, copy the dummy
@@ -353,7 +354,7 @@ Enqueue the opcode instead of the function pointer because it's safer in case
 something goes wrong.
 */
 void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
-#ifdef COMMAND_UTILITIES_DEBUG
+#ifdef COMMAND_UTILITIES_DEBUG_QUEUES
     print("enqueue_cmd: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         cmd_id, cmd->opcode, arg1, arg2);
 #endif
@@ -378,7 +379,7 @@ Enqueue the opcode instead of the function pointer because it's safer in case
 something goes wrong.
 */
 void enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
-#ifdef COMMAND_UTILITIES_DEBUG
+#ifdef COMMAND_UTILITIES_DEBUG_QUEUES
     print("enqueue_cmd_front: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         cmd_id, cmd->opcode, arg1, arg2);
 #endif
@@ -444,7 +445,7 @@ void dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) 
         bytes_to_cmd(cmd_id, cmd, arg1, arg2, bytes1, bytes2);
     }
 
-#ifdef COMMAND_UTILITIES_DEBUG
+#ifdef COMMAND_UTILITIES_DEBUG_QUEUES
     print("dequeue_cmd: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         *cmd_id, (*cmd)->opcode, *arg1, *arg2);
 #endif
@@ -503,7 +504,7 @@ void execute_next_cmd(void) {
     }
 
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("Starting cmd\n");
+    print("Start cmd\n");
 #endif
 
     // Start timeout timer at 0

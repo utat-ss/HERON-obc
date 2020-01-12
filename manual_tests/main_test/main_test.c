@@ -22,6 +22,9 @@ bool sim_eps = false;
 // Set to true to simulate communicating with PAY (without PAY actually being
 // connected over CAN)
 bool sim_pay = false;
+// Denominator of probability the simulated EPS/PAY will respond to a data
+// collection field request (e.g. 5 means 1/5 probability)
+uint32_t data_col_prob_denom = 3;
 // Set to true to simulate using the transceiver
 bool sim_trans = false;
 
@@ -84,6 +87,13 @@ void sim_send_next_eps_tx_msg(void) {
         return;
     }
 
+    // Normally there would be several iterations of the main loop before EPS
+    // responds, so pick a chance of this being the iteration where it responds
+    // Most of the time it will not respond so return
+    if ((random() % data_col_prob_denom) != 0) {
+        return;
+    }
+
     // TX and RX defined from OBC's perspective
     uint8_t tx_msg[8] = {0x00};
     dequeue(&eps_tx_msg_queue, tx_msg);
@@ -139,8 +149,6 @@ void sim_send_next_eps_tx_msg(void) {
             return;
     }
 
-    // Simulate waiting to receive the message
-    delay_random_ms(100);
     // print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);
 }
@@ -148,6 +156,13 @@ void sim_send_next_eps_tx_msg(void) {
 // Simulates sending a PAY TX message and getting a response back
 void sim_send_next_pay_tx_msg(void) {
     if (queue_empty(&pay_tx_msg_queue)) {
+        return;
+    }
+
+    // Normally there would be several iterations of the main loop before PAY
+    // responds, so pick a chance of this being the iteration where it responds
+    // Most of the time it will not respond so return
+    if ((random() % data_col_prob_denom) != 0) {
         return;
     }
 
@@ -217,8 +232,6 @@ void sim_send_next_pay_tx_msg(void) {
             return;
     }
 
-    // Simulate waiting to receive the message
-    delay_random_ms(100);
     // print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);
 }

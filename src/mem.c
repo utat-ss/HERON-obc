@@ -18,7 +18,7 @@ Flash is designed so that you can erase large sections at once, which means sett
 #include "mem.h"
 
 // Useful to comment/uncomment for debugging
-#define MEM_DEBUG
+// #define MEM_DEBUG
 
 
 // Chip selects for each of the memory chips
