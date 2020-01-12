@@ -196,11 +196,11 @@ void sim_send_next_pay_tx_msg(void) {
 
         case CAN_PAY_CTRL:
             if ((field_num == CAN_PAY_CTRL_PING) ||
-                (field_num == CAN_PAY_CTRL_ACT_UP) ||
-                (field_num == CAN_PAY_CTRL_ACT_DOWN) ||
+                (field_num == CAN_PAY_CTRL_MOTOR_UP) ||
+                (field_num == CAN_PAY_CTRL_MOTOR_DOWN) ||
                 (field_num == CAN_PAY_CTRL_ERASE_EEPROM)) {
                 // Don't need to populate anything
-            } else if (field_num == CAN_PAY_CTRL_RESET) {
+            } else if (field_num == CAN_PAY_CTRL_RESET_SSM) {
                 // Don't send a message back for reset
                 return;
             } else if (field_num == CAN_PAY_CTRL_READ_EEPROM) {

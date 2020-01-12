@@ -390,9 +390,9 @@ void send_pay_can_msg_fn(void) {
 void act_pay_motors_fn(void) {
     // Must have a valid argument corresponding to one of the CAN field numbers
     // for motor commands
-    if (current_cmd_arg1 == CAN_PAY_CTRL_ACT_UP ||
-            current_cmd_arg1 == CAN_PAY_CTRL_ACT_DOWN ||
-            current_cmd_arg1 == CAN_PAY_CTRL_BLIST_DEP_SEQ) {
+    if (current_cmd_arg1 == CAN_PAY_CTRL_MOTOR_UP ||
+            current_cmd_arg1 == CAN_PAY_CTRL_MOTOR_DOWN ||
+            current_cmd_arg1 == CAN_PAY_CTRL_MOTOR_DEP_ROUTINE) {
     
         // Enqueue temporary low-power mode CAN command for EPS
         // These will both be sent before the actuate motors CAN command
@@ -431,7 +431,7 @@ void reset_subsys_fn(void) {
         finish_current_cmd(CMD_RESP_STATUS_OK);
     }
     else if (current_cmd_arg1 == CMD_PAY) {
-        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_RESET, 0);
+        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_RESET_SSM, 0);
 
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
         finish_current_cmd(CMD_RESP_STATUS_OK);

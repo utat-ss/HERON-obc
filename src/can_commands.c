@@ -111,9 +111,9 @@ void process_eps_ctrl(uint8_t field_num) {
 
 void process_pay_ctrl(uint8_t field_num) {
     if (current_cmd == &act_pay_motors_cmd &&
-            (field_num == CAN_PAY_CTRL_ACT_UP ||
-            field_num == CAN_PAY_CTRL_ACT_DOWN ||
-            field_num == CAN_PAY_CTRL_BLIST_DEP_SEQ)) {
+            (field_num == CAN_PAY_CTRL_MOTOR_UP ||
+            field_num == CAN_PAY_CTRL_MOTOR_DOWN ||
+            field_num == CAN_PAY_CTRL_MOTOR_DEP_ROUTINE)) {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
         finish_current_cmd(CMD_RESP_STATUS_OK);
     }
