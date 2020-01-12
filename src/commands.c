@@ -807,103 +807,110 @@ void col_data_block_fn(void) {
                             ((uint32_t) msg[5] << 16) |
                             ((uint32_t) msg[6] << 8) |
                             ((uint32_t) msg[7]);
-                        
-                        // If the CAN opcode in the message matches the opcode for
-                        // this block type
-                        if (opcode == data_col->can_opcode) {
-                            // Don't actually use the contents of dummy_msg, just to remove the
-                            // message from the queue
-                            dequeue(&data_rx_msg_queue, dummy_msg);
-                            if (print_can_msgs) {
-                                print("Dequeued msg\n");
-                            }
-                            // Continue with processing the message
 
-                            // If the field number received in the CAN message is what we are expecting
-                            if (field_num == cmd_field - 1) {
-#ifdef COMMANDS_VERBOSE
-                                print("Received field %u\n", field_num);
-#endif
-
-                                // Update the current uptime for receiving this field
-                                data_col->prev_field_col_uptime_s = uptime_s;
-
-                                // Save received field data
-                                // Note that data_col->mem_section.curr_block has already been incremented,
-                                // so we need to use the block number from the header that was populated
-                                // at the start of this command
-                                data_col->fields[field_num] = data;
-                                write_mem_field(data_col->mem_section,
-                                    data_col->header.block_num,
-                                    field_num, data);
-
-                                // Send request for next field if there are more fields
-                                uint8_t next_field_num = field_num + 1;
-                                if (next_field_num < data_col->mem_section->fields_per_block) {
-                                    // Enqueue CAN message
-                                    enqueue_tx_msg(data_col->can_tx_queue,
-                                        data_col->can_opcode, next_field_num, 0);
-                                    // Enqueue command to check for the response
-                                    // (note command argument 2 must be 1 greater
-                                    // than the field number in the CAN message)
-                                    enqueue_cmd(current_cmd_id,
-                                        &col_data_block_cmd, current_cmd_arg1,
-                                        next_field_num + 1);
-
-#ifdef COMMANDS_VERBOSE
-                                    print("Requesting field %u\n", next_field_num);
-#endif
-                                }
-
-                                // If we have received all the fields
-                                else {
-                                    // Only send back a transceiver packet if the
-                                    // command was sent from ground
-                                    if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
-                                        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                                            start_trans_tx_resp(CMD_RESP_STATUS_OK);
-                                            // TODO - is this the correct block number?
-                                            append_to_trans_tx_resp((data_col->header.block_num >> 24) & 0xFF);
-                                            append_to_trans_tx_resp((data_col->header.block_num >> 16) & 0xFF);
-                                            append_to_trans_tx_resp((data_col->header.block_num >> 8) & 0xFF);
-                                            append_to_trans_tx_resp((data_col->header.block_num >> 0) & 0xFF);
-                                            finish_trans_tx_resp();
-                                        }
-                                    }
-
-#ifdef COMMANDS_VERBOSE
-                                    print("Done %s\n", data_col->name);
-#endif
-                                    finish_current_cmd(CMD_RESP_STATUS_OK);
-                                    return;
-                                }
-                            }
-                        }
-                        
-                        // If the opcode does not match this block type, leave it in the queue
-                        // TODO  - re-enqueue same command?
-                        else {
+                        // If the opcode does not match this block type, leave
+                        // it in the queue
+                        if (opcode != data_col->can_opcode) {
                             if (print_can_msgs) {
                                 print("Left msg in queue\n");
                             }
+                            // Re-enqueue the same command to check for this field
+                            enqueue_cmd(current_cmd_id, &col_data_block_cmd,
+                                current_cmd_arg1, current_cmd_arg2);
+                            finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
+                            return;
                         }
 
-                        finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
-                        return;
+                        // If the CAN opcode in the message matches the opcode for
+                        // this block type
+
+                        // Don't actually use the contents of dummy_msg, just to remove the
+                        // message from the queue
+                        dequeue(&data_rx_msg_queue, dummy_msg);
+                        if (print_can_msgs) {
+                            print("Dequeued msg\n");
+                        }
+                        // Continue with processing the message
+
+                        // If the field number received in the CAN message is what we are expecting
+                        if (field_num != cmd_field - 1) {
+                            // Re-enqueue the same command to check for this field
+                            enqueue_cmd(current_cmd_id, &col_data_block_cmd,
+                                current_cmd_arg1, current_cmd_arg2);
+                            finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
+                            return;
+                        }
+
+#ifdef COMMANDS_VERBOSE
+                        print("Received field %u\n", field_num);
+#endif
+
+                        // Update the current uptime for receiving this field
+                        data_col->prev_field_col_uptime_s = uptime_s;
+
+                        // Save received field data
+                        // Note that data_col->mem_section.curr_block has already been incremented,
+                        // so we need to use the block number from the header that was populated
+                        // at the start of this command
+                        data_col->fields[field_num] = data;
+                        write_mem_field(data_col->mem_section,
+                            data_col->header.block_num,
+                            field_num, data);
+
+                        // Send request for next field if there are more fields
+                        uint8_t next_field_num = field_num + 1;
+                        if (next_field_num < data_col->mem_section->fields_per_block) {
+                            // Enqueue CAN message
+                            enqueue_tx_msg(data_col->can_tx_queue,
+                                data_col->can_opcode, next_field_num, 0);
+                            // Enqueue command to check for the response
+                            // (note command argument 2 must be 1 greater
+                            // than the field number in the CAN message)
+                            enqueue_cmd(current_cmd_id,
+                                &col_data_block_cmd, current_cmd_arg1,
+                                next_field_num + 1);
+
+#ifdef COMMANDS_VERBOSE
+                            print("Requesting field %u\n", next_field_num);
+#endif
+
+                            finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
+                            return;
+                        }
+
+                        // If we have received all the fields
+                        else {
+                            // Only send back a transceiver packet if the
+                            // command was sent from ground
+                            if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
+                                ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                                    start_trans_tx_resp(CMD_RESP_STATUS_OK);
+                                    // TODO - is this the correct block number?
+                                    append_to_trans_tx_resp((data_col->header.block_num >> 24) & 0xFF);
+                                    append_to_trans_tx_resp((data_col->header.block_num >> 16) & 0xFF);
+                                    append_to_trans_tx_resp((data_col->header.block_num >> 8) & 0xFF);
+                                    append_to_trans_tx_resp((data_col->header.block_num >> 0) & 0xFF);
+                                    finish_trans_tx_resp();
+                                }
+                            }
+
+#ifdef COMMANDS_VERBOSE
+                            print("Done %s\n", data_col->name);
+#endif
+                            finish_current_cmd(CMD_RESP_STATUS_OK);
+                            return;
+                        }
                     }
 
                 }
-                // TODO - what if it doesn't match any of the data col types?
-                // finish current cmd and return?
             }
         }
     }
 
+    // If it doesn't match and of the data col types
     add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
     finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
     return;
-            
-    // Will continue from CAN callbacks
 }
 
 void get_cur_block_nums_fn(void) {
