@@ -421,6 +421,7 @@ uint32_t crc32(unsigned char *message, const uint8_t len) {
    uint32_t crc = 0xFFFFFFFF;
 
    i = 0;
+   // TODO - this is probably a bug, would stop early if a byte is 0x00
    while (message[i] != 0 && i < len) {
       byte = message[i];            // Get next byte.
       crc = crc ^ byte;

@@ -1,7 +1,9 @@
 #include "command_utilities.h"
 
 // Uncomment for extra debugging prints
-// #define COMMAND_UTILITIES_DEBUG
+#define COMMAND_UTILITIES_DEBUG
+// #define COMMAND_UTILITIES_DEBUG_QUEUES
+// #define COMMAND_UTILITIES_VERBOSE
 
 // If you get an error here because `security.h` is not found, copy the dummy
 // `security.h` file from https://github.com/HeronMkII/templates to your `src`
@@ -39,43 +41,83 @@ volatile bool beacon_inhibit_enabled = false;
 volatile uint32_t beacon_inhibit_count_s = 0;
 uint32_t beacon_inhibit_period_s = BEACON_INHIBIT_DEF_PERIOD_S;
 
-mem_header_t obc_hk_header;
+// Must define these separately here because of different array sizes
 uint32_t obc_hk_fields[CAN_OBC_HK_FIELD_COUNT] = { 0 };
-mem_header_t eps_hk_header;
 uint32_t eps_hk_fields[CAN_EPS_HK_FIELD_COUNT] = { 0 };
-mem_header_t pay_hk_header;
 uint32_t pay_hk_fields[CAN_PAY_HK_FIELD_COUNT] = { 0 };
-mem_header_t pay_opt_header;
 uint32_t pay_opt_fields[CAN_PAY_OPT_FIELD_COUNT] = { 0 };
+
 mem_header_t cmd_log_header;
 
+// Don't need to initialize headers here
+// Don't need to make these volatile because they are not modified
+// within ISRs
+data_col_t obc_hk_data_col = {
+    .name = "OBC_HK",
+    .auto_enabled = false,
+    .auto_enabled_eeprom_addr = OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,
+    .auto_period = OBC_HK_AUTO_DATA_COL_PERIOD,
+    .auto_period_eeprom_addr = OBC_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,
+    .prev_auto_col_uptime_s = 0,
+    .prev_field_col_uptime_s = 0,
+    .fields = obc_hk_fields,
+    .mem_section = &obc_hk_mem_section,
+    .cmd_log_block_num = 0,
+    .cmd_arg1 = CMD_OBC_HK,
+    .can_tx_queue = &eps_tx_msg_queue,  // N/A for this data type
+    .can_opcode = 0xFF, // N/A for this data type
+};
+data_col_t eps_hk_data_col = {
+    .name = "EPS_HK",
+    .auto_enabled = false,
+    .auto_enabled_eeprom_addr = EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,
+    .auto_period = EPS_HK_AUTO_DATA_COL_PERIOD,
+    .auto_period_eeprom_addr = EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,
+    .prev_auto_col_uptime_s = 0,
+    .prev_field_col_uptime_s = 0,
+    .fields = eps_hk_fields,
+    .mem_section = &eps_hk_mem_section,
+    .cmd_log_block_num = 0,
+    .cmd_arg1 = CMD_EPS_HK,
+    .can_tx_queue = &eps_tx_msg_queue,
+    .can_opcode = CAN_EPS_HK,
+};
+data_col_t pay_hk_data_col = {
+    .name = "PAY_HK",
+    .auto_enabled = false,
+    .auto_enabled_eeprom_addr = PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,
+    .auto_period = PAY_HK_AUTO_DATA_COL_PERIOD,
+    .auto_period_eeprom_addr = PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,
+    .prev_auto_col_uptime_s = 0,
+    .prev_field_col_uptime_s = 0,
+    .fields = pay_hk_fields,
+    .mem_section = &pay_hk_mem_section,
+    .cmd_log_block_num = 0,
+    .cmd_arg1 = CMD_PAY_HK,
+    .can_tx_queue = &pay_tx_msg_queue,
+    .can_opcode = CAN_PAY_HK,
+};
+data_col_t pay_opt_data_col = {
+    .name = "PAY_OPT",
+    .auto_enabled = false,
+    .auto_enabled_eeprom_addr = PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,
+    .auto_period = PAY_OPT_AUTO_DATA_COL_PERIOD,
+    .auto_period_eeprom_addr = PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,
+    .prev_auto_col_uptime_s = 0,
+    .prev_field_col_uptime_s = 0,
+    .fields = pay_opt_fields,
+    .mem_section = &pay_opt_mem_section,
+    .cmd_log_block_num = 0,
+    .cmd_arg1 = CMD_PAY_OPT,
+    .can_tx_queue = &pay_tx_msg_queue,
+    .can_opcode = CAN_PAY_OPT,
+};
 
-volatile auto_data_col_t obc_hk_auto_data_col = {
-    .enabled = false,
-    .period = OBC_HK_AUTO_DATA_COL_PERIOD,
-    .count = 0
-};
-volatile auto_data_col_t eps_hk_auto_data_col = {
-    .enabled = false,
-    .period = EPS_HK_AUTO_DATA_COL_PERIOD,
-    .count = 0
-};
-volatile auto_data_col_t pay_hk_auto_data_col = {
-    .enabled = false,
-    .period = PAY_HK_AUTO_DATA_COL_PERIOD,
-    .count = 0
-};
-volatile auto_data_col_t pay_opt_auto_data_col = {
-    .enabled = false,
-    .period = PAY_OPT_AUTO_DATA_COL_PERIOD,
-    .count = 0
-};
-
-volatile auto_data_col_t* all_auto_data_cols[NUM_AUTO_DATA_COL_SECTIONS] = {
-    &obc_hk_auto_data_col,
-    &eps_hk_auto_data_col,
-    &pay_hk_auto_data_col,
-    &pay_opt_auto_data_col,
+data_col_t* all_data_cols[NUM_DATA_COL_SECTIONS] = {
+    &obc_hk_data_col,
+    &eps_hk_data_col,
+    &pay_hk_data_col,
+    &pay_opt_data_col,
 };
 
 
@@ -312,8 +354,8 @@ Enqueue the opcode instead of the function pointer because it's safer in case
 something goes wrong.
 */
 void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
-#ifdef COMMAND_UTILITIES_DEBUG
-    print("enqueue_cmd: cmd_id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+#ifdef COMMAND_UTILITIES_DEBUG_QUEUES
+    print("enqueue_cmd: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         cmd_id, cmd->opcode, arg1, arg2);
 #endif
 
@@ -337,8 +379,8 @@ Enqueue the opcode instead of the function pointer because it's safer in case
 something goes wrong.
 */
 void enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
-#ifdef COMMAND_UTILITIES_DEBUG
-    print("enqueue_cmd_front: cmd_id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+#ifdef COMMAND_UTILITIES_DEBUG_QUEUES
+    print("enqueue_cmd_front: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         cmd_id, cmd->opcode, arg1, arg2);
 #endif
 
@@ -403,10 +445,36 @@ void dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) 
         bytes_to_cmd(cmd_id, cmd, arg1, arg2, bytes1, bytes2);
     }
 
-#ifdef COMMAND_UTILITIES_DEBUG
-    print("dequeue_cmd: cmd_id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+#ifdef COMMAND_UTILITIES_DEBUG_QUEUES
+    print("dequeue_cmd: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         *cmd_id, (*cmd)->opcode, *arg1, *arg2);
 #endif
+}
+
+// Returns true if the command queue(s) contains a collect data block command
+// with the specified block type (arg 1) and field num (arg 2)
+// TODO - unit test
+bool cmd_queue_contains_col_data_block(uint8_t block_type) {
+    // Assume that the head and tail are the same between queues 1 and 2,
+    // since we always enqueue/dequeue to/from them at the same time atomically
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        for (uint8_t i = cmd_queue_1.head; i < cmd_queue_1.tail; i++) {
+            uint16_t cmd_id = 0;
+            cmd_t* cmd = NULL;
+            uint32_t arg1 = 0;
+            uint32_t arg2 = 0;
+            bytes_to_cmd(&cmd_id, &cmd, &arg1, &arg2, cmd_queue_1.content[i], cmd_queue_2.content[i]);
+
+            if (cmd == &col_data_block_cmd && arg1 == ((uint32_t) block_type)) {
+#ifdef COMMAND_UTILITIES_VERBOSE
+                print("Found col data cmd in queue (%lu, %lu)\n", arg1, arg2);
+#endif
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 // If the command queue is not empty, dequeues the next command and executes it
@@ -431,12 +499,12 @@ void execute_next_cmd(void) {
     }
 
     if (print_cmds) {
-        print("Cmd: cmd_id = 0x%.4x, opcode = 0x%.2x, arg1 = 0x%lx, arg2 = 0x%lx\n",
+        print("Cmd: id = 0x%.4x, opcode = 0x%.2x, arg1 = 0x%lx, arg2 = 0x%lx\n",
             current_cmd_id, current_cmd->opcode, current_cmd_arg1, current_cmd_arg2);
     }
 
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("Starting cmd\n");
+    print("Start cmd\n");
 #endif
 
     // Start timeout timer at 0
@@ -451,11 +519,35 @@ void execute_next_cmd(void) {
     }
 
     // Log everything for the command (except the status byte)
-    populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, CMD_RESP_STATUS_UNKNOWN);
-    write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block,
-        &cmd_log_header, current_cmd_id, current_cmd->opcode, current_cmd_arg1,
-        current_cmd_arg2);
-    inc_and_prepare_mem_section_curr_block(cmd_log_mem_section);
+    // If we are running col_data_block_cmd, only populate the header and write
+    // to the command log if it is field 0 (starting the command)
+    if ((current_cmd != &col_data_block_cmd) ||
+            (current_cmd == &col_data_block_cmd && current_cmd_arg2 == 0)) {
+        populate_header(&cmd_log_header, cmd_log_mem_section->curr_block, CMD_RESP_STATUS_UNKNOWN);
+        write_mem_cmd_block(cmd_log_mem_section, cmd_log_mem_section->curr_block,
+            &cmd_log_header, current_cmd_id, current_cmd->opcode, current_cmd_arg1,
+            current_cmd_arg2);
+        
+        // If we are starting a col_data_block_cmd (therefore must be field 0),
+        // store the block number
+        // in the command log (will be primary) so it can keep track of it
+        // for writing the status byte later
+        if (current_cmd == &col_data_block_cmd) {
+            for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+                data_col_t* data_col = all_data_cols[i];
+                if (current_cmd_arg1 == data_col->cmd_arg1) {
+                    data_col->cmd_log_block_num = cmd_log_mem_section->curr_block;
+                }
+            }
+        }
+
+        inc_and_prepare_mem_section_curr_block(cmd_log_mem_section);
+    }
+    else {
+#ifdef COMMAND_UTILITIES_VERBOSE
+    print("Not writing to cmd log\n");
+#endif
+    }
 
     // Execute the command's function
     (current_cmd->fn)();
@@ -463,6 +555,10 @@ void execute_next_cmd(void) {
 
 // Finishes executing the current command and writes the status byte in the command log
 void finish_current_cmd(uint8_t status) {
+#ifdef COMMAND_UTILITIES_VERBOSE
+    print("%s: stat = 0x%.2x\n", __FUNCTION__, status);
+#endif
+
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         // The erase flash command erases the command log as well, therefore re-write the command log
         // for the erase flash command
@@ -473,37 +569,44 @@ void finish_current_cmd(uint8_t status) {
                 current_cmd_arg2);
         }
 
-        // If we are collecting a data block, write the status byte to the
-        // header of the data section
+        // If we are collecting a data block and it is the last field, write the
+        // status byte to the header of the data section and the header of the
+        // primary command log
         if (current_cmd == &col_data_block_cmd) {
-            switch (current_cmd_arg1) {
-                case CMD_OBC_HK:
-                    write_mem_header_status(
-                        &obc_hk_mem_section, obc_hk_header.block_num, status);
-                    break;
-                case CMD_EPS_HK:
-                    write_mem_header_status(
-                        &eps_hk_mem_section, eps_hk_header.block_num, status);
-                    break;
-                case CMD_PAY_HK:
-                    write_mem_header_status(
-                        &pay_hk_mem_section, pay_hk_header.block_num, status);
-                    break;
-                case CMD_PAY_OPT:
-                    write_mem_header_status(
-                        &pay_opt_mem_section, pay_opt_header.block_num, status);
-                    break;
+            // Only do this if the status argument is not the dummy value that
+            // indicates data collection is still in progress
+            if (status != CMD_RESP_STATUS_DATA_COL_IN_PROGRESS) {
+    #ifdef COMMAND_UTILITIES_VERBOSE
+                print("Writing mem header status\n");
+    #endif
+
+                for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+                    data_col_t* data_col = all_data_cols[i];
+
+                    // If we just finished the last field of a command
+                    // or it was OBC_HK (is only enqueued and executed once)
+                    if (current_cmd_arg1 == data_col->cmd_arg1 &&
+                            (current_cmd_arg2 == data_col->mem_section->fields_per_block || current_cmd_arg1 == CMD_OBC_HK)) {
+                        write_mem_header_status(
+                            data_col->mem_section, data_col->header.block_num,
+                            status);
+                        write_mem_header_status(&prim_cmd_log_mem_section, data_col->cmd_log_block_num, status);
+                    }
+                }
             }
         }
 
-        // Write the status byte to the appropriate command log (based on command)
-        if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
-            || current_cmd == &read_sec_cmd_blocks_cmd) {
-            write_mem_header_status(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, status);
-        } else {
-            write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
+        else {
+            // TODO - refactor detecting whether command is primary or secondary
+            // Write the status byte to the appropriate command log (based on command)
+            if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
+                || current_cmd == &read_sec_cmd_blocks_cmd) {
+                write_mem_header_status(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, status);
+            } else {
+                write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
+            }
         }
-        
+
         current_cmd_id = 0xFFFF;
         current_cmd = &nop_cmd;
         current_cmd_arg1 = 0;
@@ -513,7 +616,7 @@ void finish_current_cmd(uint8_t status) {
     }
 
 #ifdef COMMAND_UTILITIES_DEBUG
-    print("Finished cmd\n");
+    print("Finish cmd: stat = 0x%.2x\n", status);
 #endif
 }
 
@@ -528,7 +631,7 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
     uint32_t next_end_addr = mem_block_end_addr(section, next_block);
     uint32_t next_sector = mem_sector_for_addr(next_end_addr);
     
-#ifdef COMMAND_UTILITIES_DEBUG
+#ifdef COMMAND_UTILITIES_VERBOSE
     print("Preparing mem section block\n");
     print("Current: block = 0x%lx, end_addr = 0x%lx, sector = 0x%lx\n",
         section->curr_block, curr_end_addr, curr_sector);
@@ -543,6 +646,9 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
     }
 
     // Set the new block number
+    // TODO - might not always want to do this to reduce EEPROM wear?
+    // Maybe once every 5-10 times?
+    // Maybe command to force write to EEPROM?
     set_mem_section_curr_block(section, next_block);
 }
 
@@ -606,76 +712,56 @@ void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields) {
 
 
 void init_auto_data_col(void) {
-    obc_hk_auto_data_col.enabled = read_eeprom_or_default(
+    obc_hk_data_col.auto_enabled = read_eeprom_or_default(
         OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
-    eps_hk_auto_data_col.enabled = read_eeprom_or_default(
+    eps_hk_data_col.auto_enabled = read_eeprom_or_default(
         EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
-    pay_hk_auto_data_col.enabled = read_eeprom_or_default(
+    pay_hk_data_col.auto_enabled = read_eeprom_or_default(
         PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
-    pay_opt_auto_data_col.enabled = read_eeprom_or_default(
+    pay_opt_data_col.auto_enabled = read_eeprom_or_default(
         PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
     
-    obc_hk_auto_data_col.period = read_eeprom_or_default(
+    obc_hk_data_col.auto_period = read_eeprom_or_default(
         OBC_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, OBC_HK_AUTO_DATA_COL_PERIOD);
-    eps_hk_auto_data_col.period = read_eeprom_or_default(
+    eps_hk_data_col.auto_period = read_eeprom_or_default(
         EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, EPS_HK_AUTO_DATA_COL_PERIOD);
-    pay_hk_auto_data_col.period = read_eeprom_or_default(
+    pay_hk_data_col.auto_period = read_eeprom_or_default(
         PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, PAY_HK_AUTO_DATA_COL_PERIOD);
-    pay_opt_auto_data_col.period = read_eeprom_or_default(
+    pay_opt_data_col.auto_period = read_eeprom_or_default(
         PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, PAY_OPT_AUTO_DATA_COL_PERIOD);
-
-    add_uptime_callback(auto_data_col_timer_cb);
 }
 
-// Automatic data collection timer callback (for 16-bit timer)
-void auto_data_col_timer_cb(void) {
-    // print("Auto data col timer cb\n");
-
-    if (obc_hk_auto_data_col.enabled) {
-        obc_hk_auto_data_col.count += 1;
-
-        if (obc_hk_auto_data_col.count >= obc_hk_auto_data_col.period) {
-#ifdef COMMAND_UTILITIES_DEBUG
-            print("Auto OBC_HK\n");
+// Automatic data collection functionality to run in main loop
+void run_auto_data_col(void) {
+#ifdef COMMAND_UTILITIES_VERBOSE
+    print("Auto data col\n");
 #endif
-            obc_hk_auto_data_col.count = 0;
-            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_OBC_HK, 1);    // auto
-        }
-    }
 
-    if (eps_hk_auto_data_col.enabled) {
-        eps_hk_auto_data_col.count += 1;
+    // Atomic because uptime_s could be changed by interrupt
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        // Could have multiple triggering at the same time
+        for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+            data_col_t* data_col = all_data_cols[i];
 
-        if (eps_hk_auto_data_col.count >= eps_hk_auto_data_col.period) {
+            if (data_col->auto_enabled &&
+                    (uptime_s >= data_col->prev_auto_col_uptime_s + data_col->auto_period)) {
 #ifdef COMMAND_UTILITIES_DEBUG
-            print("Auto EPS_HK\n");
+                print("Auto %s\n", data_col->name);
 #endif
-            eps_hk_auto_data_col.count = 0;
-            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_EPS_HK, 1);    // auto
-        }
-    }
 
-    if (pay_hk_auto_data_col.enabled) {
-        pay_hk_auto_data_col.count += 1;
-
-        if (pay_hk_auto_data_col.count >= pay_hk_auto_data_col.period) {
+                // To avoid filling up the command queue, only enqueue it if
+                // the queue does not alreay contain a collect data block
+                // command for this block type
+                if (!cmd_queue_contains_col_data_block(data_col->cmd_arg1)) {
+                    data_col->prev_auto_col_uptime_s = uptime_s;
+                    enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, data_col->cmd_arg1, 0);
+                }
+                else {
 #ifdef COMMAND_UTILITIES_DEBUG
-            print("Auto PAY_HK\n");
+                    print("Already in cmd queue\n");
 #endif
-            pay_hk_auto_data_col.count = 0;
-            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_HK, 1);    // auto
-        }
-    }
-
-    if (pay_opt_auto_data_col.enabled) {
-        pay_opt_auto_data_col.count += 1;
-
-        if (pay_opt_auto_data_col.count >= pay_opt_auto_data_col.period) {
-#ifdef COMMAND_UTILITIES_DEBUG
-            print("Auto PAY_OPT\n");
-#endif
-            pay_opt_auto_data_col.count = 0;
-            enqueue_cmd(CMD_CMD_ID_AUTO_ENQUEUED, &col_data_block_cmd, CMD_PAY_OPT, 1);   // auto
+                }
+            }
         }
     }
 }
@@ -691,7 +777,7 @@ void cmd_timeout_timer_cb(void) {
 
     if (cmd_timeout_count_s >= cmd_timeout_period_s) {
 #ifdef COMMAND_UTILITIES_DEBUG
-        print("COMMAND TIMED OUT\n");
+        print("CMD TIMED OUT\n");
 #endif
         // Only add response packet if not auto command
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {

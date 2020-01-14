@@ -88,10 +88,11 @@ typedef struct {
 #define CMD_ACK_STATUS_FULL_CMD_QUEUE       0x0B
 
 // Response/command log status bytes
-#define CMD_RESP_STATUS_OK              0x00
-#define CMD_RESP_STATUS_INVALID_ARGS    0x01
-#define CMD_RESP_STATUS_TIMED_OUT       0x02
-#define CMD_RESP_STATUS_UNKNOWN         0xFF
+#define CMD_RESP_STATUS_OK                      0x00
+#define CMD_RESP_STATUS_INVALID_ARGS            0x01
+#define CMD_RESP_STATUS_TIMED_OUT               0x02
+#define CMD_RESP_STATUS_DATA_COL_IN_PROGRESS    0x03
+#define CMD_RESP_STATUS_UNKNOWN                 0xFF
 
 // For unsuccessful ACKs where opcode/args are unknown
 // This is OK because we don't ACK the auto enqueued commands
@@ -101,6 +102,11 @@ typedef struct {
 
 // TODO - change value?
 #define CMD_TIMEOUT_DEF_PERIOD_S    30
+// Maximum number of seconds between fields of a collect data block command
+// before it times out
+// TODO - maybe 5s or 10s?
+// TODO - find upper bound, maybe 5s between fields?
+#define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S 10
 
 // Default 6 hours
 #define BEACON_INHIBIT_DEF_PERIOD_S (6 * 60 * 60)
@@ -110,8 +116,8 @@ typedef struct {
 #define CMD_READ_MEM_MAX_COUNT 115
 
 
-// Number of sections using auto data collection
-#define NUM_AUTO_DATA_COL_SECTIONS 4
+// Number of sections using data collection
+#define NUM_DATA_COL_SECTIONS 4
 
 // Default period for automatic data collection for each block type
 // (time between timer callbacks, in seconds)
@@ -133,13 +139,38 @@ typedef struct {
 
 // Automatic data collection for one block type
 typedef struct {
+    // String name for section (longest is PAY_OPT, 7 characters + terminating character)
+    char name[8];
     // True if we are currently collecting this type of data
-    bool enabled;
+    bool auto_enabled;
+    // EEPROM address to store enabled bit
+    uint16_t auto_enabled_eeprom_addr;
     // Seconds between collection
-    uint32_t period;
-    // Number of seconds counted (start at 0, go to `period`)
-    uint32_t count;
-} auto_data_col_t;
+    uint32_t auto_period;
+    // EEPROM addresss to store period
+    uint16_t auto_period_eeprom_addr;
+    // Value of `uptime_s` when we last started collecting a block of this type of data (only applied for automatically, this value is not affected by manually triggering data collection)
+    uint32_t prev_auto_col_uptime_s;
+    // Value of `uptime_s` when we last received a field of this type of data
+    uint32_t prev_field_col_uptime_s;
+    // Header for this section
+    mem_header_t header;
+    // Array of field data
+    uint32_t* fields;
+    // Corresponding section in memory to write data to
+    mem_section_t* mem_section;
+    // Keep track of the block number this command corresponds to in the
+    // command log (because multiple of these command will be executing
+    // simultaneously and overlapping each other)
+    // Should be primary command log
+    uint32_t cmd_log_block_num;
+    // Value of arg1 for this memory section/block type
+    uint32_t cmd_arg1;
+    // Queue to enqueue CAN TX messages to
+    queue_t* can_tx_queue;
+    // Opcode byte in CAN messages
+    uint8_t can_opcode;
+} data_col_t;
 
 
 extern queue_t cmd_queue_1;
@@ -157,21 +188,13 @@ extern volatile bool beacon_inhibit_enabled;
 extern volatile uint32_t beacon_inhibit_count_s;
 extern uint32_t beacon_inhibit_period_s;
 
-extern mem_header_t obc_hk_header;
-extern uint32_t obc_hk_fields[];
-extern mem_header_t eps_hk_header;
-extern uint32_t eps_hk_fields[];
-extern mem_header_t pay_hk_header;
-extern uint32_t pay_hk_fields[];
-extern mem_header_t pay_opt_header;
-extern uint32_t pay_opt_fields[];
 extern mem_header_t cmd_log_header;
 
-extern volatile auto_data_col_t obc_hk_auto_data_col;
-extern volatile auto_data_col_t eps_hk_auto_data_col;
-extern volatile auto_data_col_t pay_hk_auto_data_col;
-extern volatile auto_data_col_t pay_opt_auto_data_col;
-extern volatile auto_data_col_t* all_auto_data_cols[];
+extern data_col_t obc_hk_data_col;
+extern data_col_t eps_hk_data_col;
+extern data_col_t pay_hk_data_col;
+extern data_col_t pay_opt_data_col;
+extern data_col_t* all_data_cols[];
 
 extern rtc_date_t restart_date;
 extern rtc_time_t restart_time;
@@ -196,6 +219,7 @@ void enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2
 void bytes_to_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2,
         uint8_t* bytes1, uint8_t* bytes2);
 void dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2);
+bool cmd_queue_contains_col_data_block(uint8_t block_type);
 
 void execute_next_cmd(void);
 void finish_current_cmd(uint8_t status);
@@ -209,7 +233,7 @@ void append_header_to_tx_msg(mem_header_t* header);
 void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);
 
 void init_auto_data_col(void);
-void auto_data_col_timer_cb(void);
+void run_auto_data_col(void);
 void cmd_timeout_timer_cb(void);
 void beacon_inhibit_timer_cb(void);
 

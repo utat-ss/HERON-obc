@@ -76,7 +76,7 @@ void basic_commands_test (void) {
     enqueue_cmd(14, &get_auto_data_col_settings_cmd, 1, 0);
 
     execute_next_cmd();
-    ASSERT_EQ(obc_hk_auto_data_col.period, 40);
+    ASSERT_EQ(obc_hk_data_col.period, 40);
     ASSERT_TRUE(trans_tx_dec_avail);
 
     execute_next_cmd();
@@ -90,7 +90,7 @@ void basic_commands_test (void) {
     enqueue_cmd(15, &set_auto_data_col_enable_cmd, 1, 1);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
-    ASSERT_TRUE(obc_hk_auto_data_col.enabled);
+    ASSERT_TRUE(obc_hk_data_col.enabled);
     enqueue_cmd(17, &get_auto_data_col_settings_cmd, 1, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
@@ -103,7 +103,7 @@ void basic_commands_test (void) {
     enqueue_cmd(19, &set_auto_data_col_enable_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
-    ASSERT_FALSE(obc_hk_auto_data_col.enabled);
+    ASSERT_FALSE(obc_hk_data_col.enabled);
     enqueue_cmd(20, &get_auto_data_col_settings_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);

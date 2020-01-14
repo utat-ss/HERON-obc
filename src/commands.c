@@ -1,7 +1,8 @@
 #include "commands.h"
 
 // Uncomment for extra debugging prints
-// #define COMMANDS_DEBUG
+#define COMMANDS_DEBUG
+// #define COMMANDS_VERBOSE
 
 
 void nop_fn(void);
@@ -389,22 +390,22 @@ void send_pay_can_msg_fn(void) {
 void act_pay_motors_fn(void) {
     // Must have a valid argument corresponding to one of the CAN field numbers
     // for motor commands
-    if (current_cmd_arg1 == CAN_PAY_CTRL_ACT_UP ||
-            current_cmd_arg1 == CAN_PAY_CTRL_ACT_DOWN ||
-            current_cmd_arg1 == CAN_PAY_CTRL_BLIST_DEP_SEQ) {
+    if (current_cmd_arg1 == CAN_PAY_CTRL_MOTOR_UP ||
+            current_cmd_arg1 == CAN_PAY_CTRL_MOTOR_DOWN ||
+            current_cmd_arg1 == CAN_PAY_CTRL_MOTOR_DEP_ROUTINE) {
     
         // Enqueue temporary low-power mode CAN command for EPS
         // These will both be sent before the actuate motors CAN command
-        enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_START_TEMP_LPM, 0);
+        enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, CAN_EPS_CTRL_START_TEMP_LPM, 0);
 
         // Send extra PAY messages (essentially no-ops) before the motors
         // command to give some time for EPS to active temp LPM (mainly
         // switching off its heaters)
         // This could be important to allow power distribution to stabilize
         // before activating a large transient load
-        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_PING, 0);
-        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_PING, 0);
-        enqueue_pay_tx_msg(CAN_PAY_CTRL, current_cmd_arg1, 0);
+        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_PING, 0);
+        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_PING, 0);
+        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, current_cmd_arg1, 0);
 
         // Continues from CAN callbacks
     } else {
@@ -424,13 +425,13 @@ void reset_subsys_fn(void) {
     // PAY/EPS will not respond so don't expect a CAN message back
     // Just finish the current command
     else if (current_cmd_arg1 == CMD_EPS) {
-        enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_RESET, 0);
+        enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, CAN_EPS_CTRL_RESET, 0);
 
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
         finish_current_cmd(CMD_RESP_STATUS_OK);
     }
     else if (current_cmd_arg1 == CMD_PAY) {
-        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_RESET, 0);
+        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_RESET_SSM, 0);
 
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
         finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -449,12 +450,12 @@ void set_indef_lpm_enable_fn(void) {
 
     if (current_cmd_arg1 == 0) {
         // Disable indefinite LPM mode
-        enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_DISABLE_INDEF_LPM, 0);
-        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_DISABLE_INDEF_LPM, 0);
+        enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, CAN_EPS_CTRL_DISABLE_INDEF_LPM, 0);
+        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_DISABLE_INDEF_LPM, 0);
     } else if (current_cmd_arg1 == 1) {
         // Enable indefinite LPM mode
-        enqueue_eps_tx_msg(CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
-        enqueue_pay_tx_msg(CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
+        enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
+        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
     } else {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
         finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
@@ -463,35 +464,40 @@ void set_indef_lpm_enable_fn(void) {
     // Will continue from CAN callbacks if field number was valid
 }
 
-void read_rec_status_info_fn(void) {    
-    uint32_t obc_block = obc_hk_mem_section.curr_block;
+// TODO - refactor into common function to get data, also use for beacon
+void read_rec_status_info_fn(void) {
+    uint32_t obc_block = obc_hk_data_col.mem_section->curr_block;
     obc_block = (obc_block > 0) ? (obc_block - 1) : obc_block;
-    uint32_t eps_block = eps_hk_mem_section.curr_block;
+    uint32_t eps_block = eps_hk_data_col.mem_section->curr_block;
     eps_block = (eps_block > 0) ? (eps_block - 1) : eps_block;
-    uint32_t pay_block = pay_hk_mem_section.curr_block;
+    uint32_t pay_block = pay_hk_data_col.mem_section->curr_block;
     pay_block = (pay_block > 0) ? (pay_block - 1) : pay_block;
 
-    read_mem_data_block(&obc_hk_mem_section, obc_block, &obc_hk_header, obc_hk_fields);
-    read_mem_data_block(&eps_hk_mem_section, eps_block, &eps_hk_header, eps_hk_fields);
-    read_mem_data_block(&pay_hk_mem_section, pay_block, &pay_hk_header, pay_hk_fields);
+    read_mem_data_block(obc_hk_data_col.mem_section, obc_block,
+        &obc_hk_data_col.header, obc_hk_data_col.fields);
+    read_mem_data_block(eps_hk_data_col.mem_section, eps_block,
+        &eps_hk_data_col.header, eps_hk_data_col.fields);
+    read_mem_data_block(pay_hk_data_col.mem_section, pay_block,
+        &pay_hk_data_col.header, pay_hk_data_col.fields);
 
+    // TODO - refactor into common loop, excluse PAY_OPT
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
         for (uint8_t i = CAN_OBC_HK_UPTIME; i <= CAN_OBC_HK_RESTART_TIME; i++) {
-            append_to_trans_tx_resp((obc_hk_fields[i] >> 16) & 0xFF);
-            append_to_trans_tx_resp((obc_hk_fields[i] >> 8) & 0xFF);
-            append_to_trans_tx_resp(obc_hk_fields[i] & 0xFF);
+            append_to_trans_tx_resp((obc_hk_data_col.fields[i] >> 16) & 0xFF);
+            append_to_trans_tx_resp((obc_hk_data_col.fields[i] >> 8) & 0xFF);
+            append_to_trans_tx_resp(obc_hk_data_col.fields[i] & 0xFF);
         }
         for (uint8_t i = CAN_EPS_HK_UPTIME; i <= CAN_EPS_HK_RESTART_REASON; i++) {
-            append_to_trans_tx_resp((eps_hk_fields[i] >> 16) & 0xFF);
-            append_to_trans_tx_resp((eps_hk_fields[i] >> 8) & 0xFF);
-            append_to_trans_tx_resp(eps_hk_fields[i] & 0xFF);
+            append_to_trans_tx_resp((eps_hk_data_col.fields[i] >> 16) & 0xFF);
+            append_to_trans_tx_resp((eps_hk_data_col.fields[i] >> 8) & 0xFF);
+            append_to_trans_tx_resp(eps_hk_data_col.fields[i] & 0xFF);
         }
         for (uint8_t i = CAN_PAY_HK_UPTIME; i <= CAN_PAY_HK_RESTART_REASON; i++) {
-            append_to_trans_tx_resp((pay_hk_fields[i] >> 16) & 0xFF);
-            append_to_trans_tx_resp((pay_hk_fields[i] >> 8) & 0xFF);
-            append_to_trans_tx_resp(pay_hk_fields[i] & 0xFF);
+            append_to_trans_tx_resp((pay_hk_data_col.fields[i] >> 16) & 0xFF);
+            append_to_trans_tx_resp((pay_hk_data_col.fields[i] >> 8) & 0xFF);
+            append_to_trans_tx_resp(pay_hk_data_col.fields[i] & 0xFF);
         }
         
         finish_trans_tx_resp();
@@ -500,82 +506,45 @@ void read_rec_status_info_fn(void) {
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
-void read_data_block_fn(void) {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_resp(CMD_RESP_STATUS_OK);
+void read_data_block_common(bool read_mem) {
+    for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+        data_col_t* data_col = all_data_cols[i];
 
-        switch (current_cmd_arg1) {
-            case CMD_OBC_HK:
-                read_mem_data_block(&obc_hk_mem_section, current_cmd_arg2,
-                    &obc_hk_header, obc_hk_fields);
-                append_header_to_tx_msg(&obc_hk_header);
-                append_fields_to_tx_msg(obc_hk_fields, CAN_OBC_HK_FIELD_COUNT);
-                break;
+        if (current_cmd_arg1 == data_col->cmd_arg1) {
+            if (read_mem) {
+#ifdef COMMANDS_DEBUG
+                print("Reading data block from mem\n");
+#endif
+                // Read data block from flash memory into variables for header
+                // and fields
+                read_mem_data_block(data_col->mem_section, current_cmd_arg2,
+                    &data_col->header, data_col->fields);
+            }
+            
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                start_trans_tx_resp(CMD_RESP_STATUS_OK);
+                append_header_to_tx_msg(&data_col->header);
+                append_fields_to_tx_msg(data_col->fields,
+                    data_col->mem_section->fields_per_block);
+                finish_trans_tx_resp();
+            }
 
-            case CMD_EPS_HK:
-                read_mem_data_block(&eps_hk_mem_section, current_cmd_arg2,
-                    &eps_hk_header, eps_hk_fields);
-                append_header_to_tx_msg(&eps_hk_header);
-                append_fields_to_tx_msg(eps_hk_fields, CAN_EPS_HK_FIELD_COUNT);
-                break;
-
-            case CMD_PAY_HK:
-                read_mem_data_block(&pay_hk_mem_section, current_cmd_arg2,
-                    &pay_hk_header, pay_hk_fields);
-                append_header_to_tx_msg(&pay_hk_header);
-                append_fields_to_tx_msg(pay_hk_fields, CAN_PAY_HK_FIELD_COUNT);
-                break;
-
-            case CMD_PAY_OPT:
-                read_mem_data_block(&pay_opt_mem_section, current_cmd_arg2,
-                    &pay_opt_header, pay_opt_fields);
-                append_header_to_tx_msg(&pay_opt_header);
-                append_fields_to_tx_msg(pay_opt_fields, CAN_PAY_OPT_FIELD_COUNT);
-                break;
-
-            default:
-                add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
-                finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
-                return;
+            finish_current_cmd(CMD_RESP_STATUS_OK);
+            return;
         }
-
-        finish_trans_tx_resp();
     }
 
-    finish_current_cmd(CMD_RESP_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+    finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+    return;
+}
+
+void read_data_block_fn(void) {
+    read_data_block_common(true);
 }
 
 void read_rec_loc_data_block_fn(void) {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        start_trans_tx_resp(CMD_RESP_STATUS_OK);
-
-        switch (current_cmd_arg1) {
-            case CMD_OBC_HK:
-                append_header_to_tx_msg(&obc_hk_header);
-                append_fields_to_tx_msg(obc_hk_fields, CAN_OBC_HK_FIELD_COUNT);
-                break;
-            case CMD_EPS_HK:
-                append_header_to_tx_msg(&eps_hk_header);
-                append_fields_to_tx_msg(eps_hk_fields, CAN_EPS_HK_FIELD_COUNT);
-                break;
-            case CMD_PAY_HK:
-                append_header_to_tx_msg(&pay_hk_header);
-                append_fields_to_tx_msg(pay_hk_fields, CAN_PAY_HK_FIELD_COUNT);
-                break;
-            case CMD_PAY_OPT:
-                append_header_to_tx_msg(&pay_opt_header);
-                append_fields_to_tx_msg(pay_opt_fields, CAN_PAY_OPT_FIELD_COUNT);
-                break;
-            default:
-                add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
-                finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
-                return;
-        }
-
-        finish_trans_tx_resp();
-    }
-
-    finish_current_cmd(CMD_RESP_STATUS_OK);
+    read_data_block_common(false);    
 }
 
 // Common functionality for primary and secondary blocks
@@ -677,98 +646,299 @@ void erase_all_mem_fn(void) {
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
-// Starts requesting block data (field 0)
-void col_data_block_fn(void) {
-    switch (current_cmd_arg1) {
-        case CMD_OBC_HK:
-#ifdef COMMANDS_DEBUG
-            print("Start OBC_HK\n");
+void col_data_block_obc_hk(void) {
+#ifdef COMMANDS_VERBOSE
+    print("Start %s\n", obc_hk_data_col.name);
 #endif
 
-            populate_header(&obc_hk_header, obc_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
-            obc_hk_fields[CAN_OBC_HK_UPTIME] = uptime_s;
-            obc_hk_fields[CAN_OBC_HK_RESTART_COUNT] = restart_count;
-            obc_hk_fields[CAN_OBC_HK_RESTART_REASON] = restart_reason;
-            obc_hk_fields[CAN_OBC_HK_RESTART_DATE] =
-                ((uint32_t) restart_date.yy << 16) |
-                ((uint32_t) restart_date.mm << 8) |
-                ((uint32_t) restart_date.dd << 0);
-            obc_hk_fields[CAN_OBC_HK_RESTART_TIME] =
-                ((uint32_t) restart_time.hh << 16) |
-                ((uint32_t) restart_time.mm << 8) |
-                ((uint32_t) restart_time.ss << 0);
+    data_col_t* data_col = &obc_hk_data_col;
 
-            // Write header (except status)
-            write_mem_header_main(&obc_hk_mem_section, obc_hk_mem_section.curr_block, &obc_hk_header);
-            // Write data fields
-            for (uint8_t i = 0; i < obc_hk_mem_section.fields_per_block; i++) {
-                write_mem_field(&obc_hk_mem_section, obc_hk_mem_section.curr_block, i, obc_hk_fields[i]);
-                // i is field number; fields[i] corresponds to associated field data
-            }
+    // Populate header
+    populate_header(&data_col->header,
+        data_col->mem_section->curr_block,
+        CMD_RESP_STATUS_UNKNOWN);
+    // Write header (except status) to memory
+    write_mem_header_main(data_col->mem_section,
+        data_col->mem_section->curr_block,
+        &data_col->header);
+    // Increment the block number
+    inc_and_prepare_mem_section_curr_block(data_col->mem_section);
 
-            // Increment the block number
-            inc_and_prepare_mem_section_curr_block(&obc_hk_mem_section);
+    // Populate fields
+    data_col->fields[CAN_OBC_HK_UPTIME] = uptime_s;
+    data_col->fields[CAN_OBC_HK_RESTART_COUNT] = restart_count;
+    data_col->fields[CAN_OBC_HK_RESTART_REASON] = restart_reason;
+    data_col->fields[CAN_OBC_HK_RESTART_DATE] =
+        ((uint32_t) restart_date.yy << 16) |
+        ((uint32_t) restart_date.mm << 8) |
+        ((uint32_t) restart_date.dd << 0);
+    data_col->fields[CAN_OBC_HK_RESTART_TIME] =
+        ((uint32_t) restart_time.hh << 16) |
+        ((uint32_t) restart_time.mm << 8) |
+        ((uint32_t) restart_time.ss << 0);
 
-            // Only send back a transceiver packet if the command was sent from
-            // ground
-            if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
-                ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                    start_trans_tx_resp(CMD_RESP_STATUS_OK);
-                    append_to_trans_tx_resp((obc_hk_mem_section.curr_block >> 24) & 0xFF);
-                    append_to_trans_tx_resp((obc_hk_mem_section.curr_block >> 16) & 0xFF);
-                    append_to_trans_tx_resp((obc_hk_mem_section.curr_block >> 8) & 0xFF);
-                    append_to_trans_tx_resp((obc_hk_mem_section.curr_block >> 0) & 0xFF);
-                    finish_trans_tx_resp();
-                }
-            }
-#ifdef COMMANDS_DEBUG
-            print("Done OBC_HK\n");
-#endif
-            finish_current_cmd(CMD_RESP_STATUS_OK);
-            
-            // Don't use CAN
-            return;
-
-        case CMD_EPS_HK:
-#ifdef COMMANDS_DEBUG
-            print("Start EPS_HK\n");
-#endif
-            populate_header(&eps_hk_header, eps_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
-            write_mem_header_main(&eps_hk_mem_section, eps_hk_mem_section.curr_block, &eps_hk_header);
-            // This increment invalidates the current block number for the
-            // memory section struct for the current command, so the command
-            // will need to fetch the block number from the header
-            inc_and_prepare_mem_section_curr_block(&eps_hk_mem_section);
-            enqueue_eps_tx_msg(CAN_EPS_HK, 0, 0);
-            break;
-
-        case CMD_PAY_HK:
-#ifdef COMMANDS_DEBUG
-            print ("Start PAY_HK\n");
-#endif
-            populate_header(&pay_hk_header, pay_hk_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
-            write_mem_header_main(&pay_hk_mem_section, pay_hk_mem_section.curr_block, &pay_hk_header);
-            inc_and_prepare_mem_section_curr_block(&pay_hk_mem_section);
-            enqueue_pay_tx_msg(CAN_PAY_HK, 0, 0);
-            break;
-
-        case CMD_PAY_OPT:
-#ifdef COMMANDS_DEBUG
-            print ("Start PAY_OPT\n");
-#endif
-            populate_header(&pay_opt_header, pay_opt_mem_section.curr_block, CMD_RESP_STATUS_UNKNOWN);
-            write_mem_header_main(&pay_opt_mem_section, pay_opt_mem_section.curr_block, &pay_opt_header);
-            inc_and_prepare_mem_section_curr_block(&pay_opt_mem_section);
-            enqueue_pay_tx_msg(CAN_PAY_OPT, 0, 0);
-            break;
-
-        default:
-            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
-            return;
+    // Write fields to memory
+    for (uint8_t i = 0; i < data_col->mem_section->fields_per_block; i++) {
+        write_mem_field(data_col->mem_section,
+            data_col->mem_section->curr_block,
+            i, data_col->fields[i]);
+        // i is field number; fields[i] corresponds to associated field data
     }
 
-    // Will continue from CAN callbacks
+#ifdef COMMANDS_VERBOSE
+    print("Done %s\n", data_col->name);
+#endif
+
+    // Only send back a transceiver packet if the command was sent from
+    // ground (not auto)
+    if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            start_trans_tx_resp(CMD_RESP_STATUS_OK);
+            // Need to use the block number from the header because the block
+            // number for the memory section has already been incremented
+            // past the block just collected
+            append_to_trans_tx_resp((data_col->header.block_num >> 24) & 0xFF);
+            append_to_trans_tx_resp((data_col->header.block_num >> 16) & 0xFF);
+            append_to_trans_tx_resp((data_col->header.block_num >> 8) & 0xFF);
+            append_to_trans_tx_resp((data_col->header.block_num >> 0) & 0xFF);
+            finish_trans_tx_resp();
+        }
+    }
+
+    finish_current_cmd(CMD_RESP_STATUS_OK);
+    return;
+}
+
+// Field 0
+void col_data_block_other_start(data_col_t* data_col) {
+#ifdef COMMANDS_VERBOSE
+    print("Start data col\n", data_col->name, cmd_field);
+#endif
+
+    populate_header(&data_col->header,
+        data_col->mem_section->curr_block,
+        CMD_RESP_STATUS_UNKNOWN);
+    write_mem_header_main(data_col->mem_section,
+        data_col->mem_section->curr_block,
+        &data_col->header);
+    // This increment invalidates the current block number for the
+    // memory section struct for the current command, so the command
+    // will need to fetch the block number from the header
+    inc_and_prepare_mem_section_curr_block(
+        data_col->mem_section);
+
+    enqueue_tx_msg(data_col->can_tx_queue,
+        data_col->can_opcode, 0, 0);
+
+    // Enqueue command (check for response 0 then send field 1)
+    enqueue_cmd(current_cmd_id, &col_data_block_cmd, current_cmd_arg1, 1);
+
+    // Store the current uptime before receiving first field
+    data_col->prev_field_col_uptime_s = uptime_s;
+
+    finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
+    return;
+}
+
+// Fields 1...N
+void col_data_block_other_check(data_col_t* data_col) {
+    // Check if we have timed out before receiving a field response
+    if (uptime_s >= data_col->prev_field_col_uptime_s +
+            CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S) {
+#ifdef COMMANDS_DEBUG
+        print("COL DATA TIMED OUT\n");
+#endif
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
+        finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
+        return;
+    }
+
+    uint8_t msg[8] = {0x00};
+    uint8_t dummy_msg[8] = {0x00};
+
+    uint8_t opcode = 0;
+    uint8_t field_num = 0;
+    uint32_t data = 0;
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        // If there are no messages in the CAN RX queue, re-enqueue
+        // this command to the command queue and stop
+        if (queue_empty(&data_rx_msg_queue)) {
+            enqueue_cmd(current_cmd_id, &col_data_block_cmd,
+                current_cmd_arg1, current_cmd_arg2);
+            finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
+            return;
+        }
+        // Just peek the contents here, because we don't know yet whether we
+        // want to remove it from the queue
+        peek_queue(&data_rx_msg_queue, msg);
+
+        if (print_can_msgs) {
+            // Extra spaces to align with CAN TX messages
+            print("CAN RX (Data Col): ");
+            print_bytes(msg, 8);
+        }
+
+        // Break down the message into components
+        opcode = msg[2];
+        field_num = msg[3];
+        data =
+            ((uint32_t) msg[4] << 24) |
+            ((uint32_t) msg[5] << 16) |
+            ((uint32_t) msg[6] << 8) |
+            ((uint32_t) msg[7]);
+
+        // If the opcode does not match this block type, leave
+        // it in the queue
+        if (opcode != data_col->can_opcode) {
+            if (print_can_msgs) {
+                print("Left msg in queue\n");
+            }
+            // Re-enqueue the same command to check for this field
+            enqueue_cmd(current_cmd_id, &col_data_block_cmd,
+                current_cmd_arg1, current_cmd_arg2);
+            finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
+            return;
+        }
+
+        // If the CAN opcode in the message matches the opcode for
+        // this block type
+
+        // Don't actually use the contents of dummy_msg, just to remove the
+        // message from the queue
+        dequeue(&data_rx_msg_queue, dummy_msg);
+    }
+
+    if (print_can_msgs) {
+        print("Dequeued msg\n");
+    }
+
+    // Continue with processing the message
+
+    // If the field number received in the CAN message is what we are expecting
+    if (field_num != current_cmd_arg2 - 1) {
+        // Re-enqueue the same command to check for this field
+        enqueue_cmd(current_cmd_id, &col_data_block_cmd,
+            current_cmd_arg1, current_cmd_arg2);
+        finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
+        return;
+    }
+
+#ifdef COMMANDS_VERBOSE
+    print("Received field %u\n", field_num);
+#endif
+
+    // Update the current uptime for receiving this field
+    data_col->prev_field_col_uptime_s = uptime_s;
+
+    // Save received field data
+    // Note that data_col->mem_section.curr_block has already been incremented,
+    // so we need to use the block number from the header that was populated
+    // at the start of this command
+    data_col->fields[field_num] = data;
+    write_mem_field(data_col->mem_section,
+        data_col->header.block_num,
+        field_num, data);
+
+    // Send request for next field if there are more fields
+    uint8_t next_field_num = field_num + 1;
+    if (next_field_num < data_col->mem_section->fields_per_block) {
+        // Enqueue CAN message
+        enqueue_tx_msg(data_col->can_tx_queue,
+            data_col->can_opcode, next_field_num, 0);
+        // Enqueue command to check for the response
+        // (note command argument 2 must be 1 greater
+        // than the field number in the CAN message)
+        enqueue_cmd(current_cmd_id,
+            &col_data_block_cmd, current_cmd_arg1,
+            next_field_num + 1);
+
+#ifdef COMMANDS_VERBOSE
+        print("Requesting field %u\n", next_field_num);
+#endif
+
+        finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
+        return;
+    }
+
+    // If we have received all the fields
+    else {
+        // Only send back a transceiver packet if the
+        // command was sent from ground
+        if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                start_trans_tx_resp(CMD_RESP_STATUS_OK);
+                // TODO - is this the correct block number?
+                append_to_trans_tx_resp((data_col->header.block_num >> 24) & 0xFF);
+                append_to_trans_tx_resp((data_col->header.block_num >> 16) & 0xFF);
+                append_to_trans_tx_resp((data_col->header.block_num >> 8) & 0xFF);
+                append_to_trans_tx_resp((data_col->header.block_num >> 0) & 0xFF);
+                finish_trans_tx_resp();
+            }
+        }
+
+#ifdef COMMANDS_VERBOSE
+        print("Done %s\n", data_col->name);
+#endif
+        finish_current_cmd(CMD_RESP_STATUS_OK);
+        return;
+    }
+}
+
+void col_data_block_other(void) {
+    for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+        data_col_t* data_col = all_data_cols[i];
+
+        if (data_col->cmd_arg1 == current_cmd_arg1) {
+#ifdef COMMANDS_VERBOSE
+            print("%s: field %lu\n", data_col->name, current_cmd_arg2);
+            print("prev field uptime = %lu\n", data_col->prev_field_col_uptime_s);
+#endif
+
+            if (current_cmd_arg2 == 0) {
+                col_data_block_other_start(data_col);
+                return;
+            }
+
+            // Checking for a CAN response
+            // If not receiving the last field, send the next request
+            else if (1 <= current_cmd_arg2 &&
+                    current_cmd_arg2 <= data_col->mem_section->fields_per_block) {
+                col_data_block_other_check(data_col);
+                return;
+            }
+        }
+    }
+
+    if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+    }
+    finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+    return;
+}
+
+
+// Starts requesting block data (field 0)
+void col_data_block_fn(void) {
+    if (current_cmd_arg1 == CMD_OBC_HK) {
+        col_data_block_obc_hk();
+        return;
+    }
+
+    // Not OBC_HK
+    else if (current_cmd_arg1 == CMD_EPS_HK ||
+            current_cmd_arg1 == CMD_PAY_HK ||
+            current_cmd_arg1 == CMD_PAY_OPT) {
+        col_data_block_other();
+        return;
+    }
+
+    // If it doesn't match any of the data col types
+    if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+    }
+    finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+    return;
 }
 
 void get_cur_block_nums_fn(void) {
@@ -903,16 +1073,17 @@ void get_auto_data_col_settings_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
-        for (uint8_t i = 0; i < NUM_AUTO_DATA_COL_SECTIONS; i++) {
-            append_to_trans_tx_resp((uint8_t) all_auto_data_cols[i]->enabled);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 24) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 16) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 8) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->period >> 0) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 24) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 16) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 8) & 0xFF);
-            append_to_trans_tx_resp((all_auto_data_cols[i]->count >> 0) & 0xFF);
+        // TODO - maybe add uptime to data?
+        for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+            append_to_trans_tx_resp((uint8_t) all_data_cols[i]->auto_enabled);
+            append_to_trans_tx_resp((all_data_cols[i]->auto_period >> 24) & 0xFF);
+            append_to_trans_tx_resp((all_data_cols[i]->auto_period >> 16) & 0xFF);
+            append_to_trans_tx_resp((all_data_cols[i]->auto_period >> 8) & 0xFF);
+            append_to_trans_tx_resp((all_data_cols[i]->auto_period >> 0) & 0xFF);
+            append_to_trans_tx_resp((all_data_cols[i]->prev_auto_col_uptime_s >> 24) & 0xFF);
+            append_to_trans_tx_resp((all_data_cols[i]->prev_auto_col_uptime_s >> 16) & 0xFF);
+            append_to_trans_tx_resp((all_data_cols[i]->prev_auto_col_uptime_s >> 8) & 0xFF);
+            append_to_trans_tx_resp((all_data_cols[i]->prev_auto_col_uptime_s >> 0) & 0xFF);
         }
         
         finish_trans_tx_resp();
@@ -922,67 +1093,69 @@ void get_auto_data_col_settings_fn(void) {
 }
 
 void set_auto_data_col_enable_fn(void) {
-    switch (current_cmd_arg1) {
-        case CMD_OBC_HK:
-            obc_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
-            write_eeprom(OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  obc_hk_auto_data_col.enabled);
-            break;
-        case CMD_EPS_HK:
-            eps_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
-            write_eeprom(EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  eps_hk_auto_data_col.enabled);
-            break;
-        case CMD_PAY_HK:
-            pay_hk_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
-            write_eeprom(PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR,  pay_hk_auto_data_col.enabled);
-            break;
-        case CMD_PAY_OPT:
-            pay_opt_auto_data_col.enabled = current_cmd_arg2 ? 1 : 0;
-            write_eeprom(PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, pay_opt_auto_data_col.enabled);
-            break;
-        default:
-            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+    for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+        data_col_t* data_col = all_data_cols[i];
+
+        if (current_cmd_arg1 == data_col->cmd_arg1) {
+            if (current_cmd_arg2 > 1) {
+                add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+                finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+                return;
+            }
+
+            data_col->auto_enabled = current_cmd_arg2 ? true : false;
+            write_eeprom(data_col->auto_enabled_eeprom_addr, (uint32_t) data_col->auto_enabled);
+
+            // In case we just enabled data collection, set the uptime of last
+            // data collection to now
+            // e.g. say we never enabled OBC_HK auto, so last auto time is 0,
+            // say it is uptime 100s and period is 60s, it would trigger
+            // immediately
+            data_col->prev_auto_col_uptime_s = uptime_s;
+
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+            finish_current_cmd(CMD_RESP_STATUS_OK);
             return;
+        }
     }
 
-    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-    finish_current_cmd(CMD_RESP_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+    finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+    return;
 }
 
 void set_auto_data_col_period_fn(void) {
-    switch (current_cmd_arg1) {
-        case CMD_OBC_HK:
-            obc_hk_auto_data_col.period = current_cmd_arg2;
-            write_eeprom(OBC_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  obc_hk_auto_data_col.period);
-            break;
-        case CMD_EPS_HK:
-            eps_hk_auto_data_col.period = current_cmd_arg2;
-            write_eeprom(EPS_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  eps_hk_auto_data_col.period);
-            break;
-        case CMD_PAY_HK:
-            pay_hk_auto_data_col.period = current_cmd_arg2;
-            write_eeprom(PAY_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR,  pay_hk_auto_data_col.period);
-            break;
-        case CMD_PAY_OPT:
-            pay_opt_auto_data_col.period = current_cmd_arg2;
-            write_eeprom(PAY_OPT_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, pay_opt_auto_data_col.period);
-            break;
-        default:
-            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
-            finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+    for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+        data_col_t* data_col = all_data_cols[i];
+
+        if (current_cmd_arg1 == data_col->cmd_arg1) {
+            // TODO - enforce min/max
+
+            // if (current_cmd_arg2 > 1) {
+            //     add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+            //     finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+            //     return;
+            // }
+
+            data_col->auto_period = current_cmd_arg2;
+            write_eeprom(data_col->auto_period_eeprom_addr, (uint32_t) data_col->auto_period);
+
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
+            finish_current_cmd(CMD_RESP_STATUS_OK);
             return;
+        }
     }
 
-    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-    finish_current_cmd(CMD_RESP_STATUS_OK);
+    add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+    finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+    return;
 }
 
 void resync_auto_data_col_timers_fn(void) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        obc_hk_auto_data_col.count = 0;
-        eps_hk_auto_data_col.count = 0;
-        pay_hk_auto_data_col.count = 0;
-        pay_opt_auto_data_col.count = 0;
+        for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+            all_data_cols[i]->prev_auto_col_uptime_s = uptime_s;
+        }
     }
 
     add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
