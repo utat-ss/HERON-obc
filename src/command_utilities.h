@@ -34,8 +34,10 @@ typedef struct {
 #define CMD_EPS_HK          2
 #define CMD_PAY_HK          3
 #define CMD_PAY_OPT         4
-#define CMD_PRIM_CMD_LOG    5
-#define CMD_SEC_CMD_LOG     6
+#define CMD_PAY_OPT_1       5
+#define CMD_PAY_OPT_2       6
+#define CMD_PRIM_CMD_LOG    7
+#define CMD_SEC_CMD_LOG     8
 
 // Command opcodes
 #define CMD_PING_OBC                    0x00
@@ -107,6 +109,11 @@ typedef struct {
 // TODO - maybe 5s or 10s?
 // TODO - find upper bound, maybe 5s between fields?
 #define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S 10
+
+// Split of 47 PAY_OPT fields into separate read data block commands
+// TODO assert these in a test sum to match the CAN field count
+#define CMD_READ_DATA_BLOCK_PAY_OPT_1_COUNT 24
+#define CMD_READ_DATA_BLOCK_PAY_OPT_2_COUNT 23
 
 // Default 6 hours
 #define BEACON_INHIBIT_DEF_PERIOD_S (6 * 60 * 60)
