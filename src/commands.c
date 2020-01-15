@@ -506,32 +506,59 @@ void read_rec_status_info_fn(void) {
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
-void read_data_block_common(bool read_mem) {
-    for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
-        data_col_t* data_col = all_data_cols[i];
-
-        if (current_cmd_arg1 == data_col->cmd_arg1) {
-            if (read_mem) {
+// fields and num_fields are different for PAY_OPT_1 and PAY_OPT_2
+void read_data_block_impl(data_col_t* data_col, bool read_mem, uint32_t* fields,
+        uint8_t num_fields) {
+    if (read_mem) {
 #ifdef COMMANDS_DEBUG
-                print("Reading data block from mem\n");
+        print("Reading data block from mem\n");
 #endif
-                // Read data block from flash memory into variables for header
-                // and fields
-                read_mem_data_block(data_col->mem_section, current_cmd_arg2,
-                    &data_col->header, data_col->fields);
-            }
-            
-            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                start_trans_tx_resp(CMD_RESP_STATUS_OK);
-                append_header_to_tx_msg(&data_col->header);
-                append_fields_to_tx_msg(data_col->fields,
-                    data_col->mem_section->fields_per_block);
-                finish_trans_tx_resp();
-            }
+        // Read data block from flash memory into variables for header
+        // and fields
+        read_mem_data_block(data_col->mem_section, current_cmd_arg2,
+            &data_col->header, data_col->fields);
+    }
 
-            finish_current_cmd(CMD_RESP_STATUS_OK);
-            return;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        start_trans_tx_resp(CMD_RESP_STATUS_OK);
+        append_header_to_tx_msg(&data_col->header);
+        append_fields_to_tx_msg(fields, num_fields);
+        finish_trans_tx_resp();
+    }
+}
+
+void read_data_block_common(bool read_mem) {
+    if (current_cmd_arg1 == CMD_OBC_HK ||
+            current_cmd_arg1 == CMD_EPS_HK ||
+            current_cmd_arg1 == CMD_PAY_HK) {
+        for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
+            data_col_t* data_col = all_data_cols[i];
+
+            if (current_cmd_arg1 == data_col->cmd_arg1) {
+                read_data_block_impl(data_col, read_mem, data_col->fields,
+                    data_col->mem_section->fields_per_block);
+
+                finish_current_cmd(CMD_RESP_STATUS_OK);
+                return;
+            }
         }
+    }
+
+    else if (current_cmd_arg1 == CMD_PAY_OPT_1) {
+        read_data_block_impl(&pay_opt_data_col, read_mem,
+            &pay_opt_data_col.fields[0],
+            CMD_READ_DATA_BLOCK_PAY_OPT_1_COUNT);
+
+        finish_current_cmd(CMD_RESP_STATUS_OK);
+        return;
+    }
+    else if (current_cmd_arg1 == CMD_PAY_OPT_2) {
+        read_data_block_impl(&pay_opt_data_col, read_mem,
+            &pay_opt_data_col.fields[CMD_READ_DATA_BLOCK_PAY_OPT_1_COUNT],
+            CMD_READ_DATA_BLOCK_PAY_OPT_2_COUNT);
+
+        finish_current_cmd(CMD_RESP_STATUS_OK);
+        return;
     }
 
     add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
@@ -918,7 +945,7 @@ void col_data_block_other(void) {
 }
 
 
-// Starts requesting block data (field 0)
+// TODO - reset field arrays before starting collection
 void col_data_block_fn(void) {
     if (current_cmd_arg1 == CMD_OBC_HK) {
         col_data_block_obc_hk();
