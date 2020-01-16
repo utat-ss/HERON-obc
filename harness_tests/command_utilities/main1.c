@@ -164,7 +164,7 @@ test_t t1 = {.name = "dequeue empty test", .fn = dequeue_empty_test};
 test_t t2 = {.name = "triangle_queue test", .fn = triangle_queue_test};
 test_t t3 = {.name = "stair_queue test", .fn = stair_queue_test};
 
-test_t* suite[] = { &t1, &t2 };
+test_t* suite[] = { &t1, &t2, &t3 };
 
 int main( void ) {
     init_obc_phase1();
