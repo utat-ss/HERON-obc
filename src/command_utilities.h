@@ -221,11 +221,11 @@ cmd_t* cmd_opcode_to_cmd(uint8_t opcode);
 
 void cmd_to_bytes(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2,
         uint8_t* bytes1, uint8_t* bytes2);
-void enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2);
+bool enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2);
 void enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2);
 void bytes_to_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2,
         uint8_t* bytes1, uint8_t* bytes2);
-void dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2);
+bool dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2);
 bool cmd_queue_contains_col_data_block(uint8_t block_type);
 
 void execute_next_cmd(void);
