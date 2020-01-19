@@ -5,8 +5,7 @@ Datasheet: http://ww1.microchip.com/downloads/en/DeviceDoc/20005262D.pdf
 
 This library controls interfacing with the 3 flash memory chips connected to the OBC microcontroller.
 
-The organization of data memory follows the OBC Flash Memory Protocol:
-https://utat-ss.readthedocs.io/en/master/our-protocols/obc-mem.html
+The organization of data memory follows the OBC Flash Memory Protocol.
 
 Addresses are composed as follows (as uint32_t):
 { 0 (9 bits), chip_num (2 bits), chip_addr (21 bits)}

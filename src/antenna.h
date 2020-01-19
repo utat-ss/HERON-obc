@@ -9,9 +9,7 @@
 
 #include "i2c.h"
 
-
-// Antenna I2C addresses according to the datasheet
-// They said
+// Antenna I2C address according to the datasheet
 #define ANTENNA_I2C_ADDRESS ((uint8_t) 0x33)
 
 #define ANT_REL_A       PC6
