@@ -217,6 +217,7 @@ void append_to_trans_tx_resp(uint8_t byte);
 void finish_trans_tx_resp(void);
 
 cmd_t* cmd_opcode_to_cmd(uint8_t opcode);
+mem_section_t* mem_section_for_cmd(cmd_t* cmd);
 
 void cmd_to_bytes(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2,
         uint8_t* bytes1, uint8_t* bytes2);

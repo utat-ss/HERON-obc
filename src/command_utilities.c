@@ -313,6 +313,17 @@ cmd_t* cmd_opcode_to_cmd(uint8_t opcode) {
     return &nop_cmd;
 }
 
+mem_section_t* mem_section_for_cmd(cmd_t* cmd) {
+    if (cmd == &get_cur_block_nums_cmd ||
+            cmd == &read_data_block_cmd ||
+            cmd == &read_prim_cmd_blocks_cmd ||
+            cmd == &read_sec_cmd_blocks_cmd) {
+        return &sec_cmd_log_mem_section;
+    } else {
+        return &prim_cmd_log_mem_section;
+    }
+}
+
 
 
 
@@ -526,12 +537,7 @@ void execute_next_cmd(void) {
     cmd_timeout_count_s = 0;
 
     // Decide whether to use the primary or secondary command log
-    mem_section_t* cmd_log_mem_section = &prim_cmd_log_mem_section;
-    if (current_cmd == &read_data_block_cmd ||
-            current_cmd == &read_prim_cmd_blocks_cmd ||
-            current_cmd == &read_sec_cmd_blocks_cmd) {
-        cmd_log_mem_section = &sec_cmd_log_mem_section;
-    }
+    mem_section_t* cmd_log_mem_section = mem_section_for_cmd((cmd_t*) current_cmd);
 
     // Log everything for the command (except the status byte)
     // If we are running col_data_block_cmd, only populate the header and write
@@ -612,14 +618,9 @@ void finish_current_cmd(uint8_t status) {
         }
 
         else {
-            // TODO - refactor detecting whether command is primary or secondary
             // Write the status byte to the appropriate command log (based on command)
-            if (current_cmd == &read_data_block_cmd || current_cmd == &read_prim_cmd_blocks_cmd
-                || current_cmd == &read_sec_cmd_blocks_cmd) {
-                write_mem_header_status(&sec_cmd_log_mem_section, sec_cmd_log_mem_section.curr_block - 1, status);
-            } else {
-                write_mem_header_status(&prim_cmd_log_mem_section, prim_cmd_log_mem_section.curr_block - 1, status);
-            }
+            mem_section_t* section = mem_section_for_cmd((cmd_t*) current_cmd);
+            write_mem_header_status(section, section->curr_block - 1, status);
         }
 
         current_cmd_id = 0xFFFF;
