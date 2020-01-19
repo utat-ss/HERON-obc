@@ -26,7 +26,7 @@ bool sim_pay = false;
 // collection field request (e.g. 5 means 1/5 probability)
 uint32_t data_col_prob_denom = 3;
 
-bool reset_comms_delay_eeprom = false;
+bool reset_phase2_delay_eeprom = false;
 bool skip_phase2_delay = false;
 bool skip_phase2_init = false;
 
@@ -246,7 +246,7 @@ int main(void){
     sim_eps = true;
     sim_pay = true;
     phase2_delay.period_s = 30;
-    reset_comms_delay_eeprom = false;
+    reset_phase2_delay_eeprom = false;
     skip_phase2_delay = true;
     skip_phase2_init = true;
     com_timeout_period_s = 600;
@@ -286,11 +286,10 @@ int main(void){
     //     pay_opt_mem_section.curr_block);
     // print("\n");
 
-    if (reset_comms_delay_eeprom) {
+    if (reset_phase2_delay_eeprom) {
         write_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
-        print("Reset comms delay EEPROM\n");
+        print("Reset phase2 delay EEPROM\n");
     }
-    
     if (skip_phase2_delay) {
         phase2_delay.done = true;
     }
@@ -298,11 +297,6 @@ int main(void){
         phase2_delay.in_progress = false;
         phase2_delay.done = false;
     }
-
-    // TODO - remove
-    print("Init trans UART\n");
-    init_trans_uart();
-    print("\n");
 
     while (1) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
