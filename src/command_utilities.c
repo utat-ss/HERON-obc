@@ -318,7 +318,6 @@ cmd_t* cmd_opcode_to_cmd(uint8_t opcode) {
 
 // We know that the microcontroller uses 16 bit addresses, so store a function
 // pointer in the first 2 bytes of the queue entry (data[0] = MSB, data[1] = LSB)
-// TODO - develop a harness test for enqueueing and dequeueing commands
 
 /*
 Serialize command information to bytes.
@@ -386,7 +385,7 @@ to be the next executed command.
 Enqueue the opcode instead of the function pointer because it's safer in case
 something goes wrong.
 */
-void enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
+bool enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2) {
 #ifdef COMMAND_UTILITIES_DEBUG_QUEUES
     print("enqueue_cmd_front: id = 0x%.4x, opcode = 0x%x, arg1 = 0x%lx, arg2 = 0x%lx\n",
         cmd_id, cmd->opcode, arg1, arg2);
@@ -398,11 +397,19 @@ void enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2
     
     // Make sure modifications to the states of the two queues are atomic/consistent
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_full(&cmd_queue_1)) {
+            return false;
+        }
+        if (queue_full(&cmd_queue_2)) {
+            return false;
+        }
         cmd_to_bytes(cmd_id, cmd, arg1, arg2, bytes1, bytes2);
 
         enqueue_front(&cmd_queue_1, bytes1);
         enqueue_front(&cmd_queue_2, bytes2);
     }
+
+    return true;
 }
 
 /*
@@ -489,8 +496,6 @@ bool cmd_queue_contains_col_data_block(uint8_t block_type) {
 
 // If the command queue is not empty, dequeues the next command and executes it
 void execute_next_cmd(void) {
-    // TODO - maybe check if one queue has more items than the other and correct
-    // if necessary?
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         if (queue_empty(&cmd_queue_1)) {
             return;

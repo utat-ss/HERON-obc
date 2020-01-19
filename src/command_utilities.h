@@ -102,12 +102,10 @@ typedef struct {
 // When a command is automatically enqueued by OBC
 #define CMD_CMD_ID_AUTO_ENQUEUED        0x0000
 
-// TODO - change value?
 #define CMD_TIMEOUT_DEF_PERIOD_S    30
 // Maximum number of seconds between fields of a collect data block command
 // before it times out
-// TODO - maybe 5s or 10s?
-// TODO - find upper bound, maybe 5s between fields?
+// TODO - upper bound - maybe 5s or 10s?
 #define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S 10
 
 // Split of 47 PAY_OPT fields into separate read data block commands
@@ -118,9 +116,10 @@ typedef struct {
 // Default 6 hours
 #define BEACON_INHIBIT_DEF_PERIOD_S (6 * 60 * 60)
 
-// TODO
 // Max memory read
-#define CMD_READ_MEM_MAX_COUNT 115
+#define CMD_READ_MEM_MAX_COUNT          100
+// Minimum auto data collection period in seconds
+#define CMD_AUTO_DATA_COL_MIN_PERIOD    60
 
 
 // Number of sections using data collection
@@ -222,7 +221,7 @@ cmd_t* cmd_opcode_to_cmd(uint8_t opcode);
 void cmd_to_bytes(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2,
         uint8_t* bytes1, uint8_t* bytes2);
 bool enqueue_cmd(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2);
-void enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2);
+bool enqueue_cmd_front(uint16_t cmd_id, cmd_t* cmd, uint32_t arg1, uint32_t arg2);
 void bytes_to_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2,
         uint8_t* bytes1, uint8_t* bytes2);
 bool dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2);

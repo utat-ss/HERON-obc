@@ -1164,18 +1164,17 @@ void set_auto_data_col_enable_fn(void) {
 }
 
 void set_auto_data_col_period_fn(void) {
+    // Enforce minimum period to not collect too quickly
+    if (current_cmd_arg2 < CMD_AUTO_DATA_COL_MIN_PERIOD) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+        return;
+    }
+
     for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
         data_col_t* data_col = all_data_cols[i];
 
         if (current_cmd_arg1 == data_col->cmd_arg1) {
-            // TODO - enforce min/max
-
-            // if (current_cmd_arg2 > 1) {
-            //     add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
-            //     finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
-            //     return;
-            // }
-
             data_col->auto_period = current_cmd_arg2;
             write_eeprom(data_col->auto_period_eeprom_addr, (uint32_t) data_col->auto_period);
 
