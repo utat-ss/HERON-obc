@@ -3,7 +3,7 @@ This program tests `run_phase2_delay()`. It writes to EEPROM and should restore 
 
 To test, you can run the command `make read-eeprom` while the program is
 running. This will reset the MCU when you read the contents of the EEPROM from a
-laptop. Check the address COMMS_TIME_EEPROM_ADDR (should be 0x34) for the
+laptop. Check the address PHASE2_DELAY_DONE_EEPROM_ADDR for the
 done flag. Also check that this value is restored properly when the program
 restarts.
 */
@@ -14,25 +14,35 @@ restarts.
 #include "../../src/antenna.h"
 #include "../../src/general.h"
 
-void reset_eeprom(void) {
+void reset_done(void) {
     write_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
-    print("Reset EEPROM dword\n");
+    print("Reset EEPROM done flag\n");
+}
+
+void write_done(void) {
+    write_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR, PHASE2_DELAY_DONE_FLAG);
+    print("Wrote EEPROM done flag\n");
 }
 
 int main(void) {
     init_uart();
-    init_ant();
+    init_uptime();
 
     print("\n\n");
-    print("Starting comms delay test\n");
+    print("Starting phase 2 delay test\n");
 
     phase2_delay.period_s = 15;
-    print("Using 15 seconds\n");
+    print("Using 15 second period\n");
 
-    run_phase2_delay();
+    init_phase2_delay();
+
+    while (phase2_delay.in_progress) {
+        run_phase2_delay();
+    }
 
     // Optional
-    // reset_eeprom();
+    // reset_done();
+    // write_done();
 
     print("Done comms delay test\n");
 }
