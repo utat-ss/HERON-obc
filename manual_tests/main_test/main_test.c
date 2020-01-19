@@ -25,12 +25,10 @@ bool sim_pay = false;
 // Denominator of probability the simulated EPS/PAY will respond to a data
 // collection field request (e.g. 5 means 1/5 probability)
 uint32_t data_col_prob_denom = 3;
-// Set to true to simulate using the transceiver
-bool sim_trans = false;
 
 bool reset_comms_delay_eeprom = false;
-bool skip_comms_delay = false;
-bool skip_deploy_antenna = false;
+bool skip_phase2_delay = false;
+bool skip_phase2_init = false;
 
 bool disable_hb = false;
 
@@ -247,11 +245,10 @@ int main(void){
 
     sim_eps = true;
     sim_pay = true;
-    sim_trans = true;
-    comms_delay_s = 30;
+    phase2_delay.period_s = 30;
     reset_comms_delay_eeprom = false;
-    skip_comms_delay = true;
-    skip_deploy_antenna = true;
+    skip_phase2_delay = true;
+    skip_phase2_init = true;
     com_timeout_period_s = 600;
     beacon_inhibit_period_s = 15;
     hb_ping_period_s = 30;
@@ -267,12 +264,8 @@ int main(void){
 
     // print("sim_eps = %u\n", sim_eps);
     // print("sim_pay = %u\n", sim_pay);
-    // print("sim_trans = %u\n", sim_trans);
-    // print("sim_trans_uart = %u\n", sim_trans_uart);
-    // print("comms_delay_s = %lu\n", comms_delay_s);
-    // print("reset_comms_delay_eeprom = %u\n", reset_comms_delay_eeprom);
-    // print("skip_comms_delay = %u\n", skip_comms_delay);
-    // print("skip_deploy_antenna = %u\n", skip_deploy_antenna);
+    // print("skip_phase2_delay = %u\n", skip_phase2_delay);
+    // print("skip_phase2_init = %u\n", skip_phase2_init);
     // print("cmd_timer_period_s = %lu\n", cmd_timer_period_s);
     // print("beacon_inhibit_period_s = %lu\n", beacon_inhibit_period_s);
     // print("hb_ping_period_s = %lu\n", hb_ping_period_s);
@@ -294,27 +287,27 @@ int main(void){
     // print("\n");
 
     if (reset_comms_delay_eeprom) {
-        write_eeprom(COMMS_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
+        write_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR, EEPROM_DEF_DWORD);
         print("Reset comms delay EEPROM\n");
     }
-    if (!skip_comms_delay) {
-        run_comms_delay();
+    
+    if (skip_phase2_delay) {
+        phase2_delay.done = true;
     }
-    if (!skip_deploy_antenna) {
-        deploy_antenna();
+    if (skip_phase2_init) {
+        phase2_delay.in_progress = false;
+        phase2_delay.done = false;
     }
 
-    if (sim_trans) {
-        print("Init trans UART\n");
-        init_trans_uart();
-    } else {
-        print("Init OBC trans\n");
-        init_obc_phase2();
-    }
+    // TODO - remove
+    print("Init trans UART\n");
+    init_trans_uart();
     print("\n");
 
     while (1) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
+
+        run_phase2_delay();
 
         if (!disable_hb) {
             run_hb();

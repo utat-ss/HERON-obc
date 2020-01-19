@@ -1,6 +1,14 @@
 #include "general.h"
 
 
+phase2_delay_t phase2_delay = {
+    .in_progress = false,
+    .done = false,
+    .prev_uptime_s = 0,
+    .period_s = PHASE2_DELAY_PERIOD_S,
+};
+
+
 // Initializes everything in OBC, EXCEPT the transceiver/comms things that must
 // not be turned on for the first 30 minutes
 void init_obc_phase1(void) {
@@ -31,6 +39,8 @@ void init_obc_phase1(void) {
 
     init_uptime();
     init_com_timeout();
+
+    init_phase2_delay();
 
     init_auto_data_col();
     add_uptime_callback(cmd_timeout_timer_cb);
@@ -82,4 +92,57 @@ void set_def_trans_beacon_content(void) {
     content[27] = '\0';
 
     set_trans_beacon_content(content);
+}
+
+void init_phase2_delay(void) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        phase2_delay.in_progress = true;
+
+        phase2_delay.done = false;
+        if (read_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR) == PHASE2_DELAY_DONE_FLAG) {
+            print("Skipping phase2 delay\n");
+            phase2_delay.done = true;
+        } else {
+            print("Starting phase2 delay\n");
+        }
+
+        phase2_delay.prev_uptime_s = uptime_s;
+    }
+}
+
+// Delays 30 minutes before we can init comms
+// Fetches previous value in EEPROM to see if we have already finished this
+void run_phase2_delay(void) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (!phase2_delay.in_progress) {
+            return;
+        }
+
+        if (phase2_delay.done) {
+            init_obc_phase2();
+            phase2_delay.in_progress = false;
+            phase2_delay.done = false;
+            return;
+        }
+
+        // Only print the uptime once per second
+        if (uptime_s > phase2_delay.prev_uptime_s) {
+            phase2_delay.prev_uptime_s = uptime_s;
+
+            // Blink antenna warning LED on/off for even/odd seconds
+            if (uptime_s % 2 == 0) {
+                set_pin_high(ANT_DEP_WARN, &PORT_ANT_WARN);
+            } else {
+                set_pin_low(ANT_DEP_WARN, &PORT_ANT_WARN);
+            }
+
+            print("Delay: %lu/%lu s elapsed\n", uptime_s, phase2_delay.period_s);
+        }
+
+        if (uptime_s >= phase2_delay.period_s) {
+            phase2_delay.done = true;
+            write_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR, PHASE2_DELAY_DONE_FLAG);
+            print("Phase2 delay done\n");
+        }
+    }
 }

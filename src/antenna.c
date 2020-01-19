@@ -4,45 +4,12 @@
 
 // #define ANTENNA_DEBUG
 
-// Number of seconds to wait before initializing comms
-volatile uint32_t comms_delay_s = COMMS_DELAY_DEF_S;
 
 void init_ant(void) {
     // Initialize pins
     init_output_pin(ANT_REL_A, &DDR_ANT_REL, 0);
     init_output_pin(ANT_REL_B, &DDR_ANT_REL, 0);
     init_output_pin(ANT_DEP_WARN, &DDR_ANT_WARN, 0);
-}
-
-// Delays 30 minutes before we can init comms
-// Fetches previous value in EEPROM to see if we have already finished this
-void run_comms_delay(void) {
-    if (read_eeprom(COMMS_DELAY_DONE_EEPROM_ADDR) == COMMS_DELAY_DONE_FLAG) {
-        print("Already done comms delay\n");
-        return;
-    }
-
-    print("Starting comms delay\n");
-
-    // Use 100ms increments because that is tolerable for delay precision
-    for (uint32_t seconds = comms_delay_s; seconds > 0; seconds--) {
-        print("Time Remaining (seconds): %lu\n", seconds);
-        // reset watchdog timer
-        WDT_ENABLE_SYS_RESET(WDTO_8S);
-        // blink antenna warn light
-        set_pin_high(ANT_DEP_WARN, &PORT_ANT_WARN);
-        for (uint8_t hundred_ms = 0; hundred_ms < 5; hundred_ms++) {
-            _delay_ms(100);
-        }
-        set_pin_low(ANT_DEP_WARN, &PORT_ANT_WARN);
-        for (uint8_t hundred_ms = 0; hundred_ms < 5; hundred_ms++) {
-            _delay_ms(100);
-        }
-    }
-
-    write_eeprom(COMMS_DELAY_DONE_EEPROM_ADDR, COMMS_DELAY_DONE_FLAG);
-
-    print("Comms delay done\n");
 }
 
 /*
