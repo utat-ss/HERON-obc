@@ -68,7 +68,7 @@ void set_def_trans_beacon_content(void) {
     data_bytes[10] = restart_time.ss;
     
     // Need space for the terminating character
-    char content[17];
+    char content[28];
     // Use snprintf to populate the string buffer
     // https://www.microchip.com/webdoc/AVRLibcReferenceManual/group__avr__stdio_1ga77070c245d4ca4f7ec7d7144260fb875.html
     // Add 1 extra to the byte count because it includes the NUL character,
@@ -79,7 +79,7 @@ void set_def_trans_beacon_content(void) {
     }
     
     // Terminate string just in case something goes wrong
-    content[16] = '\0';
+    content[27] = '\0';
 
     set_trans_beacon_content(content);
 }
