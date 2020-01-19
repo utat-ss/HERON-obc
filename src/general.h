@@ -21,4 +21,6 @@
 void init_obc_phase1(void);
 void init_obc_phase2(void);
 
+void set_def_trans_beacon_content(void);
+
 #endif

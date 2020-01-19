@@ -72,7 +72,6 @@ boot = 0b0 (application mode)
 
 // Default beacon parameters
 #define TRANS_BEACON_DEF_PERIOD_S   60
-#define TRANS_BEACON_DEF_MSG        "UTAT"
 
 
 
