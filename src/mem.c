@@ -44,7 +44,9 @@ pin_info_t mem_cs[MEM_NUM_CHIPS] = {
 
 mem_section_t obc_hk_mem_section = {
     .start_addr = MEM_OBC_HK_START_ADDR,
+    .start_addr_eeprom_addr = MEM_OBC_HK_START_ADDR_EEPROM_ADDR,
     .end_addr = MEM_OBC_HK_END_ADDR,
+    .end_addr_eeprom_addr = MEM_OBC_HK_END_ADDR_EEPROM_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_OBC_HK_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_OBC_HK_FIELD_COUNT
@@ -52,7 +54,9 @@ mem_section_t obc_hk_mem_section = {
 
 mem_section_t eps_hk_mem_section = {
     .start_addr = MEM_EPS_HK_START_ADDR,
+    .start_addr_eeprom_addr = MEM_EPS_HK_START_ADDR_EEPROM_ADDR,
     .end_addr = MEM_EPS_HK_END_ADDR,
+    .end_addr_eeprom_addr = MEM_EPS_HK_END_ADDR_EEPROM_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_EPS_HK_FIELD_COUNT
@@ -60,7 +64,9 @@ mem_section_t eps_hk_mem_section = {
 
 mem_section_t pay_hk_mem_section = {
     .start_addr = MEM_PAY_HK_START_ADDR,
+    .start_addr_eeprom_addr = MEM_PAY_HK_START_ADDR_EEPROM_ADDR,
     .end_addr = MEM_PAY_HK_END_ADDR,
+    .end_addr_eeprom_addr = MEM_PAY_HK_END_ADDR_EEPROM_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_PAY_HK_FIELD_COUNT
@@ -68,7 +74,9 @@ mem_section_t pay_hk_mem_section = {
 
 mem_section_t pay_opt_mem_section = {
     .start_addr = MEM_PAY_OPT_START_ADDR,
+    .start_addr_eeprom_addr = MEM_PAY_OPT_START_ADDR_EEPROM_ADDR,
     .end_addr = MEM_PAY_OPT_END_ADDR,
+    .end_addr_eeprom_addr = MEM_PAY_OPT_END_ADDR_EEPROM_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = CAN_PAY_OPT_FIELD_COUNT
@@ -76,7 +84,9 @@ mem_section_t pay_opt_mem_section = {
 
 mem_section_t prim_cmd_log_mem_section = {
     .start_addr = MEM_PRIM_CMD_LOG_START_ADDR,
+    .start_addr_eeprom_addr = MEM_PRIM_CMD_LOG_START_ADDR_EEPROM_ADDR,
     .end_addr = MEM_PRIM_CMD_LOG_END_ADDR,
+    .end_addr_eeprom_addr = MEM_PRIM_CMD_LOG_END_ADDR_EEPROM_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_PRIM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = 1   // don't care
@@ -84,7 +94,9 @@ mem_section_t prim_cmd_log_mem_section = {
 
 mem_section_t sec_cmd_log_mem_section = {
     .start_addr = MEM_SEC_CMD_LOG_START_ADDR,
+    .start_addr_eeprom_addr = MEM_SEC_CMD_LOG_START_ADDR_EEPROM_ADDR,
     .end_addr = MEM_SEC_CMD_LOG_END_ADDR,
+    .end_addr_eeprom_addr = MEM_SEC_CMD_LOG_END_ADDR_EEPROM_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_SEC_CMD_LOG_CURR_BLOCK_EEPROM_ADDR,
     .fields_per_block = 1   // don't care
@@ -102,7 +114,6 @@ mem_section_t* all_mem_sections[MEM_NUM_SECTIONS] = {
 
 
 
-// TODO - store section start and end addresses in EEPROM
 void init_mem(void){
 /*
     intializes the chip select pin, unlocks (un-write protects)
@@ -146,13 +157,20 @@ writes the current block number of `section` to its designated address in EEPROM
 */
 void write_mem_section_eeprom(mem_section_t* section) {
     write_eeprom(section->curr_block_eeprom_addr, section->curr_block);
+    write_eeprom(section->start_addr_eeprom_addr, section->start_addr);
+    write_eeprom(section->end_addr_eeprom_addr, section->end_addr);
 }
 
 /*
 reads the current block number from its designated address in EEPROM and stores it in `section`
 */
 void read_mem_section_eeprom(mem_section_t* section) {
-    section->curr_block = read_eeprom_or_default(section->curr_block_eeprom_addr, 0);
+    section->curr_block = read_eeprom_or_default(
+        section->curr_block_eeprom_addr, section->curr_block);
+    section->start_addr = read_eeprom_or_default(
+        section->start_addr_eeprom_addr, section->start_addr);
+    section->end_addr = read_eeprom_or_default(
+        section->end_addr_eeprom_addr, section->end_addr);
 }
 
 /*
@@ -169,6 +187,22 @@ Sets the section's current block number and writes it to EEPROM.
 */
 void set_mem_section_curr_block(mem_section_t* section, uint32_t curr_block) {
     section->curr_block = curr_block;
+    write_mem_section_eeprom(section);
+}
+
+/*
+Sets the section's start address and writes it to EEPROM.
+*/
+void set_mem_section_start_addr(mem_section_t* section, uint32_t start_addr) {
+    section->start_addr = start_addr;
+    write_mem_section_eeprom(section);
+}
+
+/*
+Sets the section's end address and writes it to EEPROM.
+*/
+void set_mem_section_end_addr(mem_section_t* section, uint32_t end_addr) {
+    section->end_addr = end_addr;
     write_mem_section_eeprom(section);
 }
 

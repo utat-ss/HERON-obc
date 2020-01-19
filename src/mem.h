@@ -102,8 +102,10 @@
 typedef struct {
     // Start address of section in memory
     uint32_t start_addr;
+    uint16_t start_addr_eeprom_addr;
     // End address of section in memory
     uint32_t end_addr;
+    uint16_t end_addr_eeprom_addr;
     // Current block number being written to in this section of memory (starting from 0, increasing by 1)
     uint32_t curr_block;
     // Address in EEPROM that stores the current block number
@@ -144,6 +146,8 @@ void write_mem_section_eeprom(mem_section_t* section);
 void read_mem_section_eeprom(mem_section_t* section);
 void read_all_mem_sections_eeprom(void);
 void set_mem_section_curr_block(mem_section_t* section, uint32_t curr_block);
+void set_mem_section_start_addr(mem_section_t* section, uint32_t start_addr);
+void set_mem_section_end_addr(mem_section_t* section, uint32_t end_addr);
 
 // High-level operations - blocks
 void read_mem_data_block(mem_section_t* section, uint32_t block_num,

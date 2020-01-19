@@ -1039,22 +1039,28 @@ void get_mem_sec_addrs_fn(void) {
 void set_mem_sec_start_addr_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
-            obc_hk_mem_section.start_addr = current_cmd_arg2;
+            set_mem_section_start_addr(
+                &obc_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_EPS_HK:
-            eps_hk_mem_section.start_addr = current_cmd_arg2;
+            set_mem_section_start_addr(
+                &eps_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_PAY_HK:
-            pay_hk_mem_section.start_addr = current_cmd_arg2;
+            set_mem_section_start_addr(
+                &pay_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_PAY_OPT:
-            pay_opt_mem_section.start_addr = current_cmd_arg2;
+            set_mem_section_start_addr(
+                &pay_opt_mem_section, current_cmd_arg2);
             break;
         case CMD_PRIM_CMD_LOG:
-            prim_cmd_log_mem_section.start_addr = current_cmd_arg2;
+            set_mem_section_start_addr(
+                &prim_cmd_log_mem_section, current_cmd_arg2);
             break;
         case CMD_SEC_CMD_LOG:
-            sec_cmd_log_mem_section.start_addr = current_cmd_arg2;
+            set_mem_section_start_addr(
+                &sec_cmd_log_mem_section, current_cmd_arg2);
             break;
         default:
             add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
@@ -1069,22 +1075,28 @@ void set_mem_sec_start_addr_fn(void) {
 void set_mem_sec_end_addr_fn(void) {
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
-            obc_hk_mem_section.end_addr = current_cmd_arg2;
+            set_mem_section_end_addr(
+                &obc_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_EPS_HK:
-            eps_hk_mem_section.end_addr = current_cmd_arg2;
+            set_mem_section_end_addr(
+                &eps_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_PAY_HK:
-            pay_hk_mem_section.end_addr = current_cmd_arg2;
+            set_mem_section_end_addr(
+                &pay_hk_mem_section, current_cmd_arg2);
             break;
         case CMD_PAY_OPT:
-            pay_opt_mem_section.end_addr = current_cmd_arg2;
+            set_mem_section_end_addr(
+                &pay_opt_mem_section, current_cmd_arg2);
             break;
         case CMD_PRIM_CMD_LOG:
-            prim_cmd_log_mem_section.end_addr = current_cmd_arg2;
+            set_mem_section_end_addr(
+                &prim_cmd_log_mem_section, current_cmd_arg2);
             break;
         case CMD_SEC_CMD_LOG:
-            sec_cmd_log_mem_section.end_addr = current_cmd_arg2;
+            set_mem_section_end_addr(
+                &sec_cmd_log_mem_section, current_cmd_arg2);
             break;
         default:
             add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);

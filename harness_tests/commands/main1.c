@@ -233,8 +233,8 @@ void auto_erase_mem_sector_test(void) {
     ASSERT_EQ(queue_size(&cmd_queue_2), 0);
 
     // These got changed in a previous test, set them back to defaults
-    obc_hk_mem_section.start_addr = MEM_OBC_HK_START_ADDR;
-    obc_hk_mem_section.end_addr = MEM_OBC_HK_END_ADDR;
+    set_mem_section_start_addr(&obc_hk_mem_section, MEM_OBC_HK_START_ADDR);
+    set_mem_section_end_addr(&obc_hk_mem_section, MEM_OBC_HK_END_ADDR);
 
     // Each OBC block is 5 fields (15 bytes) + header (10 bytes)
     // Total number of bytes in section is 0x100000
