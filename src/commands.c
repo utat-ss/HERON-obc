@@ -480,25 +480,31 @@ void read_rec_status_info_fn(void) {
 
                 read_mem_data_block(data_col->mem_section, block,
                     &data_col->header, data_col->fields);
-            }
 
-            // Assume each HK section has uptime, restart count, restart reason
-            // in that order
-            uint8_t start_field = 0;
-            if (data_col == &obc_hk_data_col) {
-                start_field = CAN_OBC_HK_UPTIME;
-            } else if (data_col == &eps_hk_data_col) {
-                start_field = CAN_EPS_HK_UPTIME;
-            } else if (data_col == &pay_hk_data_col) {
-                start_field = CAN_PAY_HK_UPTIME;
-            } else {
-                continue;
-            }
+                uint8_t start_field = 0;
+                uint8_t end_field = 0;
 
-            for (uint8_t field = start_field; field < start_field + 3; field++) {
-                append_to_trans_tx_resp((data_col->fields[field] >> 16) & 0xFF);
-                append_to_trans_tx_resp((data_col->fields[field] >> 8) & 0xFF);
-                append_to_trans_tx_resp((data_col->fields[field] >> 0) & 0xFF);
+                if (data_col == &obc_hk_data_col) {
+                    // 5 fields
+                    start_field = CAN_OBC_HK_UPTIME;
+                    end_field = CAN_OBC_HK_RESTART_TIME;
+                } else if (data_col == &eps_hk_data_col) {
+                    // 3 fields
+                    start_field = CAN_EPS_HK_UPTIME;
+                    end_field = CAN_EPS_HK_RESTART_REASON;
+                } else if (data_col == &pay_hk_data_col) {
+                    // 3 fields
+                    start_field = CAN_PAY_HK_UPTIME;
+                    end_field = CAN_PAY_HK_RESTART_REASON;
+                } else {
+                    continue;
+                }
+
+                for (uint8_t field = start_field; field <= end_field; field++) {
+                    append_to_trans_tx_resp((data_col->fields[field] >> 16) & 0xFF);
+                    append_to_trans_tx_resp((data_col->fields[field] >> 8) & 0xFF);
+                    append_to_trans_tx_resp((data_col->fields[field] >> 0) & 0xFF);
+                }
             }
         }
 
@@ -780,7 +786,7 @@ void col_data_block_other_check(data_col_t* data_col) {
     if (uptime_s >= data_col->prev_field_col_uptime_s +
             CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S) {
 #ifdef COMMANDS_DEBUG
-        print("COL DATA TIMED OUT\n");
+        print("COL DATA TIMEOUT\n");
 #endif
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
         finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
