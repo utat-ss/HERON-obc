@@ -794,7 +794,6 @@ void col_data_block_other_check(data_col_t* data_col) {
     }
 
     uint8_t msg[8] = {0x00};
-    uint8_t dummy_msg[8] = {0x00};
 
     uint8_t opcode = 0;
     uint8_t field_num = 0;
@@ -809,50 +808,41 @@ void col_data_block_other_check(data_col_t* data_col) {
             finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
             return;
         }
-        // Just peek the contents here, because we don't know yet whether we
-        // want to remove it from the queue
-        peek_queue(&data_rx_msg_queue, msg);
-
-        if (print_can_msgs) {
-            // Extra spaces to align with CAN TX messages
-            print("CAN RX (DC): ");
-            print_bytes(msg, 8);
-        }
-
-        // Break down the message into components
-        opcode = msg[2];
-        field_num = msg[3];
-        data =
-            ((uint32_t) msg[4] << 24) |
-            ((uint32_t) msg[5] << 16) |
-            ((uint32_t) msg[6] << 8) |
-            ((uint32_t) msg[7]);
-
-        // If the opcode does not match this block type, leave
-        // it in the queue
-        if (opcode != data_col->can_opcode) {
-            if (print_can_msgs) {
-                print("Left in queue\n");
-            }
-            // Re-enqueue the same command to check for this field
-            enqueue_cmd(current_cmd_id, &col_data_block_cmd,
-                current_cmd_arg1, current_cmd_arg2);
-            finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
-            return;
-        }
-
-        // If the CAN opcode in the message matches the opcode for
-        // this block type
-
-        // Don't actually use the contents of dummy_msg, just to remove the
-        // message from the queue
-        dequeue(&data_rx_msg_queue, dummy_msg);
+        // Dequeue the message, but we might re-enqueue it after
+        dequeue(&data_rx_msg_queue, msg);
     }
 
     if (print_can_msgs) {
-        print("Dequeued\n");
+        // Extra spaces to align with CAN TX messages
+        print("CAN RX (DC): ");
+        print_bytes(msg, 8);
     }
 
+    // Break down the message into components
+    opcode = msg[2];
+    field_num = msg[3];
+    data =
+        ((uint32_t) msg[4] << 24) |
+        ((uint32_t) msg[5] << 16) |
+        ((uint32_t) msg[6] << 8) |
+        ((uint32_t) msg[7]);
+
+    // If the opcode does not match this block type, put it back in the queue
+    if (opcode != data_col->can_opcode) {
+        enqueue_front(&data_rx_msg_queue, msg);
+        if (print_can_msgs) {
+            print("Re-enqueued\n");
+        }
+
+        // Re-enqueue the same command to check for this field
+        enqueue_cmd(current_cmd_id, &col_data_block_cmd,
+            current_cmd_arg1, current_cmd_arg2);
+        finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
+        return;
+    }
+
+    // If the CAN opcode in the message matches the opcode for
+    // this block type
     // Continue with processing the message
 
     // If the field number received in the CAN message is what we are expecting

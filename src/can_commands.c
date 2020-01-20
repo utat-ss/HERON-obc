@@ -21,56 +21,41 @@ void process_set_indef_lpm_enable(void);
 // If there is an RX messsage in the queue, process it
 void process_next_rx_msg(void) {
     uint8_t msg[8] = {0x00};
-    uint8_t dummy_msg[8] = {0x00};
 
     uint8_t opcode = 0;
     uint8_t field_num = 0;
-    // uint32_t data = 0;
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         if (queue_empty(&data_rx_msg_queue)) {
             return;
         }
-        // Just peek the contents here, because we don't know yet whether we
-        // want to remove it from the queue
-        peek_queue(&data_rx_msg_queue, msg);
-    
-        if (print_can_msgs) {
-            // Extra spaces to align with CAN TX messages
-            print("CAN RX:       ");
-            print_bytes(msg, 8);
-        }
-
-        // Break down the message into components
-        opcode = msg[2];
-        field_num = msg[3];
-        // data =
-        //     ((uint32_t) msg[4] << 24) |
-        //     ((uint32_t) msg[5] << 16) |
-        //     ((uint32_t) msg[6] << 8) |
-        //     ((uint32_t) msg[7]);
-
-        // If we are in the middle of a collect data block command for this type,
-        // don't remove it from the queue
-        if ((opcode == CAN_EPS_HK && cmd_queue_contains_col_data_block(CMD_EPS_HK)) ||
-                (opcode == CAN_PAY_HK && cmd_queue_contains_col_data_block(CMD_PAY_HK)) ||
-                (opcode == CAN_PAY_OPT && cmd_queue_contains_col_data_block(CMD_PAY_OPT))) {
-            if (print_can_msgs) {
-                print("Left msg in queue\n");
-            }
-            return;
-        }
-        
-        else {
-            // Don't actually use the contents of dummy_msg, just to remove the
-            // message from the queue
-            dequeue(&data_rx_msg_queue, dummy_msg);
-            if (print_can_msgs) {
-                print("Dequeued msg\n");
-            }
-            // Continue with processing this message here
-        }
+        // Remove it from the queue, but we might put it back after
+        dequeue(&data_rx_msg_queue, msg);
     }
+    
+    if (print_can_msgs) {
+        // Extra spaces to align with CAN TX messages
+        print("CAN RX:       ");
+        print_bytes(msg, 8);
+    }
+
+    // Break down the message into components
+    opcode = msg[2];
+    field_num = msg[3];
+
+    // If we are in the middle of a collect data block command for this type,
+    // don't remove it from the queue
+    if ((opcode == CAN_EPS_HK && cmd_queue_contains_col_data_block(CMD_EPS_HK)) ||
+            (opcode == CAN_PAY_HK && cmd_queue_contains_col_data_block(CMD_PAY_HK)) ||
+            (opcode == CAN_PAY_OPT && cmd_queue_contains_col_data_block(CMD_PAY_OPT))) {
+        enqueue_front(&data_rx_msg_queue, msg);
+        if (print_can_msgs) {
+            print("Re-enqueued\n");
+        }
+        return;
+    }
+
+    // Continue with processing this message here
 
     //General CAN message command-Intercept and send back data
     if ((current_cmd == &send_eps_can_msg_cmd) || (current_cmd == &send_pay_can_msg_cmd)) {
