@@ -20,12 +20,11 @@
 
 
 // EEPROM address to store whether comms delay has finished
-#define PHASE2_DELAY_DONE_EEPROM_ADDR    0x120
+#define PHASE2_DELAY_DONE_EEPROM_ADDR   0x100
 // Write 1 when it has already been done
-#define PHASE2_DELAY_DONE_FLAG   1
-// Number of seconds to wait before initializing phase 2
-// equal to 30 minutes
-#define PHASE2_DELAY_PERIOD_S (30 * 60)
+#define PHASE2_DELAY_DONE_FLAG          0xDEADBEEF
+// Number of seconds to wait before initializing phase 2 (30 minutes)
+#define PHASE2_DELAY_PERIOD_S           (30 * 60)
 
 
 typedef struct {

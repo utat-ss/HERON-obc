@@ -78,20 +78,34 @@
 #define MEM_SEC_CMD_LOG_END_ADDR    0x5FFFFFUL
 #define MEM_NUM_ADDRESSES           0x600000UL
 
-#define MEM_OBC_HK_CURR_BLOCK_EEPROM_ADDR       0x140
-#define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR       0x150
+#define MEM_OBC_HK_CURR_BLOCK_EEPROM_ADDR       0x120
+#define MEM_OBC_HK_START_ADDR_EEPROM_ADDR       0x124
+#define MEM_OBC_HK_END_ADDR_EEPROM_ADDR         0x128
+#define MEM_EPS_HK_CURR_BLOCK_EEPROM_ADDR       0x140
+#define MEM_EPS_HK_START_ADDR_EEPROM_ADDR       0x144
+#define MEM_EPS_HK_END_ADDR_EEPROM_ADDR         0x148
 #define MEM_PAY_HK_CURR_BLOCK_EEPROM_ADDR       0x160
-#define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR      0x170
-#define MEM_PRIM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR 0x180
-#define MEM_SEC_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  0x190
+#define MEM_PAY_HK_START_ADDR_EEPROM_ADDR       0x164
+#define MEM_PAY_HK_END_ADDR_EEPROM_ADDR         0x168
+#define MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR      0x180
+#define MEM_PAY_OPT_START_ADDR_EEPROM_ADDR      0x184
+#define MEM_PAY_OPT_END_ADDR_EEPROM_ADDR        0x188
+#define MEM_PRIM_CMD_LOG_CURR_BLOCK_EEPROM_ADDR 0x1A0
+#define MEM_PRIM_CMD_LOG_START_ADDR_EEPROM_ADDR 0x1A4
+#define MEM_PRIM_CMD_LOG_END_ADDR_EEPROM_ADDR   0x1A8
+#define MEM_SEC_CMD_LOG_CURR_BLOCK_EEPROM_ADDR  0x1C0
+#define MEM_SEC_CMD_LOG_START_ADDR_EEPROM_ADDR  0x1C4
+#define MEM_SEC_CMD_LOG_END_ADDR_EEPROM_ADDR    0x1C8
 
 
 // Sections in memory
 typedef struct {
     // Start address of section in memory
     uint32_t start_addr;
+    uint16_t start_addr_eeprom_addr;
     // End address of section in memory
     uint32_t end_addr;
+    uint16_t end_addr_eeprom_addr;
     // Current block number being written to in this section of memory (starting from 0, increasing by 1)
     uint32_t curr_block;
     // Address in EEPROM that stores the current block number
@@ -132,6 +146,8 @@ void write_mem_section_eeprom(mem_section_t* section);
 void read_mem_section_eeprom(mem_section_t* section);
 void read_all_mem_sections_eeprom(void);
 void set_mem_section_curr_block(mem_section_t* section, uint32_t curr_block);
+void set_mem_section_start_addr(mem_section_t* section, uint32_t start_addr);
+void set_mem_section_end_addr(mem_section_t* section, uint32_t end_addr);
 
 // High-level operations - blocks
 void read_mem_data_block(mem_section_t* section, uint32_t block_num,
