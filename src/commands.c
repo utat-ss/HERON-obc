@@ -819,8 +819,9 @@ void col_data_block_other_check(data_col_t* data_col) {
     }
 
     // Break down the message into components
-    opcode = msg[2];
-    field_num = msg[3];
+    opcode = msg[0];
+    field_num = msg[1];
+    // Don't need to check status
     data =
         ((uint32_t) msg[4] << 24) |
         ((uint32_t) msg[5] << 16) |
