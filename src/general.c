@@ -44,7 +44,6 @@ void init_obc_phase1(void) {
 
     init_auto_data_col();
     add_uptime_callback(cmd_timeout_timer_cb);
-    add_uptime_callback(beacon_inhibit_timer_cb);
 
     init_trans();
     uart_baud_rate_t previous_baud = UART_BAUD_9600;
@@ -59,7 +58,13 @@ void init_obc_phase2(void) {
     set_trans_freq(TRANS_DEF_FREQ);
     set_trans_beacon_period(TRANS_BEACON_DEF_PERIOD_S);
 
-    turn_on_trans_beacon();
+    // If either or both enables in EEPROM are set, turn on the beacon
+    uint32_t enable_1 = read_eeprom_or_default(BEACON_ENABLE_1_EEPROM_ADDR, 1);
+    uint32_t enable_2 = read_eeprom_or_default(BEACON_ENABLE_2_EEPROM_ADDR, 1);
+    if ((enable_1 != 0) || (enable_2 != 0)) {
+        turn_on_trans_beacon();
+    }
+
     // TODO - deploy antenna
 }
 

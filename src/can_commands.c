@@ -12,10 +12,7 @@ queue_t data_rx_msg_queue;
 bool print_can_msgs = false;
 
 
-void process_eps_ctrl(uint8_t field_num);
 void process_pay_ctrl(uint8_t field_num);
-
-void process_set_indef_lpm_enable(void);
 
 
 // If there is an RX messsage in the queue, process it
@@ -74,9 +71,6 @@ void process_next_rx_msg(void) {
     
     else {
         switch (opcode) {
-            case CAN_EPS_CTRL:
-                process_eps_ctrl(field_num);
-                break;
             case CAN_PAY_CTRL:
                 process_pay_ctrl(field_num);
                 break;
@@ -87,37 +81,11 @@ void process_next_rx_msg(void) {
 }
 
 
-void process_eps_ctrl(uint8_t field_num) {
-    if (current_cmd == &set_indef_lpm_enable_cmd) {
-        if ((current_cmd_arg1 == 0 && field_num == CAN_EPS_CTRL_DISABLE_INDEF_LPM) ||
-                (current_cmd_arg1 == 1 && field_num == CAN_EPS_CTRL_ENABLE_INDEF_LPM)) {
-            set_indef_lpm_enable_rcvd_eps_resp = true;
-            process_set_indef_lpm_enable();
-        }
-    }
-}
-
 void process_pay_ctrl(uint8_t field_num) {
     if (current_cmd == &act_pay_motors_cmd &&
             (field_num == CAN_PAY_CTRL_MOTOR_UP ||
             field_num == CAN_PAY_CTRL_MOTOR_DOWN ||
             field_num == CAN_PAY_CTRL_MOTOR_DEP_ROUTINE)) {
-        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-        finish_current_cmd(CMD_RESP_STATUS_OK);
-    }
-
-    else if (current_cmd == &set_indef_lpm_enable_cmd) {
-        if ((current_cmd_arg1 == 0 && field_num == CAN_PAY_CTRL_DISABLE_INDEF_LPM) ||
-                (current_cmd_arg1 == 1 && field_num == CAN_PAY_CTRL_ENABLE_INDEF_LPM)) {
-            set_indef_lpm_enable_rcvd_pay_resp = true;
-            process_set_indef_lpm_enable();
-        }
-    }
-}
-
-void process_set_indef_lpm_enable(void) {
-    // Only if we have received both responses, send a response packet
-    if (set_indef_lpm_enable_rcvd_eps_resp && set_indef_lpm_enable_rcvd_pay_resp) {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
         finish_current_cmd(CMD_RESP_STATUS_OK);
     }

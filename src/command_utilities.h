@@ -46,7 +46,7 @@ typedef struct {
 #define CMD_READ_OBC_EEPROM             0x03
 #define CMD_ERASE_OBC_EEPROM            0x04
 #define CMD_READ_OBC_RAM_BYTE           0x05
-#define CMD_SET_BEACON_INHIBIT_ENABLE   0x06
+#define CMD_SET_INDEF_BEACON_ENABLE     0x06
 #define CMD_READ_DATA_BLOCK             0x10
 #define CMD_READ_PRIM_CMD_BLOCKS        0x11
 #define CMD_READ_SEC_CMD_BLOCKS         0x12
@@ -70,7 +70,6 @@ typedef struct {
 #define CMD_SEND_PAY_CAN_MSG            0x41
 #define CMD_ACT_PAY_MOTORS              0x42
 #define CMD_RESET_SUBSYS                0x43
-#define CMD_SET_INDEF_LPM_ENABLE        0x44
 
 // Mask to set MSB on opcode byte for response packets
 #define CMD_RESP_CMD_ID_MASK            (0x1 << 15)
@@ -113,9 +112,6 @@ typedef struct {
 #define CMD_READ_DATA_BLOCK_PAY_OPT_1_COUNT 24
 #define CMD_READ_DATA_BLOCK_PAY_OPT_2_COUNT 23
 
-// Default 6 hours
-#define BEACON_INHIBIT_DEF_PERIOD_S (6 * 60 * 60)
-
 // Max memory read
 #define CMD_READ_MEM_MAX_COUNT          100
 // Minimum auto data collection period in seconds
@@ -127,12 +123,16 @@ typedef struct {
 
 // Default period for automatic data collection for each block type
 // (time between timer callbacks, in seconds)
-#define OBC_HK_AUTO_DATA_COL_PERIOD     60
-#define EPS_HK_AUTO_DATA_COL_PERIOD     60
-#define PAY_HK_AUTO_DATA_COL_PERIOD     120
-#define PAY_OPT_AUTO_DATA_COL_PERIOD    300
+#define OBC_HK_AUTO_DATA_COL_PERIOD     300
+#define EPS_HK_AUTO_DATA_COL_PERIOD     300
+#define PAY_HK_AUTO_DATA_COL_PERIOD     900
+#define PAY_OPT_AUTO_DATA_COL_PERIOD    7200
 
-// Automatic data collection - default settings
+// Beacon enables in EEPROM
+#define BEACON_ENABLE_1_EEPROM_ADDR                 0x110
+#define BEACON_ENABLE_2_EEPROM_ADDR                 0x114
+
+// Automatic data collection - settings in EEPROM
 #define OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR    0x130
 #define OBC_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR     0x134
 #define EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR    0x150
@@ -190,10 +190,6 @@ extern volatile uint32_t current_cmd_arg2;
 extern volatile uint8_t cmd_timeout_count_s;
 extern uint8_t cmd_timeout_period_s;
 
-extern volatile bool beacon_inhibit_enabled;
-extern volatile uint32_t beacon_inhibit_count_s;
-extern uint32_t beacon_inhibit_period_s;
-
 extern mem_header_t cmd_log_header;
 
 extern data_col_t obc_hk_data_col;
@@ -242,6 +238,5 @@ void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields);
 void init_auto_data_col(void);
 void run_auto_data_col(void);
 void cmd_timeout_timer_cb(void);
-void beacon_inhibit_timer_cb(void);
 
 #endif

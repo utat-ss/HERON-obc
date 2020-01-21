@@ -20,12 +20,11 @@ extern cmd_t set_rtc_cmd;
 extern cmd_t read_obc_eeprom_cmd;
 extern cmd_t erase_obc_eeprom_cmd;
 extern cmd_t read_obc_ram_byte_cmd;
-extern cmd_t set_beacon_inhibit_enable_cmd;
+extern cmd_t set_indef_beacon_enable_cmd;
 extern cmd_t send_eps_can_msg_cmd;
 extern cmd_t send_pay_can_msg_cmd;
 extern cmd_t act_pay_motors_cmd;
 extern cmd_t reset_subsys_cmd;
-extern cmd_t set_indef_lpm_enable_cmd;
 
 extern cmd_t read_rec_status_info_cmd;
 extern cmd_t read_data_block_cmd;
@@ -50,8 +49,5 @@ extern cmd_t resync_auto_data_col_timers_cmd;
 
 extern cmd_t* all_cmds_list[];
 extern const uint8_t all_cmds_list_len;
-
-extern bool set_indef_lpm_enable_rcvd_eps_resp;
-extern bool set_indef_lpm_enable_rcvd_pay_resp;
 
 #endif

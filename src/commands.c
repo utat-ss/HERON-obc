@@ -13,12 +13,11 @@ void set_rtc_fn(void);
 void read_obc_eeprom_fn(void);
 void erase_obc_eeprom_fn(void);
 void read_obc_ram_byte_fn(void);
-void set_beacon_inhibit_enable_fn(void);
+void set_indef_beacon_enable_fn(void);
 void send_eps_can_msg_fn(void);
 void send_pay_can_msg_fn(void);
 void act_pay_motors_fn(void);
 void reset_subsys_fn(void);
-void set_indef_lpm_enable_fn(void);
 
 void read_rec_status_info_fn(void);
 void read_data_block_fn(void);
@@ -85,9 +84,9 @@ cmd_t read_obc_ram_byte_cmd = {
     .opcode = CMD_READ_OBC_RAM_BYTE,
     .pwd_protected = true
 };
-cmd_t set_beacon_inhibit_enable_cmd = {
-    .fn = set_beacon_inhibit_enable_fn,
-    .opcode = CMD_SET_BEACON_INHIBIT_ENABLE,
+cmd_t set_indef_beacon_enable_cmd = {
+    .fn = set_indef_beacon_enable_fn,
+    .opcode = CMD_SET_INDEF_BEACON_ENABLE,
     .pwd_protected = true
 };
 cmd_t send_eps_can_msg_cmd = {
@@ -110,12 +109,6 @@ cmd_t reset_subsys_cmd = {
     .opcode = CMD_RESET_SUBSYS,
     .pwd_protected = true
 };
-cmd_t set_indef_lpm_enable_cmd = {
-    .fn = set_indef_lpm_enable_fn,
-    .opcode = CMD_SET_INDEF_LPM_ENABLE,
-    .pwd_protected = true
-};
-
 
 cmd_t read_rec_status_info_cmd = {
     .fn = read_rec_status_info_fn,
@@ -227,12 +220,11 @@ cmd_t* all_cmds_list[] = {
     &read_obc_eeprom_cmd,
     &erase_obc_eeprom_cmd,
     &read_obc_ram_byte_cmd,
-    &set_beacon_inhibit_enable_cmd,
+    &set_indef_beacon_enable_cmd,
     &send_eps_can_msg_cmd,
     &send_pay_can_msg_cmd,
     &act_pay_motors_cmd,
     &reset_subsys_cmd,
-    &set_indef_lpm_enable_cmd,
     &read_rec_status_info_cmd,
     &read_data_block_cmd,
     &read_rec_loc_data_block_cmd,
@@ -258,9 +250,6 @@ cmd_t* all_cmds_list[] = {
 const uint8_t all_cmds_list_len = sizeof(all_cmds_list) / sizeof(all_cmds_list[0]);
 
 
-// State variables for set_indef_lpm_enable_cmd
-bool set_indef_lpm_enable_rcvd_eps_resp = false;
-bool set_indef_lpm_enable_rcvd_pay_resp = false;
 
 
 // Command callback functions
@@ -351,23 +340,11 @@ void read_obc_ram_byte_fn(void) {
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
-void set_beacon_inhibit_enable_fn(void) {
-    if (current_cmd_arg1 == 0) {
-        // Stop inhibiting
-        // The beacon command must go outside the atomic block because it
-        // requires UART RX interrupts to see the transceiver's response
-        turn_on_trans_beacon();
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            beacon_inhibit_enabled = false;
-            beacon_inhibit_count_s = 0;
-        }
-    } else if (current_cmd_arg1 == 1) {
-        // Start inhibiting
-        turn_off_trans_beacon();
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            beacon_inhibit_enabled = true;
-            beacon_inhibit_count_s = 0;
-        }
+void set_indef_beacon_enable_fn(void) {
+    if (current_cmd_arg1 == 1) {
+        write_eeprom(BEACON_ENABLE_1_EEPROM_ADDR, current_cmd_arg2);
+    } else if (current_cmd_arg1 == 2) {
+        write_eeprom(BEACON_ENABLE_2_EEPROM_ADDR, current_cmd_arg2);
     } else {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
         finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
@@ -440,28 +417,6 @@ void reset_subsys_fn(void) {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
         finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
     }
-}
-
-void set_indef_lpm_enable_fn(void) {
-    // Reset response states
-    // Need to wait to receive both responses before finishing command
-    set_indef_lpm_enable_rcvd_eps_resp = false;
-    set_indef_lpm_enable_rcvd_pay_resp = false;
-
-    if (current_cmd_arg1 == 0) {
-        // Disable indefinite LPM mode
-        enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, CAN_EPS_CTRL_DISABLE_INDEF_LPM, 0);
-        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_DISABLE_INDEF_LPM, 0);
-    } else if (current_cmd_arg1 == 1) {
-        // Enable indefinite LPM mode
-        enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM, 0);
-        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM, 0);
-    } else {
-        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
-        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
-    }
-
-    // Will continue from CAN callbacks if field number was valid
 }
 
 void read_rec_status_info_fn(void) {

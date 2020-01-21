@@ -256,7 +256,6 @@ int main(void){
     skip_phase2_delay = true;
     skip_phase2_init = true;
     com_timeout_period_s = 600;
-    beacon_inhibit_period_s = 15;
     hb_ping_period_s = 30;
     disable_hb = true;
     print_can_msgs = true;
@@ -273,7 +272,6 @@ int main(void){
     // print("skip_phase2_delay = %u\n", skip_phase2_delay);
     // print("skip_phase2_init = %u\n", skip_phase2_init);
     // print("cmd_timer_period_s = %lu\n", cmd_timer_period_s);
-    // print("beacon_inhibit_period_s = %lu\n", beacon_inhibit_period_s);
     // print("hb_ping_period_s = %lu\n", hb_ping_period_s);
     // print("disable_hb = %u\n", disable_hb);
     // print("print_can_msgs = %u\n", print_can_msgs);
