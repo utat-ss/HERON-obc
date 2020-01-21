@@ -101,18 +101,18 @@ void sim_send_next_eps_tx_msg(void) {
         print_bytes(tx_msg, 8);
     }
 
+    uint8_t opcode = tx_msg[0];
+    uint8_t field_num = tx_msg[1];
+
     // Construct the message EPS would send back
     uint8_t rx_msg[8] = {0x00};
-    rx_msg[0] = 0x00;
-    rx_msg[1] = 0x00;
-    rx_msg[2] = tx_msg[2];
-    rx_msg[3] = tx_msg[3];
+    rx_msg[0] = opcode;
+    rx_msg[1] = field_num;
 
-    uint8_t msg_type = tx_msg[2];
-    uint8_t field_num = tx_msg[3];
+    uint8_t rx_status = CAN_STATUS_OK;
 
     // Can return early to not send a message back
-    switch (msg_type) {
+    switch (opcode) {
         case CAN_EPS_HK:
             if (CAN_EPS_HK_GYR_UNCAL_X <= field_num && field_num <= CAN_EPS_HK_GYR_CAL_Z) {
                 // 16-bit data - IMU gyro
@@ -121,7 +121,7 @@ void sim_send_next_eps_tx_msg(void) {
                 // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
@@ -139,13 +139,16 @@ void sim_send_next_eps_tx_msg(void) {
                 // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
         default:
-            return;
+            rx_status = CAN_STATUS_INVALID_OPCODE;
+            break;
     }
+
+    rx_msg[2] = rx_status;
 
     // print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);
@@ -173,18 +176,18 @@ void sim_send_next_pay_tx_msg(void) {
         print_bytes(tx_msg, 8);
     }
 
-    // Construct the message EPS would send back
-    uint8_t rx_msg[8] = {0x00};
-    rx_msg[0] = 0x00;
-    rx_msg[1] = 0x00;
-    rx_msg[2] = tx_msg[2];
-    rx_msg[3] = tx_msg[3];
+    uint8_t opcode = tx_msg[0];
+    uint8_t field_num = tx_msg[1];
 
-    uint8_t msg_type = tx_msg[2];
-    uint8_t field_num = tx_msg[3];
+    // Construct the message PAY would send back
+    uint8_t rx_msg[8] = {0x00};
+    rx_msg[0] = opcode;
+    rx_msg[1] = field_num;
+
+    uint8_t rx_status = CAN_STATUS_OK;
 
     // Can return early to not send a message back
-    switch (msg_type) {
+    switch (opcode) {
         case CAN_PAY_HK:
             if (field_num == CAN_PAY_HK_HUM) {
                 populate_msg_data(rx_msg, rand_bits(14));
@@ -194,7 +197,7 @@ void sim_send_next_pay_tx_msg(void) {
                 // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
@@ -203,7 +206,7 @@ void sim_send_next_pay_tx_msg(void) {
                 // All fields are 24-bit ADC data
                 populate_msg_data(rx_msg, rand_bits(24));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
@@ -222,13 +225,16 @@ void sim_send_next_pay_tx_msg(void) {
                 // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
         default:
-            return;
+            rx_status = CAN_STATUS_INVALID_OPCODE;
+            break;
     }
+
+    rx_msg[2] = rx_status;
 
     // print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);

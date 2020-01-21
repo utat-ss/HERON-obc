@@ -24,6 +24,7 @@ void process_next_rx_msg(void) {
 
     uint8_t opcode = 0;
     uint8_t field_num = 0;
+    uint8_t status = 0;
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         if (queue_empty(&data_rx_msg_queue)) {
@@ -40,8 +41,9 @@ void process_next_rx_msg(void) {
     }
 
     // Break down the message into components
-    opcode = msg[2];
-    field_num = msg[3];
+    opcode = msg[0];
+    field_num = msg[1];
+    status = msg[2];
 
     // If we are in the middle of a collect data block command for this type,
     // don't remove it from the queue
@@ -58,15 +60,16 @@ void process_next_rx_msg(void) {
     // Continue with processing this message here
 
     //General CAN message command-Intercept and send back data
+    // Use the status received in the CAN message as the command status
     if ((current_cmd == &send_eps_can_msg_cmd) || (current_cmd == &send_pay_can_msg_cmd)) {
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-            start_trans_tx_resp(CMD_RESP_STATUS_OK);
+            start_trans_tx_resp(status);
             for (uint8_t i = 0; i < 8; i++) {
                 append_to_trans_tx_resp(msg[i]);
             }
             finish_trans_tx_resp();
         }
-        finish_current_cmd(CMD_RESP_STATUS_OK);
+        finish_current_cmd(status);
     }
     
     else {
@@ -191,15 +194,15 @@ void enqueue_tx_msg_bytes(queue_t* queue, uint32_t data1, uint32_t data2) {
 Enqueues a CAN message onto the specified queue to request the specified message
     type and field number.
 queue - Queue to enqueue the message to
-opcode - Message type to request (byte 2)
-field_num - Field number to request (byte 3)
+opcode - Message type to request (byte 0)
+field_num - Field number to request (byte 1)
 */
 void enqueue_tx_msg(queue_t* queue, uint8_t opcode, uint8_t field_num, uint32_t data) {
     uint8_t msg[8] = { 0x00 };
-    msg[0] = 0x00;
-    msg[1] = 0x00;
-    msg[2] = opcode;
-    msg[3] = field_num;
+    msg[0] = opcode;
+    msg[1] = field_num;
+    msg[2] = 0x00;  // OBC doesn't send status
+    msg[3] = 0x00;
     msg[4] = (data >> 24) & 0xFF;
     msg[5] = (data >> 16) & 0xFF;
     msg[6] = (data >> 8) & 0xFF;
