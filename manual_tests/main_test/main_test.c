@@ -108,8 +108,8 @@ void sim_send_next_eps_tx_msg(void) {
     uint8_t rx_msg[8] = {0x00};
     rx_msg[0] = opcode;
     rx_msg[1] = field_num;
-    rx_msg[2] = 0x00;
-    rx_msg[3] = 0x00;
+
+    uint8_t rx_status = CAN_STATUS_OK;
 
     // Can return early to not send a message back
     switch (opcode) {
@@ -121,7 +121,7 @@ void sim_send_next_eps_tx_msg(void) {
                 // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
@@ -139,13 +139,16 @@ void sim_send_next_eps_tx_msg(void) {
                 // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
         default:
-            return;
+            rx_status = CAN_STATUS_INVALID_OPCODE;
+            break;
     }
+
+    rx_msg[2] = rx_status;
 
     // print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);
@@ -180,8 +183,8 @@ void sim_send_next_pay_tx_msg(void) {
     uint8_t rx_msg[8] = {0x00};
     rx_msg[0] = opcode;
     rx_msg[1] = field_num;
-    rx_msg[2] = 0x00;
-    rx_msg[3] = 0x00;
+
+    uint8_t rx_status = CAN_STATUS_OK;
 
     // Can return early to not send a message back
     switch (opcode) {
@@ -194,7 +197,7 @@ void sim_send_next_pay_tx_msg(void) {
                 // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
@@ -203,7 +206,7 @@ void sim_send_next_pay_tx_msg(void) {
                 // All fields are 24-bit ADC data
                 populate_msg_data(rx_msg, rand_bits(24));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
@@ -222,13 +225,16 @@ void sim_send_next_pay_tx_msg(void) {
                 // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
-                return;
+                rx_status = CAN_STATUS_INVALID_FIELD_NUM;
             }
             break;
 
         default:
-            return;
+            rx_status = CAN_STATUS_INVALID_OPCODE;
+            break;
     }
+
+    rx_msg[2] = rx_status;
 
     // print("Enqueued to data_rx_msg_queue\n");
     enqueue(&data_rx_msg_queue, rx_msg);
