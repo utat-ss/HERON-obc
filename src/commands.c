@@ -301,7 +301,7 @@ void set_rtc_fn(void) {
 }
 
 void read_obc_eeprom_fn(void) {
-    uint32_t data = read_eeprom((uint16_t) current_cmd_arg2);
+    uint32_t data = read_eeprom((uint16_t) current_cmd_arg1);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_resp(CMD_RESP_STATUS_OK);
@@ -348,6 +348,7 @@ void set_indef_beacon_enable_fn(void) {
     } else {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
         finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+        return;
     }
     
     add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
