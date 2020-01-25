@@ -23,13 +23,14 @@
 
 // Number of seconds to wait (if we are not receiving anymore characters) to clear the buffer
 // Uptime error is +- 1 second, which should be accounted for in this number
-#define TRANS_RX_BUF_TIMEOUT 2
+#define TRANS_RX_BUF_TIMEOUT_S  2
+// Number of milliseconds to delay before and after sending a packet
+#define TRANS_TX_PKT_DELAY_MS   200
 
 // If we time out while receiving bytes of an RX packet, must have this number
 // of bytes or greater in the RX buffer to send an ACK packet
 // If there are less received bytes than this, don't sent an ACK packet back
-// TODO - what threshold?
-#define TRANS_RX_INVALID_ENC_FMT_COUNT_THRESH 2
+#define TRANS_RX_INVALID_ENC_FMT_COUNT_THRESH 6
 
 //Default Address - DO NOT CHANGE
 #define TRANS_ADDR  0x22

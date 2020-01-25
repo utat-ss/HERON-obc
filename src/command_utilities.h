@@ -101,11 +101,10 @@ typedef struct {
 // When a command is automatically enqueued by OBC
 #define CMD_CMD_ID_AUTO_ENQUEUED        0x0000
 
-#define CMD_TIMEOUT_DEF_PERIOD_S    30
+#define CMD_TIMEOUT_DEF_PERIOD_S            60
 // Maximum number of seconds between fields of a collect data block command
 // before it times out
-// TODO - upper bound - maybe 5s or 10s?
-#define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S 10
+#define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S  10
 
 // Split of 47 PAY_OPT fields into separate read data block commands
 // TODO assert these in a test sum to match the CAN field count

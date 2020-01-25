@@ -1,25 +1,27 @@
 #include "can_interface.h"
 
-// TODO - make these atomic?
-
 void pay_cmd_tx_callback(uint8_t* data, uint8_t *len) {
-    if (queue_empty(&pay_tx_msg_queue)) {
-        *len = 0;
-        return;
-    }
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&pay_tx_msg_queue)) {
+            *len = 0;
+            return;
+        }
 
-    dequeue(&pay_tx_msg_queue, data);
-    *len = 8;
+        dequeue(&pay_tx_msg_queue, data);
+        *len = 8;
+    }
 }
 
 void eps_cmd_tx_callback(uint8_t* data, uint8_t *len) {
-    if (queue_empty(&eps_tx_msg_queue)) {
-        *len = 0;
-        return;
-    }
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        if (queue_empty(&eps_tx_msg_queue)) {
+            *len = 0;
+            return;
+        }
 
-    dequeue(&eps_tx_msg_queue, data);
-    *len = 8;
+        dequeue(&eps_tx_msg_queue, data);
+        *len = 8;
+    }
 }
 
 void cmd_rx_callback(const uint8_t* data, uint8_t len) {

@@ -123,7 +123,7 @@ void init_trans_uart(void) {
 void trans_uptime_cb(void) {
     // Check for a timeout in receiving characters to clear the buffer
     if (uptime_s > trans_rx_prev_uptime_s &&
-        uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT &&
+        uptime_s - trans_rx_prev_uptime_s >= TRANS_RX_BUF_TIMEOUT_S &&
         get_uart_rx_count() > 0) {
 
 #ifdef TRANSCEIVER_DEBUG
@@ -397,15 +397,15 @@ void send_trans_tx_enc_msg(void) {
         // There is no need for a delimiter character, as far as the transmitter
         // is concerned
         // For the default 9600-2400 mode, need about 100ms between sent packets
+        // (use 200ms to be safe)
         // Do this to separate intentional packets from each other and from
         // unintentional packets from other UART output
 
-        // TODO - how long?
-        _delay_ms(200);
+        _delay_ms(TRANS_TX_PKT_DELAY_MS);
         for (uint8_t i = 0; i < trans_tx_enc_len; i++) {
             put_uart_char(trans_tx_enc_msg[i]);
         }
-        _delay_ms(200);
+        _delay_ms(TRANS_TX_PKT_DELAY_MS);
     }
 }
 
