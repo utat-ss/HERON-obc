@@ -855,7 +855,6 @@ void col_data_block_other_check(data_col_t* data_col) {
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
                 start_trans_tx_resp(CMD_RESP_STATUS_OK);
-                // TODO - is this the correct block number?
                 append_to_trans_tx_resp((data_col->header.block_num >> 24) & 0xFF);
                 append_to_trans_tx_resp((data_col->header.block_num >> 16) & 0xFF);
                 append_to_trans_tx_resp((data_col->header.block_num >> 8) & 0xFF);
