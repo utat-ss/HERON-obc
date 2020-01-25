@@ -422,7 +422,7 @@ uint32_t crc32(unsigned char *message, const uint8_t len) {
 
    i = 0;
    // TODO - this is probably a bug, would stop early if a byte is 0x00
-   while (message[i] != 0 && i < len) {
+   while (i < len) {
       byte = message[i];            // Get next byte.
       crc = crc ^ byte;
       for (j = 7; j >= 0; j--) {    // Do eight times.
@@ -571,13 +571,7 @@ bool send_trans_cmd(uint8_t expected_len, char* fmt, ...) {
     va_end(args);
     
     // Generate check sum
-    /**
-     * Note: Len inputted is entire command buf is because we want to 
-     * use the entire message
-     * Could alternatively use strlen((char *) command_buf) but would 
-     * result in slower code 
-     */
-    uint32_t check_sum = crc32(command_buf, COMMAND_BUF_SIZE);
+    uint32_t check_sum = crc32(command_buf, strlen((char *)command_buf));
 
     
     uint8_t ret = 0;
