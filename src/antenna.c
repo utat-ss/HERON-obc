@@ -16,11 +16,11 @@ void init_ant(void) {
 NOTE: Must call init_spi() followed by init_i2c() before this function
 */
 void deploy_antenna(void) {
-    print("Antenna deploying now!\n");
-
     // 10 second delay before start deploying antenna
     for (uint32_t seconds = 0; seconds < 10; seconds++) {
         WDT_ENABLE_SYS_RESET(WDTO_8S);
+        print("Antenna deploying now!\n");
+
         for (uint8_t i = 0; i < 10; i++) {
             // blink antenna warn light
             set_pin_high(ANT_DEP_WARN, &PORT_ANT_WARN);
@@ -53,6 +53,7 @@ void deploy_antenna(void) {
 
     // Start algorithm 1 for all doors, each door takes a maximum of 15 seconds
     // The mode is only valid if reading antenna data over I2C was successful
+    print("Alg1\n");
     ret = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
     if (ret) {
         write_antenna_alg1(&i2c_status);
@@ -68,6 +69,7 @@ void deploy_antenna(void) {
     }
 
     // Use algorithm 2 on doors not open
+    print("Alg2\n");
     ret = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
     if (ret) {
         // Get doors that are unopened and need to be redeployed
@@ -118,9 +120,11 @@ void deploy_antenna(void) {
     }
 
     // Doors are still open (could be because I2C failed)
+    print("Rel\n");
     if (num_doors > 0) {
         // Manual release for 5 seconds for each burning resistor
 
+        print("RelA\n");
         set_pin_high(ANT_REL_A, &PORT_ANT_REL);
         for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
             WDT_ENABLE_SYS_RESET(WDTO_8S);
@@ -130,6 +134,7 @@ void deploy_antenna(void) {
 
         _delay_ms(100);
 
+        print("RelB\n");
         set_pin_high(ANT_REL_B, &PORT_ANT_REL);
         for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
             WDT_ENABLE_SYS_RESET(WDTO_8S);
@@ -173,7 +178,8 @@ uint8_t read_antenna_data(uint8_t* door_positions, uint8_t* mode,
 
     *i2c_status = status;
 
-    print("I2C read: ret = %u, stat = 0x%.2x\n", ret, status);
+    print("Read: ret = %u, stat = 0x%.2x, data = ", ret, status);
+    print_bytes(data, 3);
 
 #ifdef ANTENNA_DEBUG
     print("data = ");
