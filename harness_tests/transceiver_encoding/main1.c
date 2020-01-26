@@ -151,11 +151,39 @@ void random_encode_decode_test(void){
     }
 }
 
+/* Ensure crc function generates correct checksum for messages
+ CRC of bytes calculated using http://www.sunshine2k.de/coding/javascript/crc/crc_js.html
+ */
+void checksum_test(void){
+    uint8_t msg1_len = 9;
+    uint8_t msg1[9] = { 0xf3, 0x00, 0x00, 0x12, 0x8d, 0x9a, 0x4f, 0x5e, 0xc5 };
+    uint32_t msg1_check = crc32(msg1, msg1_len);
+
+    ASSERT_EQ(msg1_check, 0x2817B19A);
+
+    uint8_t msg2_len = 23;
+    uint8_t msg2[23] = { 0xeb, 0x4d, 0xa0, 0x99, 0x4f, 0xfd, 0x69, 0x20, 0x25, 0x90, 0x2b, 0x59, 0xb7, 0x9b, 0xf7,0x13, 0xe2, 0x57, 0x5e, 0x1c, 0x35, 0x49, 0x78};
+    uint32_t msg2_check = crc32(msg2, msg2_len);
+
+    ASSERT_EQ(msg2_check, 0x10ABCC35);
+
+    uint8_t msg3_len = 1;
+    uint8_t msg3[1] = { 0x00 };
+    uint32_t msg3_check = crc32(msg3, msg3_len);
+
+    ASSERT_EQ(msg3_check, 0xD202EF8D);
+
+}
+
+
 test_t t1 = {.name = "decode_trans_rx_msg_test", .fn = decode_trans_rx_msg_test};
 test_t t2 = {.name = "encode_trans_tx_msg_test", .fn = encode_trans_tx_msg_test};
 test_t t3 = {.name = "random_encode_decode_test", .fn = random_encode_decode_test};
 
-test_t* suite[] = { &t1, &t2, &t3 };
+test_t t4 = {.name = "checksum_test", .fn = checksum_test};
+
+
+test_t* suite[] = { &t1, &t2, &t3, &t4};
 
 int main(void) {
     run_tests(suite, sizeof(suite) / sizeof(suite[0]));
