@@ -23,7 +23,6 @@ extern cmd_t read_obc_ram_byte_cmd;
 extern cmd_t set_indef_beacon_enable_cmd;
 extern cmd_t send_eps_can_msg_cmd;
 extern cmd_t send_pay_can_msg_cmd;
-extern cmd_t act_pay_motors_cmd;
 extern cmd_t reset_subsys_cmd;
 
 extern cmd_t read_rec_status_info_cmd;

@@ -68,8 +68,7 @@ typedef struct {
 #define CMD_ERASE_ALL_MEM               0x37
 #define CMD_SEND_EPS_CAN_MSG            0x40
 #define CMD_SEND_PAY_CAN_MSG            0x41
-#define CMD_ACT_PAY_MOTORS              0x42
-#define CMD_RESET_SUBSYS                0x43
+#define CMD_RESET_SUBSYS                0x42
 
 // Mask to set MSB on opcode byte for response packets
 #define CMD_RESP_CMD_ID_MASK            (0x1 << 15)

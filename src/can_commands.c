@@ -12,15 +12,11 @@ queue_t data_rx_msg_queue;
 bool print_can_msgs = false;
 
 
-void process_pay_ctrl(uint8_t field_num);
-
-
 // If there is an RX messsage in the queue, process it
 void process_next_rx_msg(void) {
     uint8_t msg[8] = {0x00};
 
     uint8_t opcode = 0;
-    uint8_t field_num = 0;
     uint8_t status = 0;
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -39,7 +35,6 @@ void process_next_rx_msg(void) {
 
     // Break down the message into components
     opcode = msg[0];
-    field_num = msg[1];
     status = msg[2];
 
     // If we are in the middle of a collect data block command for this type,
@@ -68,28 +63,9 @@ void process_next_rx_msg(void) {
         }
         finish_current_cmd(status);
     }
-    
-    else {
-        switch (opcode) {
-            case CAN_PAY_CTRL:
-                process_pay_ctrl(field_num);
-                break;
-            default:
-                break;
-        }
-    }
 }
 
 
-void process_pay_ctrl(uint8_t field_num) {
-    if (current_cmd == &act_pay_motors_cmd &&
-            (field_num == CAN_PAY_CTRL_MOTOR_UP ||
-            field_num == CAN_PAY_CTRL_MOTOR_DOWN ||
-            field_num == CAN_PAY_CTRL_MOTOR_DEP_ROUTINE)) {
-        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
-        finish_current_cmd(CMD_RESP_STATUS_OK);
-    }
-}
 
 
 /*
