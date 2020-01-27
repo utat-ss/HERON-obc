@@ -217,7 +217,7 @@ void test_pipe(void) {
 void test_beacon(void) {
     uint8_t ret = 0;
 
-    ret = set_trans_beacon_content(TRANS_BEACON_DEF_MSG);
+    ret = set_trans_beacon_content("test message");
     print("set_trans_beacon_content: ret = %u\n", ret);
 
     // Get trans beacon content
