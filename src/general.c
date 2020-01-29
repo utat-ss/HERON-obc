@@ -54,10 +54,6 @@ void init_obc_phase1(void) {
 
 // Initializes the transceiver parts of OBC that must be delayed after initial startup
 void init_obc_phase2(void) {
-    // TODO - move to flight config program
-    set_trans_freq(TRANS_DEF_FREQ);
-    set_trans_beacon_period(TRANS_BEACON_DEF_PERIOD_S);
-
     // If either or both enables in EEPROM are set, turn on the beacon
     uint32_t enable_1 = read_eeprom_or_default(BEACON_ENABLE_1_EEPROM_ADDR, 1);
     uint32_t enable_2 = read_eeprom_or_default(BEACON_ENABLE_2_EEPROM_ADDR, 1);

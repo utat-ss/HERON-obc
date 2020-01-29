@@ -16,7 +16,6 @@ void read_obc_ram_byte_fn(void);
 void set_indef_beacon_enable_fn(void);
 void send_eps_can_msg_fn(void);
 void send_pay_can_msg_fn(void);
-void act_pay_motors_fn(void);
 void reset_subsys_fn(void);
 
 void read_rec_status_info_fn(void);
@@ -97,11 +96,6 @@ cmd_t send_eps_can_msg_cmd = {
 cmd_t send_pay_can_msg_cmd = {
     .fn = send_pay_can_msg_fn,
     .opcode = CMD_SEND_PAY_CAN_MSG,
-    .pwd_protected = true
-};
-cmd_t act_pay_motors_cmd = {
-    .fn = act_pay_motors_fn,
-    .opcode = CMD_ACT_PAY_MOTORS,
     .pwd_protected = true
 };
 cmd_t reset_subsys_cmd = {
@@ -223,7 +217,6 @@ cmd_t* all_cmds_list[] = {
     &set_indef_beacon_enable_cmd,
     &send_eps_can_msg_cmd,
     &send_pay_can_msg_cmd,
-    &act_pay_motors_cmd,
     &reset_subsys_cmd,
     &read_rec_status_info_cmd,
     &read_data_block_cmd,
@@ -363,33 +356,6 @@ void send_eps_can_msg_fn(void) {
 void send_pay_can_msg_fn(void) {
     enqueue_tx_msg_bytes(&pay_tx_msg_queue, current_cmd_arg1, current_cmd_arg2);
     // Will continue from CAN callbacks
-}
-
-void act_pay_motors_fn(void) {
-    // Must have a valid argument corresponding to one of the CAN field numbers
-    // for motor commands
-    if (current_cmd_arg1 == CAN_PAY_CTRL_MOTOR_UP ||
-            current_cmd_arg1 == CAN_PAY_CTRL_MOTOR_DOWN ||
-            current_cmd_arg1 == CAN_PAY_CTRL_MOTOR_DEP_ROUTINE) {
-    
-        // Enqueue temporary low-power mode CAN command for EPS
-        // These will both be sent before the actuate motors CAN command
-        enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, CAN_EPS_CTRL_START_TEMP_LPM, 0);
-
-        // Send extra PAY messages (essentially no-ops) before the motors
-        // command to give some time for EPS to active temp LPM (mainly
-        // switching off its heaters)
-        // This could be important to allow power distribution to stabilize
-        // before activating a large transient load
-        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_PING, 0);
-        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_PING, 0);
-        enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, current_cmd_arg1, 0);
-
-        // Continues from CAN callbacks
-    } else {
-        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
-        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
-    }
 }
 
 void reset_subsys_fn(void) {
@@ -855,7 +821,6 @@ void col_data_block_other_check(data_col_t* data_col) {
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
                 start_trans_tx_resp(CMD_RESP_STATUS_OK);
-                // TODO - is this the correct block number?
                 append_to_trans_tx_resp((data_col->header.block_num >> 24) & 0xFF);
                 append_to_trans_tx_resp((data_col->header.block_num >> 16) & 0xFF);
                 append_to_trans_tx_resp((data_col->header.block_num >> 8) & 0xFF);

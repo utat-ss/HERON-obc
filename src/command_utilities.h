@@ -68,8 +68,7 @@ typedef struct {
 #define CMD_ERASE_ALL_MEM               0x37
 #define CMD_SEND_EPS_CAN_MSG            0x40
 #define CMD_SEND_PAY_CAN_MSG            0x41
-#define CMD_ACT_PAY_MOTORS              0x42
-#define CMD_RESET_SUBSYS                0x43
+#define CMD_RESET_SUBSYS                0x42
 
 // Mask to set MSB on opcode byte for response packets
 #define CMD_RESP_CMD_ID_MASK            (0x1 << 15)
@@ -101,11 +100,10 @@ typedef struct {
 // When a command is automatically enqueued by OBC
 #define CMD_CMD_ID_AUTO_ENQUEUED        0x0000
 
-#define CMD_TIMEOUT_DEF_PERIOD_S    30
+#define CMD_TIMEOUT_DEF_PERIOD_S            60
 // Maximum number of seconds between fields of a collect data block command
 // before it times out
-// TODO - upper bound - maybe 5s or 10s?
-#define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S 10
+#define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S  10
 
 // Split of 47 PAY_OPT fields into separate read data block commands
 // TODO assert these in a test sum to match the CAN field count

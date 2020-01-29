@@ -657,9 +657,6 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
     }
 
     // Set the new block number
-    // TODO - might not always want to do this to reduce EEPROM wear?
-    // Maybe once every 5-10 times?
-    // Maybe command to force write to EEPROM?
     set_mem_section_curr_block(section, next_block);
 }
 
