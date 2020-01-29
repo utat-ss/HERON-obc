@@ -339,7 +339,7 @@ void encode_trans_tx_msg(void) {
         uint8_t dec_len = trans_tx_dec_len;
         uint8_t enc_len = dec_len + 9;
 
-        uint8_t checksum_buf[TRANS_RX_DEC_MSG_MAX_SIZE + 1] = {0x00};
+        uint8_t checksum_buf[TRANS_TX_DEC_MSG_MAX_SIZE + 1] = {0x00};
         checksum_buf[0] = dec_len;
         for (uint8_t i = 0; i < dec_len &&
                 1 + i < sizeof(checksum_buf) / sizeof(checksum_buf[0]); i++) {
