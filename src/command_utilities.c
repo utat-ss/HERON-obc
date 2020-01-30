@@ -40,7 +40,7 @@ uint8_t cmd_timeout_period_s = CMD_TIMEOUT_DEF_PERIOD_S;
 uint32_t obc_hk_fields[CAN_OBC_HK_FIELD_COUNT] = { 0 };
 uint32_t eps_hk_fields[CAN_EPS_HK_FIELD_COUNT] = { 0 };
 uint32_t pay_hk_fields[CAN_PAY_HK_FIELD_COUNT] = { 0 };
-uint32_t pay_opt_fields[CAN_PAY_OPT_FIELD_COUNT] = { 0 };
+uint32_t pay_opt_fields[CAN_PAY_OPT_TOT_FIELD_COUNT] = { 0 };
 
 mem_header_t cmd_log_header;
 

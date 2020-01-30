@@ -473,18 +473,18 @@ void read_data_block_common(bool read_mem) {
         }
     }
 
-    else if (current_cmd_arg1 == CMD_PAY_OPT_1) {
+    else if (current_cmd_arg1 == CMD_PAY_OPT_OD) {
         read_data_block_impl(&pay_opt_data_col, read_mem,
             &pay_opt_data_col.fields[0],
-            CMD_READ_DATA_BLOCK_PAY_OPT_1_COUNT);
+            CAN_PAY_OPT_OD_FIELD_COUNT);
 
         finish_current_cmd(CMD_RESP_STATUS_OK);
         return;
     }
-    else if (current_cmd_arg1 == CMD_PAY_OPT_2) {
+    else if (current_cmd_arg1 == CMD_PAY_OPT_FL) {
         read_data_block_impl(&pay_opt_data_col, read_mem,
-            &pay_opt_data_col.fields[CMD_READ_DATA_BLOCK_PAY_OPT_1_COUNT],
-            CMD_READ_DATA_BLOCK_PAY_OPT_2_COUNT);
+            &pay_opt_data_col.fields[CAN_PAY_OPT_OD_FIELD_COUNT],
+            CAN_PAY_OPT_FL_FIELD_COUNT);
 
         finish_current_cmd(CMD_RESP_STATUS_OK);
         return;

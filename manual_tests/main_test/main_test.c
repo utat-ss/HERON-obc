@@ -202,7 +202,7 @@ void sim_send_next_pay_tx_msg(void) {
             break;
 
         case CAN_PAY_OPT:
-            if (0 <= field_num && field_num < CAN_PAY_OPT_FIELD_COUNT) {
+            if (0 <= field_num && field_num < CAN_PAY_OPT_TOT_FIELD_COUNT) {
                 // All fields are 24-bit ADC data
                 populate_msg_data(rx_msg, rand_bits(24));
             } else {

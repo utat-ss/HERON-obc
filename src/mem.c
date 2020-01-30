@@ -79,7 +79,7 @@ mem_section_t pay_opt_mem_section = {
     .end_addr_eeprom_addr = MEM_PAY_OPT_END_ADDR_EEPROM_ADDR,
     .curr_block = 0,
     .curr_block_eeprom_addr = MEM_PAY_OPT_CURR_BLOCK_EEPROM_ADDR,
-    .fields_per_block = CAN_PAY_OPT_FIELD_COUNT
+    .fields_per_block = CAN_PAY_OPT_TOT_FIELD_COUNT
 };
 
 mem_section_t prim_cmd_log_mem_section = {

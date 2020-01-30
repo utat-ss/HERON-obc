@@ -160,11 +160,24 @@ void stair_queue_test(void) {
     ASSERT_FALSE(dequeue_cmd(&dq_cmd_id, (cmd_t **) &current_cmd, &dq_arg1, &dq_arg2));
 }
 
+// Miscellaneous constants and configuration parameters
+void params_test(void) {
+    ASSERT_EQ(CAN_PAY_OPT_OD_FIELD_COUNT, CAN_PAY_OPT_FL_FIELD_COUNT);
+    ASSERT_EQ(CAN_PAY_OPT_OD_FIELD_COUNT + CAN_PAY_OPT_FL_FIELD_COUNT,
+        CAN_PAY_OPT_TOT_FIELD_COUNT);
+
+    ASSERT_EQ((CAN_PAY_OPT_OD_FIELD_COUNT * MEM_BYTES_PER_FIELD) + MEM_BYTES_PER_HEADER,
+        CMD_READ_MEM_MAX_COUNT);
+
+    // TODO - assert memory addresses are consecutive between sections and match intended sizes
+}
+
 test_t t1 = {.name = "dequeue empty test", .fn = dequeue_empty_test}; 
 test_t t2 = {.name = "triangle_queue test", .fn = triangle_queue_test};
 test_t t3 = {.name = "stair_queue test", .fn = stair_queue_test};
+test_t t4 = {.name = "params test", .fn = params_test};
 
-test_t* suite[] = { &t1, &t2, &t3 };
+test_t* suite[] = { &t1, &t2, &t3, &t4 };
 
 int main( void ) {
     init_obc_phase1();
