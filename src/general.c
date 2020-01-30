@@ -61,7 +61,7 @@ void init_obc_phase2(void) {
         turn_on_trans_beacon();
     }
 
-    // TODO - deploy antenna
+    deploy_antenna();
 }
 
 void set_def_trans_beacon_content(void) {

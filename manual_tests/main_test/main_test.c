@@ -256,9 +256,9 @@ int main(void){
     skip_phase2_delay = true;
     skip_phase2_init = true;
     com_timeout_period_s = 600;
-    hb_req_period_s = 30;
+    hb_req_period_s = 300;
     hb_resp_wait_time_s = 5;
-    disable_hb = true;
+    disable_hb = false;
     print_can_msgs = true;
     print_cmds = true;
     print_trans_msgs = true;
