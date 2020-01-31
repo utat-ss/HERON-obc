@@ -26,6 +26,7 @@ bool sim_pay = false;
 // collection field request (e.g. 5 means 1/5 probability)
 uint32_t data_col_prob_denom = 3;
 
+bool skip_phase1_comms_init = false;
 bool reset_phase2_delay_eeprom = false;
 bool skip_phase2_delay = false;
 bool skip_phase2_init = false;
@@ -245,12 +246,13 @@ int main(void){
     WDT_OFF();
     WDT_ENABLE_SYS_RESET(WDTO_8S);
 
-    init_obc_phase1();
+    init_obc_phase1_core();
 
     print("\n\n\nStarting OBC main test\n\n");
 
     sim_eps = true;
     sim_pay = true;
+    skip_phase1_comms_init = false;
     phase2_delay.period_s = 30;
     reset_phase2_delay_eeprom = false;
     skip_phase2_delay = true;
@@ -279,6 +281,11 @@ int main(void){
     // print("print_cmds = %u\n", print_cmds);
     // print("print_trans_msgs = %u\n", print_trans_msgs);
     // print("\n");
+
+    // Can optionally disable this
+    if (!skip_phase1_comms_init) {
+        init_obc_phase1_comms();
+    }
 
     // Initialize heartbeat separately so we have the option to disable it for debugging
     if (!disable_hb) {

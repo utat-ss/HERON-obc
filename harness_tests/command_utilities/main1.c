@@ -196,7 +196,7 @@ test_t t4 = {.name = "params test", .fn = params_test};
 test_t* suite[] = { &t1, &t2, &t3, &t4 };
 
 int main( void ) {
-    init_obc_phase1();
+    init_obc_phase1_core();
 
     run_tests(suite, sizeof(suite) / sizeof(suite[0]));
     return 0;

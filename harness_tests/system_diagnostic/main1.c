@@ -209,7 +209,7 @@ test_t t7 = { .name = "EPS Reset Test", .fn = eps_reset_test };
 test_t* suite[] = { &t1, &t2, &t3, &t4, &t5, &t6, &t7};
 
 int main(void) {
-    init_obc_phase1();
+    init_obc_phase1_core();
     init_hb(HB_OBC);
     run_tests(suite, TEST_SIZE);
     return 0;

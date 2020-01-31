@@ -37,7 +37,8 @@ typedef struct {
 extern phase2_delay_t phase2_delay;
 
 
-void init_obc_phase1(void);
+void init_obc_phase1_core(void);
+void init_obc_phase1_comms(void);
 void init_obc_phase2(void);
 void init_phase2_delay(void);
 void run_phase2_delay(void);
