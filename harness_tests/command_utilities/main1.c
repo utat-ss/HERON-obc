@@ -108,7 +108,7 @@ void stair_queue_test(void) {
     ASSERT_EQ(check_cmd_id, dq_arg1);
     ASSERT_EQ(check_cmd_id++, dq_arg2);
 
-    ASSERT_TRUE(enqueue_cmd(eq_cmd_id, &set_beacon_inhibit_enable_cmd, eq_cmd_id, eq_cmd_id));
+    ASSERT_TRUE(enqueue_cmd(eq_cmd_id, &set_indef_beacon_enable_cmd, eq_cmd_id, eq_cmd_id));
     ++eq_cmd_id;
     ASSERT_TRUE(enqueue_cmd(eq_cmd_id, &send_eps_can_msg_cmd, eq_cmd_id, eq_cmd_id));
     ++eq_cmd_id;
@@ -123,7 +123,7 @@ void stair_queue_test(void) {
     ++eq_cmd_id;
     
     // Queue should be full
-    ASSERT_FALSE(enqueue_cmd(eq_cmd_id, &act_pay_motors_cmd, eq_cmd_id, eq_cmd_id));
+    ASSERT_FALSE(enqueue_cmd(eq_cmd_id, &send_pay_can_msg_cmd, eq_cmd_id, eq_cmd_id));
     ++eq_cmd_id;
 
     dequeue_cmd(&dq_cmd_id, (cmd_t **) &current_cmd, &dq_arg1, &dq_arg2);
@@ -140,7 +140,7 @@ void stair_queue_test(void) {
 
     dequeue_cmd(&dq_cmd_id, (cmd_t **) &current_cmd, &dq_arg1, &dq_arg2);
     ASSERT_EQ(check_cmd_id, dq_cmd_id);
-    ASSERT_EQ((uint16_t) &set_beacon_inhibit_enable_cmd, (uint16_t) current_cmd);
+    ASSERT_EQ((uint16_t) &set_indef_beacon_enable_cmd, (uint16_t) current_cmd);
     ASSERT_EQ(check_cmd_id, dq_arg1);
     ASSERT_EQ(check_cmd_id++, dq_arg2);
 
@@ -162,14 +162,30 @@ void stair_queue_test(void) {
 
 // Miscellaneous constants and configuration parameters
 void params_test(void) {
+    // PAY optical field count
     ASSERT_EQ(CAN_PAY_OPT_OD_FIELD_COUNT, CAN_PAY_OPT_FL_FIELD_COUNT);
     ASSERT_EQ(CAN_PAY_OPT_OD_FIELD_COUNT + CAN_PAY_OPT_FL_FIELD_COUNT,
         CAN_PAY_OPT_TOT_FIELD_COUNT);
 
+    // Read raw memory bytes max size
     ASSERT_EQ((CAN_PAY_OPT_OD_FIELD_COUNT * MEM_BYTES_PER_FIELD) + MEM_BYTES_PER_HEADER,
         CMD_READ_MEM_MAX_COUNT);
 
-    // TODO - assert memory addresses are consecutive between sections and match intended sizes
+    // Check memory addresses are valid, consecutive, and span the whole memory
+    // space
+    ASSERT_EQ(MEM_OBC_HK_START_ADDR,            0);
+    ASSERT_EQ(MEM_OBC_HK_END_ADDR + 1,          MEM_EPS_HK_START_ADDR);
+    ASSERT_EQ(MEM_EPS_HK_END_ADDR + 1,          MEM_PAY_HK_START_ADDR);
+    ASSERT_EQ(MEM_PAY_HK_END_ADDR + 1,          MEM_PAY_OPT_START_ADDR);
+    ASSERT_EQ(MEM_PAY_OPT_END_ADDR + 1,         MEM_PRIM_CMD_LOG_START_ADDR);
+    ASSERT_EQ(MEM_PRIM_CMD_LOG_END_ADDR + 1,    MEM_SEC_CMD_LOG_START_ADDR);
+    ASSERT_EQ(MEM_SEC_CMD_LOG_END_ADDR + 1,     MEM_NUM_ADDRESSES);
+
+    // Check auto data collection default periods are valid (not too frequent)
+    ASSERT_GREATER(OBC_HK_AUTO_DATA_COL_PERIOD, CMD_AUTO_DATA_COL_MIN_PERIOD);
+    ASSERT_GREATER(EPS_HK_AUTO_DATA_COL_PERIOD, CMD_AUTO_DATA_COL_MIN_PERIOD);
+    ASSERT_GREATER(PAY_HK_AUTO_DATA_COL_PERIOD, CMD_AUTO_DATA_COL_MIN_PERIOD);
+    ASSERT_GREATER(PAY_OPT_AUTO_DATA_COL_PERIOD, CMD_AUTO_DATA_COL_MIN_PERIOD);
 }
 
 test_t t1 = {.name = "dequeue empty test", .fn = dequeue_empty_test}; 
