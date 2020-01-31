@@ -11,7 +11,7 @@ phase2_delay_t phase2_delay = {
 
 // Initializes everything in OBC, EXCEPT the transceiver/comms things that must
 // not be turned on for the first 30 minutes
-void init_obc_phase1(void) {
+void init_obc_phase1_core(void) {
     init_uart();
 
     init_spi();
@@ -19,6 +19,8 @@ void init_obc_phase1(void) {
 
     init_rtc();
     init_mem();
+
+    init_ant();
 
     init_queue(&eps_tx_msg_queue);
     init_queue(&pay_tx_msg_queue);
@@ -32,23 +34,25 @@ void init_obc_phase1(void) {
     init_tx_mob(&pay_cmd_tx_mob);
     init_tx_mob(&eps_cmd_tx_mob);
 
-    init_ant();
-
     restart_date = read_rtc_date();
     restart_time = read_rtc_time();
 
     init_uptime();
     init_com_timeout();
 
-    init_phase2_delay();
-
     init_auto_data_col();
     add_uptime_callback(cmd_timeout_timer_cb);
+}
+
+void init_obc_phase1_comms(void) {
+    init_phase2_delay();
 
     init_trans();
+    
     uart_baud_rate_t previous_baud = UART_BAUD_9600;
     correct_transceiver_baud_rate(UART_BAUD_9600, &previous_baud);
     set_uart_baud_rate(UART_BAUD_9600);
+
     set_def_trans_beacon_content();
 }
 

@@ -34,8 +34,8 @@ typedef struct {
 #define CMD_EPS_HK          2
 #define CMD_PAY_HK          3
 #define CMD_PAY_OPT         4
-#define CMD_PAY_OPT_1       5
-#define CMD_PAY_OPT_2       6
+#define CMD_PAY_OPT_OD      5
+#define CMD_PAY_OPT_FL      6
 #define CMD_PRIM_CMD_LOG    7
 #define CMD_SEC_CMD_LOG     8
 
@@ -105,13 +105,9 @@ typedef struct {
 // before it times out
 #define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S  10
 
-// Split of 47 PAY_OPT fields into separate read data block commands
-// TODO assert these in a test sum to match the CAN field count
-#define CMD_READ_DATA_BLOCK_PAY_OPT_1_COUNT 24
-#define CMD_READ_DATA_BLOCK_PAY_OPT_2_COUNT 23
 
 // Max memory read
-#define CMD_READ_MEM_MAX_COUNT          100
+#define CMD_READ_MEM_MAX_COUNT          106
 // Minimum auto data collection period in seconds
 #define CMD_AUTO_DATA_COL_MIN_PERIOD    60
 
@@ -121,9 +117,9 @@ typedef struct {
 
 // Default period for automatic data collection for each block type
 // (time between timer callbacks, in seconds)
-#define OBC_HK_AUTO_DATA_COL_PERIOD     300
-#define EPS_HK_AUTO_DATA_COL_PERIOD     300
-#define PAY_HK_AUTO_DATA_COL_PERIOD     900
+#define OBC_HK_AUTO_DATA_COL_PERIOD     600
+#define EPS_HK_AUTO_DATA_COL_PERIOD     600
+#define PAY_HK_AUTO_DATA_COL_PERIOD     1200
 #define PAY_OPT_AUTO_DATA_COL_PERIOD    7200
 
 // Beacon enables in EEPROM

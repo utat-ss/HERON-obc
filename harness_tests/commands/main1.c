@@ -500,7 +500,7 @@ test_t t6 = { .name = "disable indef lpm test", .fn = disable_indef_lpm_test };
 test_t* suite[] = {&t1, &t2, &t3, &t4, &t5, &t6};
 
 int main( void ) {
-    init_obc_phase1();
+    init_obc_phase1_core();
 
     run_tests(suite, sizeof(suite) / sizeof(suite[0]));
     return 0;

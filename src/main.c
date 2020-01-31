@@ -4,7 +4,8 @@ int main(void) {
     WDT_OFF();
     WDT_ENABLE_SYS_RESET(WDTO_8S);
 
-    init_obc_phase1();
+    init_obc_phase1_core();
+    init_obc_phase1_comms();
     init_hb(HB_OBC);
     
     while (1) {
