@@ -44,15 +44,15 @@ void basic_commands_test (void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 15);
-        if (trans_tx_dec_len == 6) {
-            ASSERT_EQ(trans_tx_dec_msg[9], 0);  // This might fail
-            ASSERT_EQ(trans_tx_dec_msg[10], 0);
-            ASSERT_EQ(trans_tx_dec_msg[11], 0);
-            ASSERT_EQ(trans_tx_dec_msg[12], 1);
-            ASSERT_EQ(trans_tx_dec_msg[13], 4);
-            ASSERT_EQ(trans_tx_dec_msg[14], 0xff);
-        }
+        ASSERT_EQ(trans_tx_dec_len, 9);
+
+        // This might fail
+        ASSERT_EQ(trans_tx_dec_msg[3], date.yy);
+        ASSERT_EQ(trans_tx_dec_msg[4], date.mm);
+        ASSERT_EQ(trans_tx_dec_msg[5], date.dd);
+        ASSERT_EQ(trans_tx_dec_msg[6], time.hh);
+        ASSERT_EQ(trans_tx_dec_msg[7], time.mm);
+        ASSERT_EQ(trans_tx_dec_msg[8], time.ss);
     }
 
     // Try to read 12 bytes of raw memory
@@ -60,7 +60,7 @@ void basic_commands_test (void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail){
-        ASSERT_EQ(trans_tx_dec_len, 21);
+        ASSERT_EQ(trans_tx_dec_len, 15);
     }
 
     // Read the recent status info, just confirm length, content doesn't matter
@@ -68,47 +68,53 @@ void basic_commands_test (void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 42);    // OBC has 5 field --> 33 bytes in total + 9
+        ASSERT_EQ(trans_tx_dec_len, 36);    // OBC has 5 field --> 33 bytes in total + 3
     }
 
-    // Test get and set for data collection, data period
+    // Trying to set a period < 60 should fail
     enqueue_cmd(13, &set_auto_data_col_period_cmd, 1, 40);
-    enqueue_cmd(14, &get_auto_data_col_settings_cmd, 1, 0);
+    execute_next_cmd();
+    ASSERT_NEQ(obc_hk_data_col.auto_period, 40);
+    ASSERT_TRUE(trans_tx_dec_avail);
+
+    // Test get and set for data collection, data period
+    enqueue_cmd(14, &set_auto_data_col_period_cmd, 1, 80);
+    enqueue_cmd(15, &get_auto_data_col_settings_cmd, 0, 0);
 
     execute_next_cmd();
-    ASSERT_EQ(obc_hk_data_col.period, 40);
+    ASSERT_EQ(obc_hk_data_col.auto_period, 80);
     ASSERT_TRUE(trans_tx_dec_avail);
 
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 13); // Assuming size of period var is 1 byte
-        ASSERT_EQ(trans_tx_dec_msg[12], 40);
+        ASSERT_EQ(trans_tx_dec_len, 43);
+        ASSERT_EQ(trans_tx_dec_msg[3 + 8], 80);
     }
 
     // Enable the data collection
-    enqueue_cmd(15, &set_auto_data_col_enable_cmd, 1, 1);
+    enqueue_cmd(16, &set_auto_data_col_enable_cmd, 1, 1);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
-    ASSERT_TRUE(obc_hk_data_col.enabled);
-    enqueue_cmd(17, &get_auto_data_col_settings_cmd, 1, 0);
+    ASSERT_TRUE(obc_hk_data_col.auto_enabled);
+    enqueue_cmd(17, &get_auto_data_col_settings_cmd, 0, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 10);
-        ASSERT_EQ(trans_tx_dec_msg[9], 1);
+        ASSERT_EQ(trans_tx_dec_len, 43);
+        ASSERT_EQ(trans_tx_dec_msg[3 + 4], 1);
     }
 
     // Disable the data collection
     enqueue_cmd(19, &set_auto_data_col_enable_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
-    ASSERT_FALSE(obc_hk_data_col.enabled);
+    ASSERT_FALSE(obc_hk_data_col.auto_enabled);
     enqueue_cmd(20, &get_auto_data_col_settings_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 10);
+        ASSERT_EQ(trans_tx_dec_len, 43);
         ASSERT_EQ(trans_tx_dec_msg[9], 0);
     }
 
@@ -116,10 +122,7 @@ void basic_commands_test (void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 5*19+9);
-        if (trans_tx_dec_len == 5*19+9) {
-            // TODO: Figure out how to check that the commands match up
-        }
+        ASSERT_EQ(trans_tx_dec_len, 3 + 5*21);
     }
 }
 
@@ -138,7 +141,7 @@ void data_collection_test(void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 13);
+        ASSERT_EQ(trans_tx_dec_len, 3 + (6 * 4));
         if (trans_tx_dec_len == 13) {
             ASSERT_EQ(trans_tx_dec_msg[9], 0);
             ASSERT_EQ(trans_tx_dec_msg[10], 0);
@@ -152,7 +155,7 @@ void data_collection_test(void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 13);
+        ASSERT_EQ(trans_tx_dec_len, 3 + 4);
     }
     ++curr_block_num;   // The block number should increase with a read
 
@@ -160,8 +163,8 @@ void data_collection_test(void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 13);
-        ASSERT_EQ(trans_tx_dec_msg[12], curr_block_num);
+        ASSERT_EQ(trans_tx_dec_len, 3 + (6 * 4));
+        ASSERT_EQ(trans_tx_dec_msg[3 + 3], curr_block_num);
     }
 }
 
@@ -190,32 +193,24 @@ void mem_commands_test(void) {
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 13);
-        ASSERT_EQ(trans_tx_dec_msg[9], 0);
-        ASSERT_EQ(trans_tx_dec_msg[10], 0);
-        ASSERT_EQ(trans_tx_dec_msg[11], 3);
-        ASSERT_EQ(trans_tx_dec_msg[12], 0xe8);
-
+        ASSERT_EQ(trans_tx_dec_len, 3 + (6 * 8));
     }
 
     enqueue_cmd(20, &get_mem_sec_addrs_cmd, CMD_OBC_HK, 0);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     if (trans_tx_dec_avail) {
-        ASSERT_EQ(trans_tx_dec_len, 13);
-        ASSERT_EQ(trans_tx_dec_msg[9], 0);
-        ASSERT_EQ(trans_tx_dec_msg[10], 0);
-        ASSERT_EQ(trans_tx_dec_msg[11], 7);
-        ASSERT_EQ(trans_tx_dec_msg[12], 0xd0);
+        ASSERT_EQ(trans_tx_dec_len, 3 + (6 * 4 * 2));
+        ASSERT_EQ(trans_tx_dec_msg[3 + 0], 0);
+        ASSERT_EQ(trans_tx_dec_msg[3 + 1], 0);
+        ASSERT_EQ(trans_tx_dec_msg[3 + 2], 3);
+        ASSERT_EQ(trans_tx_dec_msg[3 + 3], 0xe8);
+        ASSERT_EQ(trans_tx_dec_msg[7 + 0], 0);
+        ASSERT_EQ(trans_tx_dec_msg[7 + 1], 0);
+        ASSERT_EQ(trans_tx_dec_msg[7 + 2], 7);
+        ASSERT_EQ(trans_tx_dec_msg[7 + 3], 0xd0);
     }
 
-    // Try setting the memory addresses to invalid address, it shouldn't change
-    // Set the end address to be before the start
-    enqueue_cmd(29, &set_mem_sec_end_addr_cmd, 1, 100);
-    execute_next_cmd();
-    ASSERT_TRUE(trans_tx_dec_avail);
-    ASSERT_EQ(obc_hk_mem_section.end_addr, 0x7d0);
-    
     // Set the start address to an out of range address
     enqueue_cmd(42, &set_mem_sec_start_addr_cmd, 1, 0x600001);  // TODO: Command implementation needs to be fixed to check for out of bounds
     execute_next_cmd();
@@ -344,160 +339,14 @@ void auto_erase_mem_sector_test(void) {
     ASSERT_EQ(queue_size(&cmd_queue_2), 0);
 }
 
-void enable_indef_lpm_test(void) {
-    // Unused, just for dequeueing
-    uint8_t eps_tx_msg[8];
-    uint8_t pay_tx_msg[8];
 
-    // Pretend responses from EPS and PAY
-    uint8_t eps_rx_msg[8] = {
-        0x00, 0x00, CAN_EPS_CTRL, CAN_EPS_CTRL_ENABLE_INDEF_LPM,
-        0x00, 0x00, 0x00, 0x00};
-    uint8_t pay_rx_msg[8] = {
-        0x00, 0x00, CAN_PAY_CTRL, CAN_PAY_CTRL_ENABLE_INDEF_LPM,
-        0x00, 0x00, 0x00, 0x00};
-
-
-    enqueue_cmd(0x5042, &set_indef_lpm_enable_cmd, 1, 0);
-    ASSERT_EQ(queue_size(&cmd_queue_1), 1);
-    ASSERT_EQ(queue_size(&cmd_queue_2), 1);
-    execute_next_cmd();
-    ASSERT_EQ(queue_size(&eps_tx_msg_queue), 1);
-    ASSERT_EQ(queue_size(&pay_tx_msg_queue), 1);
-    
-    dequeue(&eps_tx_msg_queue, eps_tx_msg);
-    dequeue(&pay_tx_msg_queue, pay_tx_msg);
-    ASSERT_EQ(queue_size(&eps_tx_msg_queue), 0);
-    ASSERT_EQ(queue_size(&pay_tx_msg_queue), 0);
-
-    enqueue(&data_rx_msg_queue, eps_rx_msg);
-    enqueue(&data_rx_msg_queue, pay_rx_msg);
-    ASSERT_EQ(queue_size(&data_rx_msg_queue), 2);
-
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &set_indef_lpm_enable_cmd);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_pay_resp);
-    process_next_rx_msg();
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &set_indef_lpm_enable_cmd);
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_pay_resp);
-    process_next_rx_msg();
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_pay_resp);
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &nop_cmd);
-
-
-    // Same thing but receive PAY response before EPS
-    enqueue_cmd(0x5042, &set_indef_lpm_enable_cmd, 1, 0);
-    ASSERT_EQ(queue_size(&cmd_queue_1), 1);
-    ASSERT_EQ(queue_size(&cmd_queue_2), 1);
-    execute_next_cmd();
-    ASSERT_EQ(queue_size(&eps_tx_msg_queue), 1);
-    ASSERT_EQ(queue_size(&pay_tx_msg_queue), 1);
-    
-    dequeue(&eps_tx_msg_queue, eps_tx_msg);
-    dequeue(&pay_tx_msg_queue, pay_tx_msg);
-    ASSERT_EQ(queue_size(&eps_tx_msg_queue), 0);
-    ASSERT_EQ(queue_size(&pay_tx_msg_queue), 0);
-
-    enqueue(&data_rx_msg_queue, pay_rx_msg);
-    enqueue(&data_rx_msg_queue, eps_rx_msg);
-    ASSERT_EQ(queue_size(&data_rx_msg_queue), 2);
-
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &set_indef_lpm_enable_cmd);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_pay_resp);
-    process_next_rx_msg();
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &set_indef_lpm_enable_cmd);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_pay_resp);
-    process_next_rx_msg();
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_pay_resp);
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &nop_cmd);
-}
-
-void disable_indef_lpm_test(void) {
-    // Unused, just for dequeueing
-    uint8_t eps_tx_msg[8];
-    uint8_t pay_tx_msg[8];
-
-    // Pretend responses from EPS and PAY
-    uint8_t eps_rx_msg[8] = {
-        0x00, 0x00, CAN_EPS_CTRL, CAN_EPS_CTRL_DISABLE_INDEF_LPM,
-        0x00, 0x00, 0x00, 0x00};
-    uint8_t pay_rx_msg[8] = {
-        0x00, 0x00, CAN_PAY_CTRL, CAN_PAY_CTRL_DISABLE_INDEF_LPM,
-        0x00, 0x00, 0x00, 0x00};
-
-
-    enqueue_cmd(0x5042, &set_indef_lpm_enable_cmd, 0, 0);
-    ASSERT_EQ(queue_size(&cmd_queue_1), 1);
-    ASSERT_EQ(queue_size(&cmd_queue_2), 1);
-    execute_next_cmd();
-    ASSERT_EQ(queue_size(&eps_tx_msg_queue), 1);
-    ASSERT_EQ(queue_size(&pay_tx_msg_queue), 1);
-    
-    dequeue(&eps_tx_msg_queue, eps_tx_msg);
-    dequeue(&pay_tx_msg_queue, pay_tx_msg);
-    ASSERT_EQ(queue_size(&eps_tx_msg_queue), 0);
-    ASSERT_EQ(queue_size(&pay_tx_msg_queue), 0);
-
-    enqueue(&data_rx_msg_queue, eps_rx_msg);
-    enqueue(&data_rx_msg_queue, pay_rx_msg);
-    ASSERT_EQ(queue_size(&data_rx_msg_queue), 2);
-
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &set_indef_lpm_enable_cmd);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_pay_resp);
-    process_next_rx_msg();
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &set_indef_lpm_enable_cmd);
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_pay_resp);
-    process_next_rx_msg();
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_pay_resp);
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &nop_cmd);
-
-
-    // Same thing but receive PAY response before EPS
-    enqueue_cmd(0x5042, &set_indef_lpm_enable_cmd, 0, 0);
-    ASSERT_EQ(queue_size(&cmd_queue_1), 1);
-    ASSERT_EQ(queue_size(&cmd_queue_2), 1);
-    execute_next_cmd();
-    ASSERT_EQ(queue_size(&eps_tx_msg_queue), 1);
-    ASSERT_EQ(queue_size(&pay_tx_msg_queue), 1);
-    
-    dequeue(&eps_tx_msg_queue, eps_tx_msg);
-    dequeue(&pay_tx_msg_queue, pay_tx_msg);
-    ASSERT_EQ(queue_size(&eps_tx_msg_queue), 0);
-    ASSERT_EQ(queue_size(&pay_tx_msg_queue), 0);
-
-    enqueue(&data_rx_msg_queue, pay_rx_msg);
-    enqueue(&data_rx_msg_queue, eps_rx_msg);
-    ASSERT_EQ(queue_size(&data_rx_msg_queue), 2);
-
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &set_indef_lpm_enable_cmd);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_pay_resp);
-    process_next_rx_msg();
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &set_indef_lpm_enable_cmd);
-    ASSERT_FALSE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_pay_resp);
-    process_next_rx_msg();
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_eps_resp);
-    ASSERT_TRUE(set_indef_lpm_enable_rcvd_pay_resp);
-    ASSERT_EQ((uint16_t) current_cmd, (uint16_t) &nop_cmd);
-}
 
 test_t t1 = { .name = "basic commands test", .fn = basic_commands_test };
 test_t t2 = { .name = "data collection test", .fn = data_collection_test };
 test_t t3 = { .name = "memory commands test", .fn = mem_commands_test };
 test_t t4 = { .name = "auto erase mem sector test", .fn = auto_erase_mem_sector_test };
-test_t t5 = { .name = "enable indef lpm test", .fn = enable_indef_lpm_test };
-test_t t6 = { .name = "disable indef lpm test", .fn = disable_indef_lpm_test };
 
-test_t* suite[] = {&t1, &t2, &t3, &t4, &t5, &t6};
+test_t* suite[] = {&t1, &t2, &t3, &t4};
 
 int main( void ) {
     init_obc_phase1_core();
