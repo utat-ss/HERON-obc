@@ -525,7 +525,7 @@ void read_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* d
     read_mem_bytes(address + section->start_addr, data, data_len);
 }
 
-void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
+void write_mem_bytes(uint32_t address, uint8_t* data, uint32_t data_len){
 /*
     writes data to memory starting at the specified address
     data MUST be at least of length data_len
@@ -555,9 +555,12 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
     uint8_t addr3;
     //calculate the initial chip number
     process_mem_addr(address, &chip_num, &addr1, &addr2, &addr3);
+    if (chip_num >= MEM_NUM_CHIPS) {
+        return;
+    }
 
     //initialize counter
-    for (uint16_t i = 0; i < data_len; i++) {
+    for (uint32_t i = 0; i < data_len; i++) {
 
         //rollover condition for chip and page boundaries
         if (((address + i) % 256 == 0) || (i == 0)) {
@@ -575,7 +578,7 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
             //stored in the most significant bits of the address
             process_mem_addr(address + i, &chip_num, &addr1, &addr2, &addr3);
             if (chip_num >= MEM_NUM_CHIPS) {
-                chip_num = 0;
+                return;
             }
 
             //enable writing to chip
@@ -603,7 +606,7 @@ void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
 }
 
 
-void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
+void read_mem_bytes(uint32_t address, uint8_t* data, uint32_t data_len){
 /*
     Reads a continous block of memory of size data_len from the given address
     and places the result in the data array
@@ -619,6 +622,9 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
     uint8_t addr2;
     uint8_t addr3;
     process_mem_addr(address, &chip_num, &addr1, &addr2, &addr3);
+    if (chip_num >= MEM_NUM_CHIPS) {
+        return;
+    }
 
     set_cs_low(mem_cs[chip_num].pin, mem_cs[chip_num].port);
     send_spi(MEM_R_BYTE);
@@ -626,7 +632,7 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
     send_spi(addr2);
     send_spi(addr3);
 
-    for (uint8_t i = 0; i < data_len; i++) {
+    for (uint32_t i = 0; i < data_len; i++) {
         // Get the chip number of the next address
         uint8_t new_chip_num;
         process_mem_addr(address + i, &new_chip_num, &addr1, &addr2, &addr3);
@@ -640,7 +646,7 @@ void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len){
             chip_num = new_chip_num;
             //ensure wrap-around back to chip 0
             if (chip_num >= MEM_NUM_CHIPS) {
-                chip_num = 0;
+                return;
             }
 
             /* Begin read on new chip */
@@ -762,6 +768,9 @@ void erase_mem_sector(uint32_t address){
     uint8_t addr2;
     uint8_t addr3;
     process_mem_addr(address, &chip_num, &addr1, &addr2, &addr3);
+    if (chip_num >= MEM_NUM_CHIPS) {
+        return;
+    }
 
     send_short_mem_command(MEM_WR_ENABLE, chip_num);
 
@@ -787,6 +796,9 @@ void erase_mem_block(uint32_t address){
     uint8_t addr2;
     uint8_t addr3;
     process_mem_addr(address, &chip_num, &addr1, &addr2, &addr3);
+    if (chip_num >= MEM_NUM_CHIPS) {
+        return;
+    }
 
     send_short_mem_command(MEM_WR_ENABLE, chip_num);
 

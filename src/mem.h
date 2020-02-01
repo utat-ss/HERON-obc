@@ -192,8 +192,8 @@ uint8_t write_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_
 void read_mem_section_bytes(mem_section_t *section, uint32_t address, uint8_t* data, uint8_t data_len);
 
 // Low-level operations - raw bytes
-void write_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
-void read_mem_bytes(uint32_t address, uint8_t* data, uint8_t data_len);
+void write_mem_bytes(uint32_t address, uint8_t* data, uint32_t data_len);
+void read_mem_bytes(uint32_t address, uint8_t* data, uint32_t data_len);
 void erase_mem(void);
 void erase_mem_chip(uint8_t chip);
 void unlock_mem(void);
