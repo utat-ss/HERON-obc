@@ -106,6 +106,8 @@ typedef struct {
 #define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S  10
 
 
+// Max number of command log blocks
+#define CMD_READ_CMD_BLOCKS_MAX_COUNT   5
 // Max memory read
 #define CMD_READ_MEM_MAX_COUNT          106
 // Minimum auto data collection period in seconds
