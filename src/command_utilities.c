@@ -1,7 +1,7 @@
 #include "command_utilities.h"
 
 // Uncomment for extra debugging prints
-#define COMMAND_UTILITIES_DEBUG
+// #define COMMAND_UTILITIES_DEBUG
 // #define COMMAND_UTILITIES_DEBUG_QUEUES
 // #define COMMAND_UTILITIES_VERBOSE
 
@@ -33,8 +33,8 @@ volatile uint32_t current_cmd_arg2 = 0;
 
 // For the uptime interrupt to cmd_timeout_cb to finish command if not completed
 // after some number of time
-volatile uint8_t cmd_timeout_count_s = 0;
-uint8_t cmd_timeout_period_s = CMD_TIMEOUT_DEF_PERIOD_S;
+volatile uint32_t cmd_timeout_count_s = 0;
+uint32_t cmd_timeout_period_s = CMD_TIMEOUT_DEF_PERIOD_S;
 
 // Must define these separately here because of different array sizes
 uint32_t obc_hk_fields[CAN_OBC_HK_FIELD_COUNT] = { 0 };
@@ -784,15 +784,14 @@ void cmd_timeout_timer_cb(void) {
     cmd_timeout_count_s += 1;
 
     if (cmd_timeout_count_s >= cmd_timeout_period_s) {
-#ifdef COMMAND_UTILITIES_DEBUG
-        print("CMD TIMED OUT\n");
-#endif
+        print("CMD TIMEOUT\n");
+
+        cmd_timeout_count_s = 0;
+
         // Only add response packet if not auto command
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
-            finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
         }
-
-        cmd_timeout_count_s = 0;
+        finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
     }
 }

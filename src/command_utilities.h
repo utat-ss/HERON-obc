@@ -183,8 +183,8 @@ extern volatile cmd_t* volatile current_cmd;
 extern volatile uint32_t current_cmd_arg1;
 extern volatile uint32_t current_cmd_arg2;
 
-extern volatile uint8_t cmd_timeout_count_s;
-extern uint8_t cmd_timeout_period_s;
+extern volatile uint32_t cmd_timeout_count_s;
+extern uint32_t cmd_timeout_period_s;
 
 extern mem_header_t cmd_log_header;
 

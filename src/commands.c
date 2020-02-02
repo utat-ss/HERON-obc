@@ -1,7 +1,7 @@
 #include "commands.h"
 
 // Uncomment for extra debugging prints
-#define COMMANDS_DEBUG
+// #define COMMANDS_DEBUG
 // #define COMMANDS_VERBOSE
 
 
