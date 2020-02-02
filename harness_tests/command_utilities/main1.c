@@ -170,6 +170,8 @@ void params_test(void) {
     // Read raw memory bytes max size
     ASSERT_EQ((CAN_PAY_OPT_OD_FIELD_COUNT * MEM_BYTES_PER_FIELD) + MEM_BYTES_PER_HEADER,
         CMD_READ_MEM_MAX_COUNT);
+    ASSERT_LESS(CMD_READ_CMD_BLOCKS_MAX_COUNT * (MEM_BYTES_PER_HEADER + MEM_BYTES_PER_CMD),
+        CMD_READ_MEM_MAX_COUNT);
 
     // Check memory addresses are valid, consecutive, and span the whole memory
     // space

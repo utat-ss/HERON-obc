@@ -57,8 +57,12 @@ void wait_for_trans_cmd_resp_test(void){
     trans_cmd_resp_avail = true;
     uint8_t expected_len = trans_cmd_resp_len;
     uint8_t test = wait_for_trans_cmd_resp(expected_len);
-    ASSERT_EQ(test,1);
-    //TODO- how to check the timeout?
+    ASSERT_EQ(test, 1);
+
+    clear_trans_cmd_resp();
+    test = wait_for_trans_cmd_resp(expected_len);
+    // Should fail because we did not send a command
+    ASSERT_EQ(test, 0);
 }
 
 // 4

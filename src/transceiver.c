@@ -415,23 +415,17 @@ void send_trans_tx_enc_msg(void) {
  * https://stackoverflow.com/questions/21001659/crc32-algorithm-implementation-in-c-without-a-look-up-table-and-with-a-public-li
  */
 uint32_t crc32(unsigned char *message, const uint8_t len) {
-   int8_t i, j;
-   uint32_t byte;
-   uint32_t mask;
-   uint32_t crc = 0xFFFFFFFF;
+    uint32_t crc = 0xFFFFFFFF;
 
-   i = 0;
-   // TODO - this is probably a bug, would stop early if a byte is 0x00
-   while (i < len) {
-      byte = message[i];            // Get next byte.
-      crc = crc ^ byte;
-      for (j = 7; j >= 0; j--) {    // Do eight times.
-         mask = -(crc & 1);
-         crc = (crc >> 1) ^ (0xEDB88320 & mask);    // 0xEDB88320 is 0x04C11DB7 reversed
-      }
-      i = i + 1;
-   }
-   return ~crc;
+    for (uint8_t i = 0; i < len; i++) {
+        uint32_t byte = message[i];            // Get next byte.
+        crc = crc ^ byte;
+        for (uint8_t j = 0; j < 8; j++) {    // Do eight times.
+            uint32_t mask = -(crc & 1);
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);    // 0xEDB88320 is 0x04C11DB7 reversed
+        }
+    }
+    return ~crc;
 }
 
 /**
@@ -443,7 +437,7 @@ uint32_t crc32(unsigned char *message, const uint8_t len) {
  * character, [CCCCCCCC] is the calculated CRC32 in ASCII
  * Return true if valid.
  */
-bool verifyCRC(unsigned char *message, const uint8_t len) {
+bool verify_crc(unsigned char *message, const uint8_t len) {
     // Calculate CRC of response (excluding ' ' + CRC given)
     uint32_t check_sum = crc32(message, len);
 
@@ -555,7 +549,7 @@ uint8_t wait_for_trans_cmd_resp(uint8_t expected_len) {
     }
 
     // Verify the checksum  
-    if (!verifyCRC((unsigned char *)trans_cmd_resp, expected_len)) {
+    if (!verify_crc((unsigned char *)trans_cmd_resp, expected_len)) {
         return 0;
     }
 

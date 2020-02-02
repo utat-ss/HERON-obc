@@ -505,7 +505,7 @@ void read_rec_loc_data_block_fn(void) {
 
 // Common functionality for primary and secondary blocks
 void read_cmd_blocks(mem_section_t* section) {
-    if (current_cmd_arg2 > 5) {
+    if (current_cmd_arg2 > CMD_READ_CMD_BLOCKS_MAX_COUNT) {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
         finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
         return;
@@ -562,12 +562,19 @@ void read_raw_mem_bytes_fn(void) {
         return;
     }
 
+    // Enforce not rolling over addresses past the third chip
+    if (current_cmd_arg1 + current_cmd_arg2 - 1 >= MEM_NUM_ADDRESSES) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+        return;
+    }
+
     uint8_t data[CMD_READ_MEM_MAX_COUNT] = { 0x00 };
-    read_mem_bytes(current_cmd_arg1, data, (uint8_t) current_cmd_arg2);
+    read_mem_bytes(current_cmd_arg1, data, current_cmd_arg2);
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_resp(CMD_RESP_STATUS_OK);
-        for (uint8_t i = 0; i < (uint8_t) current_cmd_arg2; i++) {
+        for (uint32_t i = 0; i < current_cmd_arg2; i++) {
             append_to_trans_tx_resp(data[i]);
         }
         finish_trans_tx_resp();
@@ -577,6 +584,12 @@ void read_raw_mem_bytes_fn(void) {
 }
 
 void erase_mem_phy_sector_fn(void) {
+    if (current_cmd_arg1 >= MEM_NUM_ADDRESSES) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+        return;
+    }
+
     erase_mem_sector(current_cmd_arg1);
 
     // Only send a transceiver packet if the erase was initiated by the ground
@@ -584,11 +597,16 @@ void erase_mem_phy_sector_fn(void) {
     if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
     }
-
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
 
 void erase_mem_phy_block_fn(void) {
+    if (current_cmd_arg1 >= MEM_NUM_ADDRESSES) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+        return;
+    }
+
     erase_mem_block(current_cmd_arg1);
 
     add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
@@ -961,6 +979,12 @@ void get_mem_sec_addrs_fn(void) {
 }
 
 void set_mem_sec_start_addr_fn(void) {
+    if (current_cmd_arg2 >= MEM_NUM_ADDRESSES) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+        return;
+    }
+
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             set_mem_section_start_addr(
@@ -997,6 +1021,12 @@ void set_mem_sec_start_addr_fn(void) {
 }
 
 void set_mem_sec_end_addr_fn(void) {
+    if (current_cmd_arg2 >= MEM_NUM_ADDRESSES) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+        return;
+    }
+
     switch (current_cmd_arg1) {
         case CMD_OBC_HK:
             set_mem_section_end_addr(

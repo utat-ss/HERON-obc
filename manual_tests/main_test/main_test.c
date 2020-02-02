@@ -115,11 +115,26 @@ void sim_send_next_eps_tx_msg(void) {
     // Can return early to not send a message back
     switch (opcode) {
         case CAN_EPS_HK:
-            if (CAN_EPS_HK_GYR_UNCAL_X <= field_num && field_num <= CAN_EPS_HK_GYR_CAL_Z) {
+            if (CAN_EPS_HK_BAT_VOL <= field_num && field_num <= CAN_EPS_HK_PAY_CON_TEMP) {
+                // 12-bit data - ADC
+                populate_msg_data(rx_msg, rand_bits(12));
+            } else if (field_num = CAN_EPS_HK_SHUNTS) {
+                // 4-bit data
+                populate_msg_data(rx_msg, rand_bits(4));
+            } else if (CAN_EPS_HK_HEAT1_SP <= field_num && field_num <= CAN_EPS_HK_HEAT2_SP) {
+                // 12-bit data - DAC
+                populate_msg_data(rx_msg, rand_bits(16));
+            } else if (CAN_EPS_HK_GYR_UNCAL_X <= field_num && field_num <= CAN_EPS_HK_GYR_CAL_Z) {
                 // 16-bit data - IMU gyro
                 populate_msg_data(rx_msg, rand_bits(16));
+            } else if (CAN_EPS_HK_UPTIME <= field_num && field_num <= CAN_EPS_HK_RESTART_COUNT) {
+                // 32-bit data
+                populate_msg_data(rx_msg, rand_bits(32));
+            } else if (field_num == CAN_EPS_HK_RESTART_REASON) {
+                // Normally values 0-7, use 3-bit data
+                populate_msg_data(rx_msg, rand_bits(3));
             } else if (field_num < CAN_EPS_HK_FIELD_COUNT) {
-                // TODO
+                // Any missed fields
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 rx_status = CAN_STATUS_INVALID_FIELD_NUM;
@@ -137,7 +152,6 @@ void sim_send_next_eps_tx_msg(void) {
             } else if (field_num == CAN_EPS_CTRL_ERASE_EEPROM) {
                 // Nothing
             } else if (field_num < CAN_EPS_CTRL_FIELD_COUNT) {
-                // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 rx_status = CAN_STATUS_INVALID_FIELD_NUM;
@@ -194,8 +208,26 @@ void sim_send_next_pay_tx_msg(void) {
                 populate_msg_data(rx_msg, rand_bits(14));
             } else if (field_num == CAN_PAY_HK_PRES) {
                 populate_msg_data(rx_msg, rand_bits(24));
+            } else if (CAN_PAY_HK_AMB_TEMP <= field_num && field_num <= CAN_PAY_HK_10V_CUR) {
+                // 12-bit data - ADC
+                populate_msg_data(rx_msg, rand_bits(12));
+            } else if (field_num == CAN_PAY_HK_THERM_EN) {
+                // 12 enable bits
+                populate_msg_data(rx_msg, rand_bits(12));
+            } else if (field_num == CAN_PAY_HK_HEAT_EN) {
+                // 5 enable bits
+                populate_msg_data(rx_msg, rand_bits(5));
+            } else if (field_num == CAN_PAY_HK_LSW_STAT) {
+                // 4 enable bits
+                populate_msg_data(rx_msg, rand_bits(4));
+            } else if (CAN_PAY_HK_UPTIME <= field_num && field_num <= CAN_PAY_HK_RESTART_COUNT) {
+                // 32-bit data
+                populate_msg_data(rx_msg, rand_bits(32));
+            } else if (field_num == CAN_PAY_HK_RESTART_REASON) {
+                // Values 0-7 - use 3 bits
+                populate_msg_data(rx_msg, rand_bits(3));
             } else if (field_num < CAN_PAY_HK_FIELD_COUNT) {
-                // TODO
+                // Any other fields
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 rx_status = CAN_STATUS_INVALID_FIELD_NUM;
@@ -204,7 +236,7 @@ void sim_send_next_pay_tx_msg(void) {
 
         case CAN_PAY_OPT:
             if (0 <= field_num && field_num < CAN_PAY_OPT_TOT_FIELD_COUNT) {
-                // All fields are 24-bit ADC data
+                // All fields are 24-bit optical data
                 populate_msg_data(rx_msg, rand_bits(24));
             } else {
                 rx_status = CAN_STATUS_INVALID_FIELD_NUM;
@@ -223,7 +255,6 @@ void sim_send_next_pay_tx_msg(void) {
             } else if (field_num == CAN_PAY_CTRL_READ_EEPROM) {
                 populate_msg_data(rx_msg, rand_bits(32));
             } else if (field_num < CAN_PAY_CTRL_FIELD_COUNT) {
-                // TODO
                 populate_msg_data(rx_msg, rand_bits(32));
             } else {
                 rx_status = CAN_STATUS_INVALID_FIELD_NUM;
