@@ -281,8 +281,8 @@ int main(void){
 
     print("\n\n\nStarting OBC main test\n\n");
 
-    sim_eps = true;
-    sim_pay = true;
+    sim_eps = false;
+    sim_pay = false;
     skip_phase1_comms_init = false;
     phase2_delay.period_s = 30;
     reset_phase2_delay_eeprom = false;
