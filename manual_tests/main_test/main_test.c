@@ -118,7 +118,7 @@ void sim_send_next_eps_tx_msg(void) {
             if (CAN_EPS_HK_BAT_VOL <= field_num && field_num <= CAN_EPS_HK_PAY_CON_TEMP) {
                 // 12-bit data - ADC
                 populate_msg_data(rx_msg, rand_bits(12));
-            } else if (field_num = CAN_EPS_HK_SHUNTS) {
+            } else if (field_num == CAN_EPS_HK_SHUNTS) {
                 // 4-bit data
                 populate_msg_data(rx_msg, rand_bits(4));
             } else if (CAN_EPS_HK_HEAT1_SP <= field_num && field_num <= CAN_EPS_HK_HEAT2_SP) {
