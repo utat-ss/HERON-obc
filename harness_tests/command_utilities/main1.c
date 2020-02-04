@@ -160,6 +160,111 @@ void stair_queue_test(void) {
     ASSERT_FALSE(dequeue_cmd(&dq_cmd_id, (cmd_t **) &current_cmd, &dq_arg1, &dq_arg2));
 }
 
+void cmd_queue_contains_col_test(void) {
+    uint16_t cmd_id;
+    cmd_t* cmd;
+    uint32_t arg1;
+    uint32_t arg2;
+
+    ASSERT_EQ(queue_size(&cmd_queue_1), 0);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 0);
+
+    // Normal order
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    enqueue_cmd(1, &col_data_block_cmd, CMD_OBC_HK, 0);
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    enqueue_cmd(1, &col_data_block_cmd, CMD_EPS_HK, 12);
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    enqueue_cmd(1, &col_data_block_cmd, CMD_PAY_HK, 5);
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    enqueue_cmd(1, &col_data_block_cmd, CMD_PAY_OPT, 1000);
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    dequeue_cmd(&cmd_id, &cmd, &arg1, &arg2);
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    dequeue_cmd(&cmd_id, &cmd, &arg1, &arg2);
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    dequeue_cmd(&cmd_id, &cmd, &arg1, &arg2);
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    dequeue_cmd(&cmd_id, &cmd, &arg1, &arg2);
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+
+    // Random order
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    enqueue_cmd(1, &col_data_block_cmd, CMD_PAY_OPT, 43);
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    enqueue_cmd(1, &col_data_block_cmd, CMD_EPS_HK, 3);
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    enqueue_cmd(1, &col_data_block_cmd, CMD_PAY_HK, 27);
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    enqueue_cmd(1, &col_data_block_cmd, CMD_OBC_HK, 5);
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    dequeue_cmd(&cmd_id, &cmd, &arg1, &arg2);
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    dequeue_cmd(&cmd_id, &cmd, &arg1, &arg2);
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    dequeue_cmd(&cmd_id, &cmd, &arg1, &arg2);
+    ASSERT_TRUE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+    dequeue_cmd(&cmd_id, &cmd, &arg1, &arg2);
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_OBC_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_EPS_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_HK));
+    ASSERT_FALSE(cmd_queue_contains_col_data_block(CMD_PAY_OPT));
+
+    ASSERT_EQ(queue_size(&cmd_queue_1), 0);
+    ASSERT_EQ(queue_size(&cmd_queue_2), 0);
+}
+
 // Miscellaneous constants and configuration parameters
 void params_test(void) {
     // PAY optical field count
@@ -193,9 +298,10 @@ void params_test(void) {
 test_t t1 = {.name = "dequeue empty test", .fn = dequeue_empty_test}; 
 test_t t2 = {.name = "triangle_queue test", .fn = triangle_queue_test};
 test_t t3 = {.name = "stair_queue test", .fn = stair_queue_test};
-test_t t4 = {.name = "params test", .fn = params_test};
+test_t t4 = {.name = "cmd queue contains col test", .fn = cmd_queue_contains_col_test};
+test_t t5 = {.name = "params test", .fn = params_test};
 
-test_t* suite[] = { &t1, &t2, &t3, &t4 };
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5 };
 
 int main( void ) {
     init_obc_phase1_core();

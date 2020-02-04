@@ -476,7 +476,6 @@ bool dequeue_cmd(uint16_t* cmd_id, cmd_t** cmd, uint32_t* arg1, uint32_t* arg2) 
 
 // Returns true if the command queue(s) contains a collect data block command
 // with the specified block type (arg 1) and field num (arg 2)
-// TODO - unit test
 bool cmd_queue_contains_col_data_block(uint8_t block_type) {
     // Assume that the head and tail are the same between queues 1 and 2,
     // since we always enqueue/dequeue to/from them at the same time atomically
@@ -661,8 +660,6 @@ void prepare_mem_section_curr_block(mem_section_t* section, uint32_t next_block)
 }
 
 void inc_and_prepare_mem_section_curr_block(mem_section_t* section) {
-    // TODO - unit test properly, test edge cases
-
     uint32_t curr_block = section->curr_block;
     uint32_t next_block = curr_block + 1;
 
