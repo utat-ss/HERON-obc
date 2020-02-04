@@ -66,6 +66,12 @@ rtc_time_t rand_rtc_time(void) {
     return time;
 }
 
+void populate_zeros(uint8_t* array, uint8_t len) {
+    for (uint8_t i = 0; i < len; i++) {
+        array[i] = 0x00;
+    }
+}
+
 void populate_ones(uint8_t* array, uint8_t len) {
     for (uint8_t i = 0; i < len; i++) {
         array[i] = 0xFF;
@@ -78,17 +84,17 @@ void populate_ones(uint8_t* array, uint8_t len) {
 // Test the erase_mem()
 
 void erase_mem_test(void) {
-	erase_mem();
-	// take a random sample of the memory to see if erase works
-	// values should all be 0xff
-	uint32_t num_addrs = MEM_NUM_CHIPS * (1UL << MEM_CHIP_ADDR_WIDTH);
+    erase_mem();
+    // take a random sample of the memory to see if erase works
+    // values should all be 0xff
+    uint32_t num_addrs = MEM_NUM_CHIPS * (1UL << MEM_CHIP_ADDR_WIDTH);
 
-	for(uint8_t i = 0; i < ERASE_ADDR_COUNT; i++){
-		uint32_t addr = random() % num_addrs;
-		uint8_t read[1] = { 0x00 };
-		read_mem_bytes(addr, read, 1);
-		ASSERT_EQ(read[0], 0xFF);
-	}
+    for(uint8_t i = 0; i < ERASE_ADDR_COUNT; i++){
+        uint32_t addr = random() % num_addrs;
+        uint8_t read[1] = { 0x00 };
+        read_mem_bytes(addr, read, 1);
+        ASSERT_EQ(read[0], 0xFF);
+    }
 }
 
 
@@ -96,66 +102,66 @@ void erase_mem_test(void) {
 void single_write_read_test(void) {
     erase_mem();
 
-	uint32_t address = 0x0ADF00;
-	uint8_t data = 0xDD;
-	uint8_t write[1] = {data};
-	uint8_t read[1] = {0x00};
+    uint32_t address = 0x0ADF00;
+    uint8_t data = 0xDD;
+    uint8_t write[1] = {data};
+    uint8_t read[1] = {0x00};
 
     uint8_t ones[1];
     populate_ones(ones, 1);
     read_mem_bytes(address, read, 1);
-	ASSERT_EQ_ARRAY(ones, read, 1);
+    ASSERT_EQ_ARRAY(ones, read, 1);
 
     write_mem_bytes(address, write, 1);
-	read_mem_bytes(address, read, 1);
-	ASSERT_EQ_ARRAY(write, read, 1);
+    read_mem_bytes(address, read, 1);
+    ASSERT_EQ_ARRAY(write, read, 1);
 }
 
 //Test multiple write/read for consistency
 void multiple_write_read_test(void) {
     erase_mem();
 
-	uint32_t address = 0x05ABEEF;
-	uint8_t data[5] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
-	uint8_t read[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
+    uint32_t address = 0x05ABEEF;
+    uint8_t data[5] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
+    uint8_t read[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
 
     uint8_t ones[5];
     populate_ones(ones, 5);
     read_mem_bytes(address, read, 5);
-	ASSERT_EQ_ARRAY(ones, read, 5);
+    ASSERT_EQ_ARRAY(ones, read, 5);
 
-	write_mem_bytes(address, data, 5);
-	read_mem_bytes(address, read, 5);
+    write_mem_bytes(address, data, 5);
+    read_mem_bytes(address, read, 5);
 
-	for(uint8_t i=0; i<5; i++){
-		ASSERT_EQ(data[i], read[i]);
-	}
+    for(uint8_t i=0; i<5; i++){
+        ASSERT_EQ(data[i], read[i]);
+    }
 }
 
 //More read/write tests for different address
 void multiple_write_read_test_2(void) {
     erase_mem();
 
-	uint32_t address = 0x300000;
+    uint32_t address = 0x300000;
 
-	uint8_t write[20];
-	for(uint8_t i=0; i<20; i++)
-		write[i] = i%16;
+    uint8_t write[20];
+    for(uint8_t i=0; i<20; i++)
+        write[i] = i%16;
 
-	uint8_t read[20];
-	for(uint8_t i=0; i<20; i++)
-		read[i] = 0x00;
+    uint8_t read[20];
+    for(uint8_t i=0; i<20; i++)
+        read[i] = 0x00;
 
     uint8_t ones[20];
     populate_ones(ones, 20);
     read_mem_bytes(address, read, 20);
-	ASSERT_EQ_ARRAY(ones, read, 20);
+    ASSERT_EQ_ARRAY(ones, read, 20);
 
-	write_mem_bytes(address, write, 20);
-	read_mem_bytes(address, read, 15);
+    write_mem_bytes(address, write, 20);
+    read_mem_bytes(address, read, 15);
 
     ASSERT_EQ_ARRAY(write, read, 15);
-	//read shouldn't touch the last 5 bytes in the read array
+    //read shouldn't touch the last 5 bytes in the read array
     ASSERT_EQ_ARRAY(&ones[15], &read[15], 5);
 }
 
@@ -165,30 +171,30 @@ void multiple_write_read_test_2(void) {
 void random_read_write_test(void) {
     erase_mem();
 
-	uint32_t num_addrs = MEM_NUM_CHIPS * (1UL << MEM_CHIP_ADDR_WIDTH);
-	uint32_t addr = random() % num_addrs;
+    uint32_t num_addrs = MEM_NUM_CHIPS * (1UL << MEM_CHIP_ADDR_WIDTH);
+    uint32_t addr = random() % num_addrs;
 
     // Use a random number of bytes
-	uint8_t len = (random() % RANDOM_MAX_LEN) + 1;
+    uint8_t len = (random() % RANDOM_MAX_LEN) + 1;
     // Array needs to be big enough to hold the maximum number of bytes
-	uint8_t write[RANDOM_MAX_LEN];
-	for(uint8_t i = 0; i<len ; i++) {
-		write[i] = random() % 0XFF;
-	}
+    uint8_t write[RANDOM_MAX_LEN];
+    for(uint8_t i = 0; i<len ; i++) {
+        write[i] = random() % 0XFF;
+    }
 
-	uint8_t read[RANDOM_MAX_LEN];
+    uint8_t read[RANDOM_MAX_LEN];
 
     uint8_t ones[RANDOM_MAX_LEN];
     populate_ones(ones, RANDOM_MAX_LEN);
     read_mem_bytes(addr, read, RANDOM_MAX_LEN);
-	ASSERT_EQ_ARRAY(ones, read, RANDOM_MAX_LEN);
+    ASSERT_EQ_ARRAY(ones, read, RANDOM_MAX_LEN);
 
-	write_mem_bytes(addr, write, len);
-	read_mem_bytes(addr, read, len);
+    write_mem_bytes(addr, write, len);
+    read_mem_bytes(addr, read, len);
 
-	for(uint8_t i=0; i<len; i++) {
-		ASSERT_EQ(read[i], write[i]);
-	}
+    for(uint8_t i=0; i<len; i++) {
+        ASSERT_EQ(read[i], write[i]);
+    }
 }
 
 // Test memory roll over capabilities. Board has three memory chips, so two roll overs
@@ -196,41 +202,47 @@ void random_read_write_test(void) {
 void roll_over_test(void) {
     erase_mem();
 
-	uint32_t addr[NUM_ROLLOVER] = {ROLLOVER_ADDR_1, ROLLOVER_ADDR_2, ROLLOVER_ADDR_3};
-	uint8_t write[ROLLOVER_DATA_LEN] = ROLLOVER_DATA;
-	uint8_t read[ROLLOVER_DATA_LEN];
+    uint32_t addr[NUM_ROLLOVER] = {ROLLOVER_ADDR_1, ROLLOVER_ADDR_2, ROLLOVER_ADDR_3};
+    uint8_t write[ROLLOVER_DATA_LEN] = ROLLOVER_DATA;
+    uint8_t read[ROLLOVER_DATA_LEN];
 
     uint8_t ones[ROLLOVER_DATA_LEN];
     populate_ones(ones, ROLLOVER_DATA_LEN);
 
-	for(uint8_t i=0; i<NUM_ROLLOVER; i++){
+    for(uint8_t i=0; i<NUM_ROLLOVER; i++){
+        populate_zeros(read, ROLLOVER_DATA_LEN);
         read_mem_bytes(addr[i], read, ROLLOVER_DATA_LEN);
-        ASSERT_EQ_ARRAY(ones, read, ROLLOVER_DATA_LEN);
+        if (i == NUM_ROLLOVER - 1) {
+            ASSERT_EQ_ARRAY(ones, read, MEM_NUM_ADDRESSES - ROLLOVER_ADDR_3);
+        } else {
+            ASSERT_EQ_ARRAY(ones, read, ROLLOVER_DATA_LEN);
+        }
 
-		write_mem_bytes(addr[i], write, ROLLOVER_DATA_LEN);
-		read_mem_bytes(addr[i], read, ROLLOVER_DATA_LEN);
-		for(uint8_t j=0; j<ROLLOVER_DATA_LEN; j++){
-            if (i == NUM_ROLLOVER - 1 && j >= 4) {
+        write_mem_bytes(addr[i], write, ROLLOVER_DATA_LEN);
+        populate_zeros(read, ROLLOVER_DATA_LEN);
+        read_mem_bytes(addr[i], read, ROLLOVER_DATA_LEN);
+        for(uint8_t j=0; j<ROLLOVER_DATA_LEN; j++){
+            if (i == NUM_ROLLOVER - 1 && j >= 3) {
                 // check chip 3 rollover outside of address range
                 ASSERT_NEQ(write[j], read[j]);
             }
             else {
                 ASSERT_EQ(write[j], read[j]);
             }
-		}
-	}
+        }
+    }
 }
 
 // EEPROM test
 void eeprom_test(void) {
-	// load all section data from eeprom
-	read_all_mem_sections_eeprom();
+    // load all section data from eeprom
+    read_all_mem_sections_eeprom();
 
-	uint32_t eps_hk_block_prev = read_eeprom_or_default(eps_hk_mem_section.curr_block_eeprom_addr, 0);
-	uint32_t pay_hk_block_prev = read_eeprom_or_default(pay_hk_mem_section.curr_block_eeprom_addr, 0);
-	uint32_t pay_opt_block_prev = read_eeprom_or_default(pay_opt_mem_section.curr_block_eeprom_addr, 0);
+    uint32_t eps_hk_block_prev = read_eeprom_or_default(eps_hk_mem_section.curr_block_eeprom_addr, 0);
+    uint32_t pay_hk_block_prev = read_eeprom_or_default(pay_hk_mem_section.curr_block_eeprom_addr, 0);
+    uint32_t pay_opt_block_prev = read_eeprom_or_default(pay_opt_mem_section.curr_block_eeprom_addr, 0);
 
-	set_mem_section_curr_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block + 1);
+    set_mem_section_curr_block(&eps_hk_mem_section, eps_hk_mem_section.curr_block + 1);
     set_mem_section_curr_block(&pay_hk_mem_section, pay_hk_mem_section.curr_block + 1);
     set_mem_section_curr_block(&pay_opt_mem_section, pay_opt_mem_section.curr_block + 1);
 
@@ -244,8 +256,8 @@ void eeprom_test(void) {
 void mem_header_test_individual( mem_section_t* section ) {
     erase_mem();
 
-	// eps_hk_mem_section
-	mem_header_t write = {
+    // eps_hk_mem_section
+    mem_header_t write = {
         .block_num = section->curr_block,
         .date = rand_rtc_date(),
         .time = rand_rtc_time(),
@@ -264,9 +276,9 @@ void mem_header_test_individual( mem_section_t* section ) {
 }
 
 void mem_header_test(void){
-	mem_header_test_individual(&eps_hk_mem_section);
-	mem_header_test_individual(&pay_hk_mem_section);
-	mem_header_test_individual(&pay_opt_mem_section);
+    mem_header_test_individual(&eps_hk_mem_section);
+    mem_header_test_individual(&pay_hk_mem_section);
+    mem_header_test_individual(&pay_opt_mem_section);
 }
 
 
@@ -274,23 +286,23 @@ void mem_header_test(void){
 void mem_field_test_individual( mem_section_t* section) {
     erase_mem();
 
-	uint8_t field_num = random() % section->fields_per_block;
+    uint8_t field_num = random() % section->fields_per_block;
     // Random 24-bit number
-	uint32_t write = (random() % 0xFFFFFF) + 1;
-	uint32_t read = 0x00000000;
+    uint32_t write = (random() % 0xFFFFFF) + 1;
+    uint32_t read = 0x00000000;
 
     read = read_mem_field(section, section->curr_block, field_num);
-	ASSERT_EQ(0xFFFFFF, read);
+    ASSERT_EQ(0xFFFFFF, read);
 
-	write_mem_field(section, section->curr_block, field_num, write);
-	read = read_mem_field(section, section->curr_block, field_num);
-	ASSERT_EQ(write, read);
+    write_mem_field(section, section->curr_block, field_num, write);
+    read = read_mem_field(section, section->curr_block, field_num);
+    ASSERT_EQ(write, read);
 }
 
 void mem_field_test(void) {
-	mem_field_test_individual(&eps_hk_mem_section);
-	mem_field_test_individual(&pay_hk_mem_section);
-	mem_field_test_individual(&pay_opt_mem_section);
+    mem_field_test_individual(&eps_hk_mem_section);
+    mem_field_test_individual(&pay_hk_mem_section);
+    mem_field_test_individual(&pay_opt_mem_section);
 }
 
 //test blocks
@@ -579,7 +591,7 @@ void cmd_block_test(void) {
     erase_mem();
 
     // eps_hk_mem_section
-	mem_header_t write_header = {
+    mem_header_t write_header = {
         .block_num = prim_cmd_log_mem_section.curr_block,
         .date = rand_rtc_date(),
         .time = rand_rtc_time(),
