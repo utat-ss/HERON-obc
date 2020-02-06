@@ -555,6 +555,13 @@ void read_sec_cmd_blocks_fn(void) {
 }
 
 void read_raw_mem_bytes_fn(void) {
+    // Enforce starting address
+    if (current_cmd_arg1 >= MEM_NUM_ADDRESSES) {
+        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
+        finish_current_cmd(CMD_RESP_STATUS_INVALID_ARGS);
+        return;
+    }
+
     // Enforce max number of bytes
     if (current_cmd_arg2 > CMD_READ_MEM_MAX_COUNT) {
         add_def_trans_tx_dec_msg(CMD_RESP_STATUS_INVALID_ARGS);
