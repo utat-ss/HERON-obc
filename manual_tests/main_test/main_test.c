@@ -285,7 +285,7 @@ int main(void){
     reset_phase2_delay_eeprom = false;
     skip_phase2_delay = true;
     skip_phase2_init = true;
-    com_timeout_period_s = 600;
+    com_timeout_period_s = 3600;
     hb_req_period_s = 300;
     hb_resp_wait_time_s = 5;
     disable_hb = false;
