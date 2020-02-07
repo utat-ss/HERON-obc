@@ -646,7 +646,9 @@ void col_data_block_obc_hk(void) {
     inc_and_prepare_mem_section_curr_block(data_col->mem_section);
 
     // Populate fields
-    data_col->fields[CAN_OBC_HK_UPTIME] = uptime_s;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        data_col->fields[CAN_OBC_HK_UPTIME] = uptime_s;
+    }
     data_col->fields[CAN_OBC_HK_RESTART_COUNT] = restart_count;
     data_col->fields[CAN_OBC_HK_RESTART_REASON] = restart_reason;
     data_col->fields[CAN_OBC_HK_RESTART_DATE] =
@@ -721,7 +723,9 @@ void col_data_block_other_start(data_col_t* data_col) {
     enqueue_cmd(current_cmd_id, &col_data_block_cmd, current_cmd_arg1, 1);
 
     // Store the current uptime before receiving first field
-    data_col->prev_field_col_uptime_s = uptime_s;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        data_col->prev_field_col_uptime_s = uptime_s;
+    }
 
     finish_current_cmd(CMD_RESP_STATUS_DATA_COL_IN_PROGRESS);
     return;
@@ -730,13 +734,19 @@ void col_data_block_other_start(data_col_t* data_col) {
 // Fields 1...N
 void col_data_block_other_check(data_col_t* data_col) {
     // Check if we have timed out before receiving a field response
-    if (uptime_s >= data_col->prev_field_col_uptime_s +
+    uint32_t cur_uptime = 0;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        cur_uptime = uptime_s;
+    }
+    if (cur_uptime >= data_col->prev_field_col_uptime_s +
             CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S) {
-#ifdef COMMANDS_DEBUG
-        print("COL DATA TIMEOUT\n");
-#endif
-        add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
+        print("COL TIMEOUT\n");
+
+        if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
+            add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);
+        }
         finish_current_cmd(CMD_RESP_STATUS_TIMED_OUT);
+        
         return;
     }
 
@@ -807,7 +817,10 @@ void col_data_block_other_check(data_col_t* data_col) {
 #endif
 
     // Update the current uptime for receiving this field
-    data_col->prev_field_col_uptime_s = uptime_s;
+    
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        data_col->prev_field_col_uptime_s = uptime_s;
+    }
 
     // Save received field data
     // Note that data_col->mem_section.curr_block has already been incremented,
@@ -1074,10 +1087,13 @@ void get_auto_data_col_settings_fn(void) {
         start_trans_tx_resp(CMD_RESP_STATUS_OK);
 
         // Current system uptime
-        append_to_trans_tx_resp((uptime_s >> 24) & 0xFF);
-        append_to_trans_tx_resp((uptime_s >> 16) & 0xFF);
-        append_to_trans_tx_resp((uptime_s >> 8) & 0xFF);
-        append_to_trans_tx_resp((uptime_s >> 0) & 0xFF);
+
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            append_to_trans_tx_resp((uptime_s >> 24) & 0xFF);
+            append_to_trans_tx_resp((uptime_s >> 16) & 0xFF);
+            append_to_trans_tx_resp((uptime_s >> 8) & 0xFF);
+            append_to_trans_tx_resp((uptime_s >> 0) & 0xFF);
+        }
 
         for (uint8_t i = 0; i < NUM_DATA_COL_SECTIONS; i++) {
             append_to_trans_tx_resp((uint8_t) all_data_cols[i]->auto_enabled);
@@ -1116,7 +1132,9 @@ void set_auto_data_col_enable_fn(void) {
             // e.g. say we never enabled OBC_HK auto, so last auto time is 0,
             // say it is uptime 100s and period is 60s, it would trigger
             // immediately
-            data_col->prev_auto_col_uptime_s = uptime_s;
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                data_col->prev_auto_col_uptime_s = uptime_s;
+            }
 
             add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
             finish_current_cmd(CMD_RESP_STATUS_OK);

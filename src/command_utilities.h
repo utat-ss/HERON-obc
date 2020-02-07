@@ -103,7 +103,7 @@ typedef struct {
 #define CMD_TIMEOUT_DEF_PERIOD_S            60
 // Maximum number of seconds between fields of a collect data block command
 // before it times out
-#define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S  10
+#define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S  15
 
 
 // Max number of command log blocks
