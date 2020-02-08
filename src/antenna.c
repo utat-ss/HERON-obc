@@ -122,21 +122,21 @@ void deploy_antenna(void) {
     // Doors are still open (could be because I2C failed)
     print("Rel\n");
     if (num_doors > 0) {
-        // Manual release for 5 seconds for each burning resistor
+        // Manual release for 10 seconds for each burning resistor
 
         print("RelA\n");
         set_pin_high(ANT_REL_A, &PORT_ANT_REL);
-        for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
+        for (uint8_t seconds = 0; seconds < 10; seconds += 1) {
             WDT_ENABLE_SYS_RESET(WDTO_8S);
             _delay_ms(1000);
         }
         set_pin_low(ANT_REL_A, &PORT_ANT_REL);
 
-        _delay_ms(100);
+        _delay_ms(1000);
 
         print("RelB\n");
         set_pin_high(ANT_REL_B, &PORT_ANT_REL);
-        for (uint8_t seconds = 0; seconds < 5; seconds += 1) {
+        for (uint8_t seconds = 0; seconds < 10; seconds += 1) {
             WDT_ENABLE_SYS_RESET(WDTO_8S);
             _delay_ms(1000);
         }
