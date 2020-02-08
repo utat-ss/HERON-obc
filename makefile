@@ -9,7 +9,7 @@
 # For some reason, conversions needs to come after dac or else it gives an error
 # Need to put dac before conversions, uptime before timer, heartbeat before can,
 # or else gives an error for undefined reference
-LIB = -L./lib-common/lib -ladc -lheartbeat -lcan -ldac -lconversions -lpex -lqueue -lspi -luptime -ltimer -luart -lutilities -lwatchdog
+LIB = -L./lib-common/lib -ladc -lheartbeat -lcan -ldac -lconversions -lpex -lqueue -lspi -luptime -ltimer -luart -lutilities -lwatchdog -lprintf_flt -lm
 # Program name
 PROG = obc
 # Name of microcontroller ("32m1" or "64m1")
@@ -20,7 +20,7 @@ MCU = 64m1
 # AVR-GCC compiler
 CC = avr-gcc
 # Compiler flags
-CFLAGS = -Wall -std=gnu99 -g -mmcu=atmega$(MCU) -Os -mcall-prologues
+CFLAGS = -Wall -Wl,-u,vfprintf -std=gnu99 -g -mmcu=atmega$(MCU) -Os -mcall-prologues
 # Includes (header files)
 INCLUDES = -I./lib-common/include/
 # Programmer
