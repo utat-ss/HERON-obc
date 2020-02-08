@@ -9,10 +9,10 @@
 #include <spi/spi.h>
 #include <util/atomic.h>
 
+#include "../../src/general.h"
 #include "../../src/mem.h"
 #include "../../src/rtc.h"
 
-#define TEST_SIZE        4
 #define DATA_LENGTH      5
 #define RANDOM_SEED      0x5729AB7D
 #define ERASE_SEED       0x162FAF13
@@ -122,19 +122,49 @@ void rtc_alarm_test(void){
     ASSERT_EQ_DATE(date_set, date_read);
 }
 
+// ONLY READ, NOT WRITE
+void antenna_read_test(void) {
+    print("Reading antenna data in 5 seconds...\n");
+    _delay_ms(5000);
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        write_i2c_reg(I2C_CLOCK, 5);
+    }
+
+    // Check Ant doors before the release algorithm FB1
+    uint8_t door_positions[4] = {0x00, 0x00, 0x00, 0x00};
+    uint8_t mode = 0x00;
+    uint8_t main_heaters[4] = {0x00, 0x00, 0x00, 0x00};
+    uint8_t backup_heaters[4] = {0x00, 0x00, 0x00, 0x00};
+    uint8_t timer_s = 0x00;
+    uint8_t i2c_status = 0x00;
+
+    print("Reading now...\n");
+    uint8_t ret = read_antenna_data(door_positions, &mode, main_heaters, backup_heaters, &timer_s, &i2c_status);
+
+    ASSERT_TRUE(ret);
+    ASSERT_EQ(mode, 0);
+    ASSERT_EQ(timer_s, 0);
+    ASSERT_EQ(i2c_status, 0);
+    for (uint8_t i = 0; i < 4; i++) {
+        ASSERT_EQ(door_positions[i], 0);
+        ASSERT_EQ(main_heaters[i], 0);
+        ASSERT_EQ(backup_heaters[i], 0);
+    }
+
+    print("Done reading\n");
+}
+
 test_t t1 = { .name = "read/write mem test", .fn = read_write_erase_mem_test };
 test_t t2 = { .name = "eeprom test", .fn = test_eeprom };
 test_t t3 = { .name = "rtc date/time test", .fn = rtc_date_time_test };
 test_t t4 = { .name = "rtc alarm test", .fn = rtc_alarm_test };
+test_t t5 = { .name = "antenna read test", .fn = antenna_read_test };
 
-test_t* suite[] = { &t1, &t2, &t3, &t4 };
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5 };
 
 int main(void) {
-    init_uart();
-    init_spi();
-    init_mem();
-    init_rtc();
-
-    run_tests(suite, TEST_SIZE);
+    init_obc_phase1_core();
+    run_tests(suite, sizeof(suite) / sizeof(suite[0]));
     return 0;
 }
