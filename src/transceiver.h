@@ -30,7 +30,7 @@
 // If we time out while receiving bytes of an RX packet, must have this number
 // of bytes or greater in the RX buffer to send an ACK packet
 // If there are less received bytes than this, don't sent an ACK packet back
-#define TRANS_RX_INVALID_ENC_FMT_COUNT_THRESH 6
+#define TRANS_RX_INVALID_ENC_FMT_COUNT_THRESH 4
 
 //Default Address - DO NOT CHANGE
 #define TRANS_ADDR  0x22
