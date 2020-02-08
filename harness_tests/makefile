@@ -72,13 +72,6 @@ ifeq ($(LINUX), true)
 	endif
 endif
 
-# If automatic port detection fails,
-# uncomment one of these lines and change it to set the port manually
-# PORT = COM3						# Windows
-# PORT = /dev/tty.usbmodem00208212	# macOS
-# PORT = /dev/ttyS3					# Linux
-
-
 # Special commands
 .PHONY: all clean debug help lib-common read-eeprom upload
 
