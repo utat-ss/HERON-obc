@@ -223,8 +223,7 @@ void scan_trans_rx_enc_msg(const uint8_t* buf, uint8_t len) {
     // Check the most likely to fail conditions first (want to process as quickly as possible if still receiving characters)
     // This callback will only check for the delimiter bytes to be fast,
     // and to leave it to NACK in a different place if the length doesn't match the data
-    if (len >= 10 &&
-        len <= TRANS_RX_ENC_MSG_MAX_SIZE &&
+    if (len == TRANS_RX_ENC_MSG_MAX_SIZE &&
         buf[0] == TRANS_PKT_DELIMITER &&
         buf[2] == TRANS_PKT_DELIMITER &&
         buf[len - 6] == TRANS_PKT_DELIMITER &&

@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 
+#include <can/data_protocol.h>
 #include <queue/queue.h>
 
 #include "mem.h"
@@ -110,6 +111,8 @@ typedef struct {
 #define CMD_READ_CMD_BLOCKS_MAX_COUNT   5
 // Max memory read
 #define CMD_READ_MEM_MAX_COUNT          106
+// Max number of fields for any data section (64)
+#define CMD_DATA_BLOCK_MAX_FIELD_COUNT  CAN_PAY_OPT_TOT_FIELD_COUNT
 // Minimum auto data collection period in seconds
 #define CMD_AUTO_DATA_COL_MIN_PERIOD    60
 

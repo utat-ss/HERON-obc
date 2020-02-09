@@ -309,6 +309,7 @@ cmd_t* cmd_opcode_to_cmd(uint8_t opcode) {
     return &nop_cmd;
 }
 
+// TODO read raw bytes
 mem_section_t* mem_section_for_cmd(cmd_t* cmd) {
     if (cmd == &get_cur_block_nums_cmd ||
             cmd == &read_data_block_cmd ||
@@ -529,7 +530,9 @@ void execute_next_cmd(void) {
 #endif
 
     // Start timeout timer at 0
-    cmd_timeout_count_s = 0;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        cmd_timeout_count_s = 0;
+    }
 
     // Decide whether to use the primary or secondary command log
     mem_section_t* cmd_log_mem_section = mem_section_for_cmd((cmd_t*) current_cmd);

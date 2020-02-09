@@ -400,8 +400,13 @@ void read_rec_status_info_fn(void) {
                     block -= 1;
                 }
 
+                // Don't use data_col->header and data_col->fields because those
+                // could be currently used for collecting a data block so we
+                // should not corrupt them
+                mem_header_t header;
+                uint32_t fields[CMD_DATA_BLOCK_MAX_FIELD_COUNT] = {0x00};
                 read_mem_data_block(data_col->mem_section, block,
-                    &data_col->header, data_col->fields);
+                    &header, fields);
 
                 uint8_t start_field = 0;
                 uint8_t end_field = 0;
@@ -423,9 +428,9 @@ void read_rec_status_info_fn(void) {
                 }
 
                 for (uint8_t field = start_field; field <= end_field; field++) {
-                    append_to_trans_tx_resp((data_col->fields[field] >> 16) & 0xFF);
-                    append_to_trans_tx_resp((data_col->fields[field] >> 8) & 0xFF);
-                    append_to_trans_tx_resp((data_col->fields[field] >> 0) & 0xFF);
+                    append_to_trans_tx_resp((fields[field] >> 16) & 0xFF);
+                    append_to_trans_tx_resp((fields[field] >> 8) & 0xFF);
+                    append_to_trans_tx_resp((fields[field] >> 0) & 0xFF);
                 }
             }
         }
@@ -435,23 +440,41 @@ void read_rec_status_info_fn(void) {
     }
 }
 
-// fields and num_fields are different for PAY_OPT_1 and PAY_OPT_2
-void read_data_block_impl(data_col_t* data_col, bool read_mem, uint32_t* fields,
-        uint8_t num_fields) {
+void read_data_block_impl(data_col_t* data_col, bool read_mem,
+        uint8_t start_field, uint8_t num_fields) {
+
+    // Don't modify data_col->header and data_col->fields because those
+    // could be currently used for collecting a data block so we
+    // should not corrupt them
+    mem_header_t header;
+    uint32_t fields[CMD_DATA_BLOCK_MAX_FIELD_COUNT] = {0x00};
+
     if (read_mem) {
 #ifdef COMMANDS_DEBUG
         print("Reading data block from mem\n");
 #endif
-        // Read data block from flash memory into variables for header
-        // and fields
+
+        // Read data block from flash memory
         read_mem_data_block(data_col->mem_section, current_cmd_arg2,
-            &data_col->header, data_col->fields);
+            &header, fields);
+    }
+
+    else {
+#ifdef COMMANDS_DEBUG
+        print("Using existing data block from collection\n");
+#endif
+
+        // copy header and fields from data collection
+        header = data_col->header;
+        for (uint8_t i = 0; i < data_col->mem_section->fields_per_block; i++) {
+            fields[i] = data_col->fields[i];
+        }
     }
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         start_trans_tx_resp(CMD_RESP_STATUS_OK);
-        append_header_to_tx_msg(&data_col->header);
-        append_fields_to_tx_msg(fields, num_fields);
+        append_header_to_tx_msg(&header);
+        append_fields_to_tx_msg(&fields[start_field], num_fields);
         finish_trans_tx_resp();
     }
 }
@@ -464,7 +487,7 @@ void read_data_block_common(bool read_mem) {
             data_col_t* data_col = all_data_cols[i];
 
             if (current_cmd_arg1 == data_col->cmd_arg1) {
-                read_data_block_impl(data_col, read_mem, data_col->fields,
+                read_data_block_impl(data_col, read_mem, 0,
                     data_col->mem_section->fields_per_block);
 
                 finish_current_cmd(CMD_RESP_STATUS_OK);
@@ -475,16 +498,14 @@ void read_data_block_common(bool read_mem) {
 
     else if (current_cmd_arg1 == CMD_PAY_OPT_OD) {
         read_data_block_impl(&pay_opt_data_col, read_mem,
-            &pay_opt_data_col.fields[0],
-            CAN_PAY_OPT_OD_FIELD_COUNT);
+            0, CAN_PAY_OPT_OD_FIELD_COUNT);
 
         finish_current_cmd(CMD_RESP_STATUS_OK);
         return;
     }
     else if (current_cmd_arg1 == CMD_PAY_OPT_FL) {
         read_data_block_impl(&pay_opt_data_col, read_mem,
-            &pay_opt_data_col.fields[CAN_PAY_OPT_OD_FIELD_COUNT],
-            CAN_PAY_OPT_FL_FIELD_COUNT);
+            CAN_PAY_OPT_OD_FIELD_COUNT, CAN_PAY_OPT_FL_FIELD_COUNT);
 
         finish_current_cmd(CMD_RESP_STATUS_OK);
         return;
