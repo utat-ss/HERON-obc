@@ -740,7 +740,7 @@ void col_data_block_other_check(data_col_t* data_col) {
     }
     if (cur_uptime >= data_col->prev_field_col_uptime_s +
             CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S) {
-        print("COL TIMEOUT\n");
+        print("\nCOL TIMEOUT\n\n");
 
         if (current_cmd_id != CMD_CMD_ID_AUTO_ENQUEUED) {
             add_def_trans_tx_dec_msg(CMD_RESP_STATUS_TIMED_OUT);

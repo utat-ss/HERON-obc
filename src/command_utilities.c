@@ -3,6 +3,7 @@
 // Uncomment for extra debugging prints
 // #define COMMAND_UTILITIES_DEBUG
 // #define COMMAND_UTILITIES_DEBUG_QUEUES
+// #define COMMAND_UTILITIES_DEBUG_DATA_COL
 // #define COMMAND_UTILITIES_VERBOSE
 
 // If you get an error here because `security.h` is not found, copy the dummy
@@ -599,9 +600,18 @@ void finish_current_cmd(uint8_t status) {
                     data_col_t* data_col = all_data_cols[i];
 
                     // If we just finished the last field of a command
+                    // or it timed out
                     // or it was OBC_HK (is only enqueued and executed once)
                     if (current_cmd_arg1 == data_col->cmd_arg1 &&
-                            (current_cmd_arg2 == data_col->mem_section->fields_per_block || current_cmd_arg1 == CMD_OBC_HK)) {
+                            (current_cmd_arg2 == data_col->mem_section->fields_per_block ||
+                            status == CMD_RESP_STATUS_TIMED_OUT ||
+                            current_cmd_arg1 == CMD_OBC_HK)) {
+#ifdef COMMAND_UTILITIES_DEBUG_DATA_COL
+                        print("\nWriting mem header status: ");
+                        print("arg1 = 0x%lx, arg2 = 0x%lx, status = 0x%x, block_num = 0x%lx\n\n",
+                            current_cmd_arg1, current_cmd_arg2, status, data_col->header.block_num);
+#endif
+
                         write_mem_header_status(
                             data_col->mem_section, data_col->header.block_num,
                             status);
