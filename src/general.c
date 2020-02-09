@@ -106,10 +106,10 @@ void init_phase2_delay(void) {
 
         phase2_delay.done = false;
         if (read_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR) == PHASE2_DELAY_DONE_FLAG) {
-            print("Skipping phase2 delay\n");
+            print("Skipping phase 2 delay\n");
             phase2_delay.done = true;
         } else {
-            print("Starting phase2 delay\n");
+            print("Starting phase 2 delay\n");
         }
 
         phase2_delay.prev_uptime_s = uptime_s;
@@ -135,13 +135,15 @@ void run_phase2_delay(void) {
                 set_pin_low(ANT_DEP_WARN, &PORT_ANT_WARN);
             }
 
+            // This message will be seen once if the done flag was already set
+            // in EEPROM
             print("Delay: %lu/%lu s elapsed\n", uptime_s, phase2_delay.period_s);
         }
 
         if (uptime_s >= phase2_delay.period_s) {
             phase2_delay.done = true;
             write_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR, PHASE2_DELAY_DONE_FLAG);
-            print("Phase2 delay done\n");
+            print("Phase 2 delay done\n");
         }
 
         if (!phase2_delay.done) {
