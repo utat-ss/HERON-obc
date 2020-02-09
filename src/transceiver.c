@@ -53,7 +53,7 @@ In a raw hexdump of bytes, this is:
 #include "transceiver.h"
 
 // Uncomment for extra debugging prints
-#define TRANSCEIVER_DEBUG
+// #define TRANSCEIVER_DEBUG
 
 /*
 All buffers have the following format:

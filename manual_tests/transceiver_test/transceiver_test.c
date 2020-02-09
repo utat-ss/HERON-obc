@@ -239,4 +239,6 @@ void test_reset(void) {
     print("Resetting transceiver...\n");
     reset_trans();
     print("Done resetting transceiver\n");
+    
+    // Might need to correct transceiver baud rate after reset for it to work
 }

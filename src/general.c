@@ -62,6 +62,7 @@ void init_obc_phase2(void) {
     uint32_t enable_1 = read_eeprom_or_default(BEACON_ENABLE_1_EEPROM_ADDR, 1);
     uint32_t enable_2 = read_eeprom_or_default(BEACON_ENABLE_2_EEPROM_ADDR, 1);
     if ((enable_1 != 0) || (enable_2 != 0)) {
+        print("Turn on beacon\n");
         turn_on_trans_beacon();
     }
 
@@ -123,13 +124,6 @@ void run_phase2_delay(void) {
             return;
         }
 
-        if (phase2_delay.done) {
-            init_obc_phase2();
-            phase2_delay.in_progress = false;
-            phase2_delay.done = false;
-            return;
-        }
-
         // Only print the uptime once per second
         if (uptime_s > phase2_delay.prev_uptime_s) {
             phase2_delay.prev_uptime_s = uptime_s;
@@ -149,5 +143,17 @@ void run_phase2_delay(void) {
             write_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR, PHASE2_DELAY_DONE_FLAG);
             print("Phase2 delay done\n");
         }
+
+        if (!phase2_delay.done) {
+            return;
+        }
+
+        // If we don't return early and get here, it is time to init phase 2
+        phase2_delay.in_progress = false;
+        phase2_delay.done = false;
     }
+
+    // This MUST be outside the atomic block because it needs UART RX interrupts
+    // to function properly
+    init_obc_phase2();
 }
