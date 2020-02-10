@@ -12,7 +12,8 @@
 // DO NOT COMMIT ANY `security.h` FILE TO GIT
 #include "security.h"
 // The super-secret password for sensitive commands
-const uint8_t correct_pwd[] = SECURITY_CORRECT_PWD;
+const uint8_t correct_pwd_1[5] = SECURITY_CORRECT_PWD_1;
+const uint8_t correct_pwd_2[5] = SECURITY_CORRECT_PWD_2;
 
 // Queue of commands that need to be executed but have not been executed yet
 // Contains command ID and opcode
@@ -128,6 +129,15 @@ bool print_cmds = false;
 bool print_trans_tx_acks = false;
 
 
+bool does_pwd_match(uint8_t* received_pwd, const uint8_t* correct_pwd) {
+    for (uint8_t i = 0; i < 4; i++) {
+        if (received_pwd[i] != correct_pwd[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /*
 If there is a message in trans_rx_dec_msg, processes its components and enqueues the appropriate command and arguments.
 */
@@ -217,12 +227,11 @@ void handle_trans_rx_dec_msg(void) {
 
         // Check 4-byte password if necessary for the command
         if (cmd->pwd_protected) {
-            for (uint8_t i = 0; i < 4; i++) {
-                if (received_pwd[i] != correct_pwd[i]) {
-                    // NACK
-                    add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_INVALID_PWD);
-                    return;
-                }
+            if (!(does_pwd_match(received_pwd, correct_pwd_1) ||
+                    does_pwd_match(received_pwd, correct_pwd_2))) {
+                // NACK
+                add_trans_tx_ack(cmd_id, CMD_ACK_STATUS_INVALID_PWD);
+                return;
             }
         }
 
