@@ -887,7 +887,7 @@ uint8_t set_trans_beacon_content(char* content) {
 
 /*
 7. Set destination call-sign (p.20)
-call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
+call_sign - the call sign to set (7-byte array, 6 bytes plus termination)
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_dest_call_sign(char* call_sign) {
@@ -924,7 +924,7 @@ uint8_t get_trans_dest_call_sign(char* call_sign) {
 
 /*
 8. Set source call-sign (p.20)
-call_sign - the call sign to set (6-byte array without termination or 7-byte array with termination)
+call_sign - the call sign to set (7-byte array, 6 bytes plus termination)
 Returns - 1 for success, 0 for failure
 */
 uint8_t set_trans_src_call_sign(char* call_sign) {
