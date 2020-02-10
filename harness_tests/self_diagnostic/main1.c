@@ -29,28 +29,44 @@
     ASSERT_EQ(time1.mm, time2.mm); \
     ASSERT_EQ(time1.ss, time2.ss);
 
-volatile uint8_t alarm_byte = 0x00;
+#define ASSERT_BYTES_EQ(bytes1, bytes2, count)  \
+    for (uint8_t __i = 0; __i < (count); __i++) { \
+        ASSERT_EQ((bytes1)[__i], (bytes2)[__i]);    \
+    }
 
-void rtc_alarm(void){
-    alarm_byte = 0xFF;
+void populate_bytes(uint8_t* bytes, uint8_t value, uint8_t count) {
+    for (uint8_t i = 0; i < count; i++) {
+        bytes[i] = value;
+    }
 }
+
+
 /* Write and read from each chip in flash memory to verify
   that all are working as expected */
 void read_write_erase_mem_test(void){
     srandom(RANDOM_SEED);
+
+    uint8_t zeros[DATA_LENGTH];
+    populate_bytes(zeros, 0x00, DATA_LENGTH);
+
     uint32_t addr_per_chip = MEM_NUM_ADDRESSES/3;
     uint8_t data_array[DATA_LENGTH] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
-    uint8_t read[1] = {0};
+    uint8_t read[DATA_LENGTH];
+    populate_bytes(read, 0x00, DATA_LENGTH);
+    ASSERT_BYTES_EQ(read, zeros, DATA_LENGTH);
 
     /* Write to one address per chip */
     erase_mem();
     for (uint8_t chip = 0; chip < MEM_NUM_CHIPS; chip++){
-    uint32_t addr = (addr_per_chip*chip) + (random() % addr_per_chip);
-    write_mem_bytes(addr, data_array, DATA_LENGTH);
-        for (uint32_t i = addr; i < (addr + DATA_LENGTH); i++){
-            read_mem_bytes(i, read, 1);
-            ASSERT_EQ(read[0], data_array[i-addr]);
-        }
+        populate_bytes(read, 0x00, DATA_LENGTH);
+        ASSERT_BYTES_EQ(read, zeros, DATA_LENGTH);
+
+        uint32_t addr = (addr_per_chip*chip) + (random() % addr_per_chip);
+        ASSERT_NEQ(addr, 0);
+
+        write_mem_bytes(addr, data_array, DATA_LENGTH);
+        read_mem_bytes(addr, read, DATA_LENGTH);
+        ASSERT_BYTES_EQ(read, data_array, DATA_LENGTH);
     }
 
     /* Check that 3 addresses per chip are erased correctly */
@@ -58,6 +74,8 @@ void read_write_erase_mem_test(void){
     for (uint8_t chip = 0; chip < MEM_NUM_CHIPS; chip++){
         for (uint8_t i = 0; i < ERASE_ADDR_COUNT; i++){
             uint32_t addr_erase = (addr_per_chip*chip) + (random() % addr_per_chip);
+            ASSERT_NEQ(addr_erase, 0);
+
             read_mem_bytes(addr_erase, read, 1);
             ASSERT_EQ(read[0], 0xFF);
         }
@@ -85,12 +103,11 @@ void test_eeprom(void){
 void rtc_date_time_test(void){
     rtc_time_t time_set = {.ss = 4, .mm = 8, .hh = 16};
     rtc_date_t date_set = {.dd = 5, .mm = 10, .yy = 20};
+    set_rtc_time(time_set);
+    set_rtc_date(date_set);
 
     rtc_time_t time_read;
     rtc_date_t date_read;
-
-    set_rtc_time(time_set);
-    set_rtc_date(date_set);
 
     for (uint8_t i = 0;i < 3; i++){
         time_read = read_rtc_time();
@@ -102,25 +119,6 @@ void rtc_date_time_test(void){
     }
 }
 
-/* Set one alarm and verify that it changes alarm_byte when expected */
-void rtc_alarm_test(void){
-    rtc_time_t time_set = {.ss = 4, .mm = 9, .hh = 16};
-    rtc_date_t date_set = {.dd = 4, .mm = 10, .yy = 20};
-    rtc_time_t alarm_time_set = {.ss = 9, .mm = 9, .hh = 16};
-
-    set_rtc_time(time_set);
-    set_rtc_date(date_set);
-    set_rtc_alarm(alarm_time_set, date_set, RTC_ALARM_1, rtc_alarm);
-
-    while(!alarm_byte){
-        /* wait until alarm_byte is triggered by alarm */
-    }
-
-    rtc_time_t time_read = read_rtc_time();
-    rtc_date_t date_read = read_rtc_date();
-    ASSERT_EQ_TIME(alarm_time_set, time_read);
-    ASSERT_EQ_DATE(date_set, date_read);
-}
 
 // ONLY READ, NOT WRITE
 void antenna_read_test(void) {
@@ -158,10 +156,9 @@ void antenna_read_test(void) {
 test_t t1 = { .name = "read/write mem test", .fn = read_write_erase_mem_test };
 test_t t2 = { .name = "eeprom test", .fn = test_eeprom };
 test_t t3 = { .name = "rtc date/time test", .fn = rtc_date_time_test };
-test_t t4 = { .name = "rtc alarm test", .fn = rtc_alarm_test };
-test_t t5 = { .name = "antenna read test", .fn = antenna_read_test };
+test_t t4 = { .name = "antenna read test", .fn = antenna_read_test };
 
-test_t* suite[] = { &t1, &t2, &t3, &t4, &t5 };
+test_t* suite[] = { &t1, &t2, &t3, &t4 };
 
 int main(void) {
     init_obc_phase1_core();
