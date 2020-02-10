@@ -318,12 +318,12 @@ cmd_t* cmd_opcode_to_cmd(uint8_t opcode) {
     return &nop_cmd;
 }
 
-// TODO read raw bytes
 mem_section_t* mem_section_for_cmd(cmd_t* cmd) {
     if (cmd == &get_cur_block_nums_cmd ||
             cmd == &read_data_block_cmd ||
             cmd == &read_prim_cmd_blocks_cmd ||
-            cmd == &read_sec_cmd_blocks_cmd) {
+            cmd == &read_sec_cmd_blocks_cmd ||
+            cmd == &read_raw_mem_bytes_cmd) {
         return &sec_cmd_log_mem_section;
     } else {
         return &prim_cmd_log_mem_section;
