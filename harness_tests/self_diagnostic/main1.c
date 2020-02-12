@@ -143,7 +143,7 @@ void antenna_read_test(void) {
     ASSERT_TRUE(ret);
     ASSERT_EQ(mode, 0);
     ASSERT_EQ(timer_s, 0);
-    ASSERT_EQ(i2c_status, 0);
+    ASSERT_EQ(i2c_status, I2C_SUCCESS);
     for (uint8_t i = 0; i < 4; i++) {
         ASSERT_EQ(door_positions[i], 0);
         ASSERT_EQ(main_heaters[i], 0);
@@ -161,6 +161,7 @@ test_t t4 = { .name = "antenna read test", .fn = antenna_read_test };
 test_t* suite[] = { &t1, &t2, &t3, &t4 };
 
 int main(void) {
+    WDT_OFF();
     init_obc_phase1_core();
     run_tests(suite, sizeof(suite) / sizeof(suite[0]));
     return 0;

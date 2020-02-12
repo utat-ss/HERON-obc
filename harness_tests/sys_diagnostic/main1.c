@@ -45,10 +45,14 @@ void pay_hk_test(void){
     }
 }
 
-/* Sends a message to request data from all PAY Optical fields and
-    verifies that data is sent back when expected */
+/* Sends a message to request data from PAY Optical fields and verifies that
+data is sent back when expected. Only send the first field (0) and last field
+(63) because it take a long time */
 void pay_opt_test(void){
-    for (uint8_t field = 0; field < CAN_PAY_OPT_TOT_FIELD_COUNT; field++){
+    for (uint8_t field = 0;
+        field < CAN_PAY_OPT_TOT_FIELD_COUNT;
+        field += (CAN_PAY_OPT_TOT_FIELD_COUNT - 1)){
+
         uint8_t msg[8] = {0x00};
         enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_OPT, field, 0);
         send_next_pay_tx_msg();
@@ -142,8 +146,10 @@ test_t t5 = { .name = "EPS Reset Test", .fn = eps_reset_test };
 test_t* suite[] = { &t1, &t2, &t3, &t4, &t5 };
 
 int main(void) {
+    WDT_OFF();
     init_obc_phase1_core();
     init_hb(HB_OBC);
+
     run_tests(suite, sizeof(suite) / sizeof(suite[0]));
     return 0;
 }

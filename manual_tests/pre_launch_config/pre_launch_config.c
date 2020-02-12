@@ -72,6 +72,7 @@ void config_trans(void) {
     set_trans_beacon_period(TRANS_BEACON_DEF_PERIOD_S);
     set_trans_src_call_sign("ABCDEF");
     set_trans_dest_call_sign("ABCDEF");
+    turn_off_trans_beacon();
 
     // Check we can still read status and it is OK
     uint8_t rssi = 0;
@@ -86,6 +87,7 @@ void config_trans(void) {
 
 
 int main(void){
+    WDT_OFF();
     init_obc_phase1_core();
 
     print("\n\n");
