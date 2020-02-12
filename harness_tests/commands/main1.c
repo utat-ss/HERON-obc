@@ -212,7 +212,7 @@ void mem_commands_test(void) {
     }
 
     // Set the start address to an out of range address
-    enqueue_cmd(42, &set_mem_sec_start_addr_cmd, 1, 0x600001);  // TODO: Command implementation needs to be fixed to check for out of bounds
+    enqueue_cmd(42, &set_mem_sec_start_addr_cmd, 1, 0x600001);
     execute_next_cmd();
     ASSERT_TRUE(trans_tx_dec_avail);
     ASSERT_EQ(obc_hk_mem_section.start_addr, 0x3e8);

@@ -124,8 +124,8 @@ typedef struct {
 // (time between timer callbacks, in seconds)
 #define OBC_HK_AUTO_DATA_COL_PERIOD     600
 #define EPS_HK_AUTO_DATA_COL_PERIOD     600
-#define PAY_HK_AUTO_DATA_COL_PERIOD     1200
-#define PAY_OPT_AUTO_DATA_COL_PERIOD    7200
+#define PAY_HK_AUTO_DATA_COL_PERIOD     600
+#define PAY_OPT_AUTO_DATA_COL_PERIOD    3600
 
 // Beacon enables in EEPROM
 #define BEACON_ENABLE_1_EEPROM_ADDR                 0x110
