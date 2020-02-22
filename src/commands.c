@@ -308,8 +308,8 @@ void read_obc_eeprom_fn(void) {
 }
 
 void erase_obc_eeprom_fn(void) {
-    write_eeprom((uint16_t) current_cmd_arg2, EEPROM_DEF_DWORD);
-    
+    write_eeprom((uint16_t) current_cmd_arg1, EEPROM_DEF_DWORD);
+
     add_def_trans_tx_dec_msg(CMD_RESP_STATUS_OK);
     finish_current_cmd(CMD_RESP_STATUS_OK);
 }
