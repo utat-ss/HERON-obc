@@ -740,14 +740,14 @@ void append_fields_to_tx_msg(uint32_t* fields, uint8_t num_fields) {
 
 void init_auto_data_col(void) {
     obc_hk_data_col.auto_enabled = read_eeprom_or_default(
-        OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
+        OBC_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 1);
     eps_hk_data_col.auto_enabled = read_eeprom_or_default(
-        EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
+        EPS_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 1);
     pay_hk_data_col.auto_enabled = read_eeprom_or_default(
-        PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
+        PAY_HK_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 1);
     pay_opt_data_col.auto_enabled = read_eeprom_or_default(
-        PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 0);
-    
+        PAY_OPT_AUTO_DATA_COL_ENABLED_EEPROM_ADDR, 1);
+
     obc_hk_data_col.auto_period = read_eeprom_or_default(
         OBC_HK_AUTO_DATA_COL_PERIOD_EEPROM_ADDR, OBC_HK_AUTO_DATA_COL_PERIOD);
     eps_hk_data_col.auto_period = read_eeprom_or_default(
