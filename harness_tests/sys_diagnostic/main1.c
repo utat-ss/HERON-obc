@@ -12,13 +12,13 @@ void eps_hk_test(void){
         enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_HK, field, 0);
         send_next_eps_tx_msg();
         /* Delay to give time to send and receive message */
-        _delay_ms(100);
+        _delay_ms(1000);
         ASSERT_FALSE(queue_empty(&data_rx_msg_queue));
         dequeue(&data_rx_msg_queue, msg);
-        ASSERT_EQ(msg[0], 0x00);
-        ASSERT_EQ(msg[1], 0x00);
-        ASSERT_EQ(msg[2], CAN_EPS_HK);
-        ASSERT_EQ(msg[3], field);
+        ASSERT_EQ(msg[0], CAN_EPS_HK);
+        ASSERT_EQ(msg[1], field);
+        ASSERT_EQ(msg[2], CAN_STATUS_OK);
+        ASSERT_EQ(msg[3], 0x00);
         /* Assert that data portion of message is not all zero */
         ASSERT_NEQ(msg[4] | msg[5]| msg[6] | msg[7], 0x00);
     }
@@ -33,13 +33,13 @@ void pay_hk_test(void){
         enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_HK, field, 0);
         send_next_pay_tx_msg();
         /* Delay to give time to send and receive message */
-        _delay_ms(100);
+        _delay_ms(1000);
         ASSERT_FALSE(queue_empty(&data_rx_msg_queue));
         dequeue(&data_rx_msg_queue, msg);
-        ASSERT_EQ(msg[0], 0x00);
-        ASSERT_EQ(msg[1], 0x00);
-        ASSERT_EQ(msg[2], CAN_PAY_HK);
-        ASSERT_EQ(msg[3], field);
+        ASSERT_EQ(msg[0], CAN_PAY_HK);
+        ASSERT_EQ(msg[1], field);
+        ASSERT_EQ(msg[2], CAN_STATUS_OK);
+        ASSERT_EQ(msg[3], 0x00);
         /* Assert that data portion of message is not all zero */
         ASSERT_NEQ(msg[4] | msg[5]| msg[6] | msg[7], 0x00);
     }
@@ -57,13 +57,13 @@ void pay_opt_test(void){
         enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_OPT, field, 0);
         send_next_pay_tx_msg();
         /* Delay to give time to send and receive message */
-        _delay_ms(100);
+        _delay_ms(10000);
         ASSERT_FALSE(queue_empty(&data_rx_msg_queue));
         dequeue(&data_rx_msg_queue, msg);
-        ASSERT_EQ(msg[0], 0x00);
-        ASSERT_EQ(msg[1], 0x00);
-        ASSERT_EQ(msg[2], CAN_PAY_OPT);
-        ASSERT_EQ(msg[3], field);
+        ASSERT_EQ(msg[0], CAN_PAY_OPT);
+        ASSERT_EQ(msg[1], field);
+        ASSERT_EQ(msg[2], CAN_STATUS_OK);
+        ASSERT_EQ(msg[3], 0x00);
         /* Assert that data portion of message is not all zero */
         ASSERT_NEQ(msg[4] | msg[5]| msg[6] | msg[7], 0x00);
     }

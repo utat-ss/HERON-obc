@@ -41,6 +41,29 @@ void populate_bytes(uint8_t* bytes, uint8_t value, uint8_t count) {
 }
 
 
+void restart_info_test(void){
+    ASSERT_GREATER(uptime_s, 1); /* 1 second */
+    ASSERT_LESS(uptime_s, 60); /* 60 seconds */
+
+    ASSERT_EQ(restart_count, 1);
+
+    ASSERT_EQ(restart_reason, UPTIME_RESTART_REASON_EXTRF);
+
+    ASSERT_GREATER(restart_date.yy + 1, 0);
+    ASSERT_LESS(restart_date.yy, 99 + 1);
+    ASSERT_GREATER(restart_date.mm + 1, 1);
+    ASSERT_LESS(restart_date.mm, 12 + 1);
+    ASSERT_GREATER(restart_date.dd + 1, 1);
+    ASSERT_LESS(restart_date.dd, 31 + 1);
+
+    ASSERT_GREATER(restart_time.hh + 1, 0);
+    ASSERT_LESS(restart_time.hh, 23 + 1);
+    ASSERT_GREATER(restart_time.mm + 1, 0);
+    ASSERT_LESS(restart_time.mm, 59 + 1);
+    ASSERT_GREATER(restart_time.ss + 1, 0);
+    ASSERT_LESS(restart_time.ss, 59 + 1);
+}
+
 /* Write and read from each chip in flash memory to verify
   that all are working as expected */
 void read_write_erase_mem_test(void){
@@ -119,7 +142,6 @@ void rtc_date_time_test(void){
     }
 }
 
-
 // ONLY READ, NOT WRITE
 void antenna_read_test(void) {
     print("Reading antenna data in 5 seconds...\n");
@@ -153,12 +175,14 @@ void antenna_read_test(void) {
     print("Done reading\n");
 }
 
-test_t t1 = { .name = "read/write mem test", .fn = read_write_erase_mem_test };
-test_t t2 = { .name = "eeprom test", .fn = test_eeprom };
-test_t t3 = { .name = "rtc date/time test", .fn = rtc_date_time_test };
-test_t t4 = { .name = "antenna read test", .fn = antenna_read_test };
 
-test_t* suite[] = { &t1, &t2, &t3, &t4 };
+test_t t1 = { .name = "restart info test", .fn = restart_info_test };
+test_t t2 = { .name = "read/write mem test", .fn = read_write_erase_mem_test };
+test_t t3 = { .name = "eeprom test", .fn = test_eeprom };
+test_t t4 = { .name = "rtc date/time test", .fn = rtc_date_time_test };
+test_t t5 = { .name = "antenna read test", .fn = antenna_read_test };
+
+test_t* suite[] = { &t1, &t2, &t3, &t4, &t5 };
 
 int main(void) {
     WDT_OFF();
