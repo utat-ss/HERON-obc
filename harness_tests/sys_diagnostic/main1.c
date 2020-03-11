@@ -12,7 +12,9 @@ void eps_hk_test(void){
         enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_HK, field, 0);
         send_next_eps_tx_msg();
         /* Delay to give time to send and receive message */
-        _delay_ms(1000);
+        for (uint32_t i = 0; i < 1000 && queue_empty(&data_rx_msg_queue); i++) {
+            _delay_ms(1);
+        }
         ASSERT_FALSE(queue_empty(&data_rx_msg_queue));
         dequeue(&data_rx_msg_queue, msg);
         ASSERT_EQ(msg[0], CAN_EPS_HK);
@@ -33,7 +35,9 @@ void pay_hk_test(void){
         enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_HK, field, 0);
         send_next_pay_tx_msg();
         /* Delay to give time to send and receive message */
-        _delay_ms(1000);
+        for (uint32_t i = 0; i < 1000 && queue_empty(&data_rx_msg_queue); i++) {
+            _delay_ms(1);
+        }
         ASSERT_FALSE(queue_empty(&data_rx_msg_queue));
         dequeue(&data_rx_msg_queue, msg);
         ASSERT_EQ(msg[0], CAN_PAY_HK);
@@ -57,7 +61,9 @@ void pay_opt_test(void){
         enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_OPT, field, 0);
         send_next_pay_tx_msg();
         /* Delay to give time to send and receive message */
-        _delay_ms(10000);
+        for (uint32_t i = 0; i < 15000 && queue_empty(&data_rx_msg_queue); i++) {
+            _delay_ms(1);
+        }
         ASSERT_FALSE(queue_empty(&data_rx_msg_queue));
         dequeue(&data_rx_msg_queue, msg);
         ASSERT_EQ(msg[0], CAN_PAY_OPT);
@@ -111,29 +117,6 @@ void eps_reset_test(void){
 
     ASSERT_EQ(eps_hb_dev.restart_count, stale_num_restarts + 1);
     ASSERT_EQ(eps_hb_dev.restart_reason, UPTIME_RESTART_REASON_EXTRF);
-}
-
-/* Send message to invalid field and verify that no response is received */
-void send_invalid_command_test(void){
-    /* Send message to invalid field within PAY ctrl */
-    uint32_t data = 0x00;
-    enqueue_tx_msg(&pay_tx_msg_queue, CAN_PAY_CTRL, CAN_PAY_CTRL_FIELD_COUNT + 1, data);
-    send_next_pay_tx_msg();
-    /* Delay to give time to send and receive message */
-    _delay_ms(100);
-    ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
-
-    enqueue_tx_msg(&eps_tx_msg_queue, CAN_EPS_CTRL, -1, data);
-    send_next_eps_tx_msg();
-    /* Delay to give time to send and receive message */
-    _delay_ms(100);
-    ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
-
-    /* 0x10 is an invalid message type */
-    enqueue_tx_msg(&pay_tx_msg_queue, 0x10, 0x01, data);
-    send_next_pay_tx_msg();
-    _delay_ms(100);
-    ASSERT_TRUE(queue_empty(&data_rx_msg_queue));
 }
 
 
