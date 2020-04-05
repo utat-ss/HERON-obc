@@ -101,10 +101,10 @@ typedef struct {
 // When a command is automatically enqueued by OBC
 #define CMD_CMD_ID_AUTO_ENQUEUED        0x0000
 
-#define CMD_TIMEOUT_DEF_PERIOD_S            60
+#define CMD_TIMEOUT_DEF_PERIOD_S            20
 // Maximum number of seconds between fields of a collect data block command
 // before it times out
-#define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S  15
+#define CMD_COL_DATA_BLOCK_FIELD_TIMEOUT_S  20
 
 
 // Max number of command log blocks
