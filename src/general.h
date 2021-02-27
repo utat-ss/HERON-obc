@@ -43,6 +43,4 @@ void init_obc_phase2(void);
 void init_phase2_delay(void);
 void run_phase2_delay(void);
 
-void set_def_trans_beacon_content(void);
-
 #endif
