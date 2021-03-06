@@ -68,7 +68,6 @@ void config_trans(void) {
 
     set_trans_scw(TRANS_DEF_SCW);
     set_trans_freq(TRANS_DEF_FREQ);
-    set_def_trans_beacon_content();
     set_trans_beacon_period(TRANS_BEACON_DEF_PERIOD_S);
     set_trans_src_call_sign("ABCDEF");
     set_trans_dest_call_sign("ABCDEF");

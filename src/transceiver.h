@@ -72,7 +72,7 @@ boot = 0b0 (application mode)
 #define TRANS_DEF_FREQ 0x76620F41UL
 
 // Default beacon parameters
-#define TRANS_BEACON_DEF_PERIOD_S   60
+#define TRANS_BEACON_DEF_PERIOD_S   65535
 
 
 
