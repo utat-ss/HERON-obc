@@ -5,7 +5,7 @@ int main(void) {
     WDT_ENABLE_SYS_RESET(WDTO_8S);
 
     init_obc_phase1_core();
-    print("\n\nOBC main init\n\n");
+    print("\n\nOBC main init (no dep version)\n\n");
     init_obc_phase1_comms();
     init_hb(HB_OBC);
     

@@ -96,13 +96,13 @@ void run_phase2_delay(void) {
 
             // This message will be seen once if the done flag was already set
             // in EEPROM
-            print("Delay: %lu/%lu s elapsed\n", uptime_s, phase2_delay.period_s);
+            print("Delay: %lu/%lu s elapsed (no dep version)\n", uptime_s, phase2_delay.period_s);
         }
 
         if (uptime_s >= phase2_delay.period_s) {
             phase2_delay.done = true;
             write_eeprom(PHASE2_DELAY_DONE_EEPROM_ADDR, PHASE2_DELAY_DONE_FLAG);
-            print("Phase 2 delay done\n");
+            print("Phase 2 delay done (no dep version)\n");
         }
 
         if (!phase2_delay.done) {
