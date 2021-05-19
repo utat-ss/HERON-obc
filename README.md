@@ -1,2 +1,5 @@
 # obc
-This repository contains the code that will run on the main onboard computer of Heron Mk II.
+
+This repository contains the code that runs on the main onboard computer (OBC).
+
+Detailed notes and instructions are in the [lib-common](https://github.com/HeronMkII/lib-common) repository's README.
